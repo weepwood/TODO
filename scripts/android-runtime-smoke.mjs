@@ -59,8 +59,11 @@ try{
  await retry(async()=>{const s=await store(page);assert.equal(s.tasks.filter(t=>t.title===title&&t.points===10).length,1)});
  pass('UI task creation, signed points and real SQLite IPC');
  screenshot('01-task-created');
- await page.locator('.task-body').filter({hasText:title}).click();
+ // Quick add selects the new task and opens its full-screen mobile detail.
+ // Assert the actual selected task, rather than clicking the obscured list.
  await expect(page.locator('.details')).toBeVisible();
+ await expect(page.locator('.details').getByRole('textbox',{name:'任务标题'})).toHaveValue(title);
+ await expect(page.locator('.details').getByRole('spinbutton',{name:'任务积分'})).toHaveValue('10');
  adb('shell','input','keyevent','4');
  await expect(page.locator('.details')).toHaveCount(0,{timeout:10000});
  pass('Android system Back closes detail through native bridge');

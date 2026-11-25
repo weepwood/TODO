@@ -294,3 +294,7 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 ### V1.2 Android 依赖兼容性修复
 - 基线 7cd5cf6；Pages 45576539830 成功。Android ARM64 45576539770 与模拟器 45576539811 均在 Tauri CLI 版本检查阶段失败：Rust process 2.4.0 与 npm process 2.3.1 的 minor 不一致，未进入实际原生编译。将 npm process 精确升级至 2.4.0，使用 npm 更新锁文件，仅相关依赖变化，增加 process/updater 的 Rust 与 npm major/minor 一致性专项回归。
 - 重新连接 Mac，仓库级 Actions Secrets 与 Variables 数量均为 0；未确认任何现有私钥，未生成、读取或上传私钥，不降低签名门禁。原工作区保持不变，修复在外置独立 worktree 完成。Android 原生编译及覆盖升级以新 CI 和真实设备验收为准。
+
+### V1.2 签名配置与 Android 运行验收补充
+- 基线 b090ae9，Pages 45577761685 成功。用户在本机完成签名配置，已只读核实四个 Actions Secrets 和两个 Variables 存在，公开公钥与证书指纹均与本地一致；未读取远端 Secret 值，实际签名与升级未验收。
+- ARM64 45577761607 在 Maven Central 请求 Kotlin 依赖时收到 HTTP 429，未进入原生编译；不调整依赖或降低门禁。模拟器 45577761667 已完成真实 APK 编译、安装、Activity 启动及任务积分 SQLite IPC，但测试脚本重复点击被自动打开详情覆盖的任务行超时。改为断言新任务详情标题及积分，再以真实 Android Back 检查关闭；模拟 IPC 浏览器测试增加同一流程回归。语法与 diff 检查通过，真实运行仍待新 CI；签名构建及正式 Release 保持门禁。
