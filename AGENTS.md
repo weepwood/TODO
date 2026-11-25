@@ -421,3 +421,8 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - PR #18 0d7dc46 全量浏览器CI 45619671512成功，合并85b34c1并同步正式main；新分支feat/v12-focus-appearance复用v12-detail-sections工作树。
 - appearance新增enhancedFocus严格布尔偏好（缺省false），根元素设置主题模式和输入方式，设置开关及恢复默认，独立focus-appearance.css去除鼠标重复描边/阴影并保留键盘焦点、forced-colors、校验与选中状态，不禁用无障碍语义。新增2项浏览器专项，覆盖缺省、鼠标与键盘、搜索、开启、持久化、恢复默认和强制颜色。
 - Web构建及8项专项浏览器测试通过（见artifacts/TODO/focus-appearance.log），人工审阅focus-quiet、focus-enhanced、focus-setting截图。未构建安装包、未新增依赖；最终完整PR CI待验收。
+
+### 悬浮辅助操作及分组编辑
+- PR #19 0ab7e9d 完整CI 45620425548通过，合并d3d5911，正式main同步；新分支feat/v12-detail-hover-icons。
+- 移除桌面拖动手柄灰底、鼠标离开后的残留显示；详情编辑按钮悬浮显示，触屏和键盘保留入口。组织与状态展示和下拉共用语义图标，增加现有分组创建及重命名入口，不改变数据结构。
+- Web生产构建通过，首轮专项8/9通过，新增悬浮、图标、创建/选择/重命名分组及刷新恢复测试通过。旧多选测试在Mac Ctrl+点击下失败，按平台修饰键ControlOrMeta复验；日志artifacts/TODO/hover-icons.log及hover-icons-retest.log。截图在复验清理test-results时被移除，未人工审查最新截图；完整CI待验收。未构建安装包。
