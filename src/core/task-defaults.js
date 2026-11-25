@@ -1,14 +1,16 @@
-import {newTask,shiftDay,validDate} from './domain.js';
+import {newTask,shiftDay,validDate,validTime} from './domain.js';
 import {taskConflicts} from './advanced.js';
 import {validPoints} from './points.js';
 export function normalizeTaskDefaults(value){
  const v=value||{};
- return {duration:Number.isInteger(v.duration)&&v.duration>=1&&v.duration<=1440?v.duration:30,priority:[0,1,2,3].includes(v.priority)?v.priority:0,points:validPoints(v.points)?v.points:0,date:['none','today','tomorrow'].includes(v.date)?v.date:'none',sectionId:typeof v.sectionId==='string'&&v.sectionId.length<=256?v.sectionId:null};
+ return {reminderTime:validTime(v.reminderTime)?v.reminderTime:'',duration:Number.isInteger(v.duration)&&v.duration>=1&&v.duration<=1440?v.duration:30,priority:[0,1,2,3].includes(v.priority)?v.priority:0,points:validPoints(v.points)?v.points:0,date:['none','today','tomorrow'].includes(v.date)?v.date:'none',sectionId:typeof v.sectionId==='string'&&v.sectionId.length<=256?v.sectionId:null};
 }
-export function captureProperties({parsed,list,today,date='',time='',sectionId,defaults}){
+export function captureProperties({parsed,list,today,date='',time='',sectionId,defaults,now=new Date()}){
  const pref=normalizeTaskDefaults(defaults),target=parsed.date||date||(pref.date==='today'?today:pref.date==='tomorrow'?shiftDay(today,1):'');
+ const candidate=validDate(target)&&pref.reminderTime?target+'T'+pref.reminderTime:'';
+ const reminderAt=candidate&&new Date(candidate)>now?candidate:'';
  const section=sectionId===undefined?pref.sectionId:sectionId;
- return {date:target,time:parsed.time||time,priority:parsed.priority||pref.priority,duration:pref.duration,...(parsed.points!==undefined||pref.points!==0?{points:parsed.points??pref.points}:{}),sectionId:list.sections?.some(s=>s.id===section)?section:null};
+ return {date:target,reminderAt,time:parsed.time||time,priority:parsed.priority||pref.priority,duration:pref.duration,...(parsed.points!==undefined||pref.points!==0?{points:parsed.points??pref.points}:{}),sectionId:list.sections?.some(s=>s.id===section)?section:null};
 }
 export function taskFromCapture(args){const props=captureProperties(args);return {...newTask(args.parsed.title,args.list.id,props.date),...props}}
 export function previewPostpone(tasks,ids,days){

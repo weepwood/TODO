@@ -208,3 +208,13 @@
 .template-create-dialog form>.field>span{white-space:nowrap}
 .template-create-dialog form>.field>input,.template-create-dialog form>.field>.smart-select-trigger,.template-create-dialog form>.field>.date-control{width:100%;min-width:0}
 @media(max-width:480px){.template-create-dialog form>.field{grid-template-columns:minmax(0,1fr);gap:6px}}
+.archive-toggle{margin-top:12px;color:var(--muted)}
+.sidebar .nested>small{display:block;padding:5px 8px;line-height:1.5}
+.snapshot-switch{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:none;color:var(--muted);font-size:var(--control-font)}
+.snapshot-switch .smart-select-trigger{flex:1;min-width:130px;max-width:100%}
+.snapshot-content pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.8;color:var(--text);margin:12px 0;padding:12px;background:var(--panel);border-radius:var(--radius-small)}
+.review-footer{gap:8px;flex-wrap:wrap}
+.history-filters{align-items:center;margin:0 0 12px;gap:8px}
+.history-date-field{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:var(--control-font)}
+.history-date-field>span{white-space:nowrap}
+@media(max-width:480px){.history-filters .smart-select-trigger{min-width:0;max-width:100%}.history-date-field{flex:1 1 130px}}
