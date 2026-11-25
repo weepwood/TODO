@@ -41,3 +41,21 @@ export async function nativeRecoveryPayload(uid){
 export function nativeTestNotification(){return invoke("native_test_notification")}
 
 export function nativeOpenCapture(){return invoke('native_open_capture')}
+
+// Main is the only writer. A request remains pending until Rust verifies its
+// UUID in the committed SQLite snapshot; retrying cannot append a second task.
+export function useDirectCapture({uid,storage,data,blocked,edit,onSaved}){
+ const latest=useRef(null);latest.current={data,blocked,edit,onSaved};const inFlight=useRef(false);
+ useEffect(()=>{if(!native||!storage?.flush)return;let disposed=false;
+ const scope=uid||'guest';const poll=async()=>{if(disposed||inFlight.current)return;inFlight.current=true;
+ try{const req=await invoke('native_direct_pending',{scope});if(disposed||!req||req.scope!==scope||latest.current.blocked)return;
+ if(!latest.current.data.tasks.some(t=>t.id===req.id)){
+  const {quickParse}=await import('./advanced.js');const {newTask,dayKey}=await import('./domain.js');
+  if(disposed||latest.current.blocked)return;const parsed=quickParse(req.text,dayKey());if(!parsed.title)return;
+  const task={...newTask(parsed.title,'inbox',parsed.date,req.id),time:parsed.time,priority:parsed.priority};
+  latest.current.edit(d=>d.tasks.some(t=>t.id===req.id)?d:{...d,tasks:[...d.tasks,task]});return;
+ }
+ if(await storage.flush()&&!disposed&&await invoke('native_direct_ack',{scope,generation:req.generation,id:req.id}))latest.current.onSaved();
+ }catch{}finally{inFlight.current=false}};
+ const timer=setInterval(poll,1000);poll();return()=>{disposed=true;clearInterval(timer)}},[uid,storage]);
+}

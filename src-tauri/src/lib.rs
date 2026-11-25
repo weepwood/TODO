@@ -9,18 +9,29 @@ struct Database(Mutex<Connection>);
 struct ActiveScope(Mutex<Option<String>>);
 // The secondary window owns no workspace. It can hand a bounded draft to the
 // main window only while the same active scope and capture generation remain valid.
+#[derive(Clone,serde::Serialize)]
+struct DirectCapture{scope:String,generation:u64,id:String,text:String,saved:bool}
 #[derive(Default)]
-struct CaptureState{generation:u64,scope:Option<String>,pending:Option<(String,String)>,open_main:bool}
+struct CaptureState{generation:u64,scope:Option<String>,pending:Option<(String,String)>,open_main:bool,direct:Option<DirectCapture>}
 impl CaptureState{
- fn begin(&mut self,scope:&str)->u64{self.generation=self.generation.wrapping_add(1);self.scope=Some(scope.into());self.generation}
- fn invalidate(&mut self){self.generation=self.generation.wrapping_add(1);self.scope=None;self.pending=None;self.open_main=false}
+ fn begin(&mut self,scope:&str)->u64{self.generation=self.generation.wrapping_add(1);self.scope=Some(scope.into());self.direct=None;self.generation}
+ fn invalidate(&mut self){self.generation=self.generation.wrapping_add(1);self.scope=None;self.pending=None;self.open_main=false;self.direct=None}
  fn handoff(&mut self,scope:&str,generation:u64,text:&str)->Result<(),String>{
   let text=text.trim();
   if self.scope.as_deref()!=Some(scope)||self.generation!=generation{return Err("录入会话已失效，请重新打开".into())}
   if text.is_empty()||text.chars().count()>500{return Err("请输入 1–500 字的任务草稿".into())}
-  if self.pending.is_some(){return Err("主窗口尚有待确认草稿".into())}
+  if self.pending.is_some()||self.direct.is_some(){return Err("主窗口尚有待确认请求".into())}
   self.pending=Some((scope.into(),text.into()));self.scope=None;Ok(())
  }
+ fn submit_direct(&mut self,scope:&str,generation:u64,id:&str,text:&str)->Result<(),String>{
+  let text=text.trim();
+  if self.scope.as_deref()!=Some(scope)||self.generation!=generation{return Err("录入会话已失效".into())}
+  if id.len()!=36||!id.bytes().enumerate().all(|(i,b)|if [8,13,18,23].contains(&i){b==b'-'}else{b.is_ascii_hexdigit()})||text.is_empty()||text.chars().count()>500{return Err("无效录入请求".into())}
+  if let Some(d)=&self.direct{if d.id==id&&d.text==text&&d.generation==generation{return Ok(())}return Err("已有录入请求，请等待保存结果".into())}
+  if self.pending.is_some(){return Err("已有待确认草稿".into())}
+  self.direct=Some(DirectCapture{scope:scope.into(),generation,id:id.into(),text:text.into(),saved:false});Ok(())
+ }
+
  fn take(&mut self,scope:&str)->Option<String>{
   if self.pending.as_ref().is_some_and(|(owner,_)|owner==scope){self.open_main=false;return self.pending.take().map(|(_,text)|text)}
   if self.open_main{self.open_main=false;return Some(String::new())}None
@@ -40,7 +51,7 @@ fn reset_capture_window(app:&tauri::AppHandle){if let Some(w)=app.get_webview_wi
 fn request_quick_capture(app:&tauri::AppHandle){
  let active=app.state::<ActiveScope>();let capture=app.state::<QuickCapture>();
  let decision=if let (Ok(current),Ok(mut state))=(active.0.lock(),capture.0.lock()){
-  if let Some(scope)=current.as_deref(){if state.pending.is_none(){let reset=state.scope.as_deref()!=Some(scope);if reset{state.begin(scope);}Some(reset)}else{None}}else{None}
+  if let Some(scope)=current.as_deref(){if state.pending.is_none(){let reset=state.scope.as_deref()!=Some(scope)||state.direct.as_ref().is_some_and(|d|d.saved);if reset{state.begin(scope);}Some(reset)}else{None}}else{None}
  }else{None};
  let opened=if let (Some(reset),Some(w))=(decision,app.get_webview_window("capture")){
   if reset{let _=app.emit_to("capture","todo-capture-reset",());}
@@ -62,8 +73,37 @@ fn native_capture_handoff(generation:u64,text:String,pending:tauri::State<QuickC
 }
 #[tauri::command]
 fn native_capture_cancel(pending:tauri::State<QuickCapture>,app:tauri::AppHandle)->Result<(),String>{
- {let mut state=pending.0.lock().map_err(|e|e.to_string())?;state.scope=None;state.generation=state.generation.wrapping_add(1);}
+ {let mut state=pending.0.lock().map_err(|e|e.to_string())?;if state.direct.as_ref().is_some_and(|d|!d.saved){return Err("任务正在保存，请等待结果".into())}state.invalidate();}
  reset_capture_window(&app);Ok(())
+}
+
+#[tauri::command]
+fn native_capture_submit_direct(generation:u64,id:String,text:String,pending:tauri::State<QuickCapture>,active:tauri::State<ActiveScope>)->Result<(),String>{
+ let current=active.0.lock().map_err(|e|e.to_string())?;let scope=current.as_deref().ok_or("工作空间尚未就绪")?;
+ pending.0.lock().map_err(|e|e.to_string())?.submit_direct(scope,generation,&id,&text)
+}
+#[tauri::command]
+fn native_capture_direct_status(generation:u64,pending:tauri::State<QuickCapture>)->String{
+ let Ok(state)=pending.0.lock()else{return "unavailable".into()};if state.generation!=generation||state.scope.is_none(){return "expired".into()}
+ match &state.direct{Some(d) if d.saved=>"saved",Some(_)=>"pending",None=>"idle"}.into()
+}
+#[tauri::command]
+fn native_direct_pending(scope:String,pending:tauri::State<QuickCapture>,active:tauri::State<ActiveScope>)->Result<Option<DirectCapture>,String>{
+ let current=active.0.lock().map_err(|e|e.to_string())?;if current.as_deref()!=Some(&scope){return Ok(None)}
+ Ok(pending.0.lock().map_err(|e|e.to_string())?.direct.as_ref().filter(|d|d.scope==scope&&!d.saved).cloned())
+}
+#[tauri::command]
+fn native_direct_ack(scope:String,generation:u64,id:String,pending:tauri::State<QuickCapture>,active:tauri::State<ActiveScope>,db:tauri::State<Database>)->Result<bool,String>{
+ let current=active.0.lock().map_err(|e|e.to_string())?;if current.as_deref()!=Some(&scope){return Ok(false)}
+ let mut state=pending.0.lock().map_err(|e|e.to_string())?;
+ let Some(d)=state.direct.as_mut().filter(|d|d.scope==scope&&d.generation==generation&&d.id==id)else{return Ok(false)};
+ let c=db.0.lock().map_err(|e|e.to_string())?;
+ let exists=direct_task_exists(&c,&scope,&id).map_err(|e|e.to_string())?;
+ if exists{d.saved=true}Ok(exists)
+}
+
+fn direct_task_exists(c:&Connection,scope:&str,id:&str)->rusqlite::Result<bool>{
+ c.query_row("SELECT EXISTS(SELECT 1 FROM snapshots,json_each(body,'$.tasks') WHERE scope=?1 AND json_extract(value,'$.id')=?2)",params![scope,id],|r|r.get(0))
 }
 
 fn valid_scope(s:&str)->bool { s=="guest" || (s.len()==36 && s.chars().all(|c|c.is_ascii_hexdigit()||c=='-')) }
@@ -270,7 +310,7 @@ pub fn run(){
  .plugin(tauri_plugin_single_instance::init(|app,_,_|show(app)))
  .plugin(tauri_plugin_notification::init())
  .plugin(tauri_plugin_global_shortcut::Builder::new().with_handler(|app,_,event|{if event.state()==ShortcutState::Pressed{request_quick_capture(app);}}).build())
- .invoke_handler(tauri::generate_handler![native_load,native_save,native_load_store,native_write_store,native_activate,native_search,native_list_backups,native_read_backup,native_create_backup,native_notify,native_exit,native_test_notification,native_take_quick_capture,native_shortcut_status,native_open_capture,native_capture_generation,native_capture_handoff,native_capture_cancel])
+ .invoke_handler(tauri::generate_handler![native_load,native_save,native_load_store,native_write_store,native_activate,native_search,native_list_backups,native_read_backup,native_create_backup,native_notify,native_exit,native_test_notification,native_take_quick_capture,native_shortcut_status,native_open_capture,native_capture_generation,native_capture_handoff,native_capture_cancel,native_capture_submit_direct,native_capture_direct_status,native_direct_pending,native_direct_ack])
  .setup(|app|{
   let path=app.path().app_data_dir()?;std::fs::create_dir_all(&path)?;let c=Connection::open(path.join("todo.sqlite3"))?;schema(&c)?;
   app.manage(Database(Mutex::new(c)));app.manage(ActiveScope(Mutex::new(None)));app.manage(QuickCapture(Mutex::new(CaptureState::default())));app.manage(ShortcutStatus(Mutex::new("not-registered".into())));
@@ -284,7 +324,7 @@ pub fn run(){
   }
   if let Some(w)=app.get_webview_window("main"){restore_window(&w);}schedule(app.handle().clone());Ok(())
  })
- .on_window_event(|window,event|{if let WindowEvent::CloseRequested{api,..}=event{api.prevent_close();if window.label()=="capture"{let app=window.app_handle();if let Ok(mut state)=app.state::<QuickCapture>().0.lock(){state.scope=None;state.generation=state.generation.wrapping_add(1);}reset_capture_window(app);}else if window.label()=="main"{if let Some(w)=window.app_handle().get_webview_window("main"){save_window(&w);}let _=window.hide();}}})
+ .on_window_event(|window,event|{if let WindowEvent::CloseRequested{api,..}=event{api.prevent_close();if window.label()=="capture"{let app=window.app_handle();if let Ok(mut state)=app.state::<QuickCapture>().0.lock(){if !state.direct.as_ref().is_some_and(|d|!d.saved){state.invalidate();}}if let Some(w)=app.get_webview_window("capture"){let _=w.hide();}}else if window.label()=="main"{if let Some(w)=window.app_handle().get_webview_window("main"){save_window(&w);}let _=window.hide();}}})
  .run(tauri::generate_context!()).expect("TODO native application failed")
 }
 #[cfg(test)]mod tests{
@@ -295,6 +335,22 @@ pub fn run(){
  assert!(c.handoff("guest",generation,"   ").is_err());c.handoff("guest",generation," hello ").unwrap();
  assert!(c.handoff("guest",generation,"duplicate").is_err());assert!(c.take("other").is_none());assert_eq!(c.take("guest"),Some("hello".into()));assert!(c.take("guest").is_none());
  let generation=c.begin("guest");c.invalidate();assert!(c.handoff("guest",generation,"stale").is_err());
+ }
+ #[test]fn direct_receipt_requires_committed_task_in_correct_scope(){
+ let mut c=Connection::open_in_memory().unwrap();schema(&c).unwrap();
+ let id="00000000-0000-4000-8000-000000000021";
+ assert!(!direct_task_exists(&c,"guest",id).unwrap());
+ let state=serde_json::json!({"version":2,"tasks":[{"id":id,"title":"test","notes":""}]}).to_string();
+ save(&mut c,"guest",&state).unwrap();
+ assert!(direct_task_exists(&c,"guest",id).unwrap());
+ assert!(!direct_task_exists(&c,"00000000-0000-4000-8000-000000000001",id).unwrap());
+ }
+ #[test]fn direct_capture_retries_keep_same_identity(){
+ let mut c=CaptureState::default();let g=c.begin("guest");let id="00000000-0000-4000-8000-000000000001";
+ assert!(c.submit_direct("other",g,id,"test").is_err());assert!(c.submit_direct("guest",g,"invalid","test").is_err());
+ c.submit_direct("guest",g,id,"test").unwrap();c.submit_direct("guest",g,id,"test").unwrap();
+ assert!(c.submit_direct("guest",g,id,"different").is_err());assert!(c.handoff("guest",g,"other").is_err());
+ assert!(!c.direct.as_ref().unwrap().saved);c.invalidate();assert!(c.direct.is_none());assert!(c.submit_direct("guest",g,id,"test").is_err());
  }
  #[test]fn reminder_retry_persists_backoff_and_deduplicates(){
   let c=Connection::open_in_memory().unwrap();schema(&c).unwrap();

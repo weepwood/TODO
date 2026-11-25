@@ -21,6 +21,8 @@
     "allow-native-search",
     "allow-native-notify",
     "allow-native-exit",
-    "allow-native-test-notification"
+    "allow-native-test-notification",
+    "allow-native-direct-pending",
+    "allow-native-direct-ack"
   ]
 }

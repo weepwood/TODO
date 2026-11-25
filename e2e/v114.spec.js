@@ -22,7 +22,7 @@ test('独立录入页仅通过受限 IPC 交接草稿（模拟 IPC）',async({pa
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.documentElement.scrollHeight<=innerHeight)).toBe(true);await page.screenshot({path:'test-results/v114-capture.png',animations:'disabled'});
  await page.getByRole('button',{name:'在主窗口确认'}).click();await expect(page.getByLabel('任务内容')).toHaveValue('');
  const calls=await page.evaluate(()=>window.__calls);expect(calls.find(x=>x.cmd==='native_capture_handoff').args).toEqual({generation:7,text:'录入验收 明天 09:30 !2'});
- expect(calls.every(x=>['plugin:event|listen','native_capture_generation','native_capture_handoff'].includes(x.cmd))).toBe(true);
+ expect(calls.every(x=>['plugin:event|listen','native_capture_generation','native_capture_handoff','native_capture_direct_status'].includes(x.cmd))).toBe(true);
 });
 test('非桌面页面不启用独立录入 IPC',async({page})=>{
  await page.goto('/capture.html');await expect(page.getByText('独立录入仅适用于 TODO 桌面版。')).toBeVisible();await expect(page.getByRole('button',{name:'在主窗口确认'})).toHaveCount(0);

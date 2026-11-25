@@ -9,6 +9,8 @@
     "core:event:allow-unlisten",
     "allow-native-capture-generation",
     "allow-native-capture-handoff",
-    "allow-native-capture-cancel"
+    "allow-native-capture-cancel",
+    "allow-native-capture-submit-direct",
+    "allow-native-capture-direct-status"
   ]
 }
