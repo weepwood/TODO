@@ -1,3 +1,4 @@
+import {chooseOption} from './select-helper.js';
 import {test,expect} from '@playwright/test';
 const uid='00000000-0000-4000-8000-000000000009';
 const host='https://xepkhnatnpvopnlqnrrz.supabase.co';
@@ -100,7 +101,7 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
   await b.page.keyboard.press('Escape');
   await b.page.getByRole('button',{name:'新建智能清单'}).click();
   await b.page.getByRole('textbox',{name:'智能清单名称'}).fill('同步智能清单');
-  await b.page.getByRole('combobox',{name:'匹配方式'}).selectOption('any');
+  await chooseOption(b.page.getByRole('combobox',{name:'匹配方式'}),'any');
   await b.page.getByRole('button',{name:'保存智能清单'}).click();
   await expect.poll(()=>row.state.smartLists?.some(f=>f.name==='同步智能清单'&&f.mode==='any')).toBe(true);
   await a.page.getByRole('button',{name:'设置',exact:true}).click();await a.page.getByRole('button',{name:'立即同步'}).click();await a.page.keyboard.press('Escape');

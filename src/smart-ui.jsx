@@ -1,3 +1,4 @@
+import {SmartSelect,SelectOption} from './components/SmartSelect.jsx';
 import React,{useState,useMemo} from 'react';
 import {Modal,Field} from './ui.jsx';
 import {emptyFilter,normalizeFilter,smartMatches} from './core/smart-lists.js';
@@ -6,7 +7,7 @@ export function SmartDialog({filter,data,today,onClose,onSave}){
  const [draft,setDraft]=useState(()=>({...emptyFilter,...filter}));
  const set=(k,v)=>setDraft(f=>({...f,[k]:v}));
  const count=useMemo(()=>data.tasks.filter(t=>smartMatches(t,normalizeFilter(draft),today)).length,[data.tasks,draft,today]);
- const select=(k,label,options)=><Field label={label}><select aria-label={label} value={draft[k]} onChange={e=>set(k,e.target.value)}>{options.map(([v,n])=><option key={v} value={v}>{n}</option>)}</select></Field>;
+ const select=(k,label,options)=><Field label={label}><SmartSelect aria-label={label} value={draft[k]} onValueChange={value=>set(k,value)}>{options.map(([v,n])=><SelectOption key={v} value={v}>{n}</SelectOption>)}</SmartSelect></Field>;
  return <Modal open onClose={onClose} title={filter?.id?'编辑智能清单':'新建智能清单'}><form className="smart-form" onSubmit={e=>{e.preventDefault();if(draft.name.trim())onSave(normalizeFilter({...draft,id:draft.id||id()}))}}>
  <Field label="清单名称"><input aria-label="智能清单名称" autoFocus required maxLength={80} value={draft.name} onChange={e=>set('name',e.target.value)}/></Field>
  <Field label="关键词"><input aria-label="筛选关键词" maxLength={200} value={draft.text} onChange={e=>set('text',e.target.value)} placeholder="标题或备注"/></Field>

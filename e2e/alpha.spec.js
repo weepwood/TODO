@@ -1,3 +1,4 @@
+import {chooseOption} from './select-helper.js';
 import {test,expect} from '@playwright/test';
 import {initialState,newTask,dayKey,shiftDay} from '../src/domain.js';
 test('详情关闭动画可中断，焦点与新任务保持正确',async({page})=>{
@@ -13,5 +14,5 @@ test('看板概览、习惯空状态及区间统计口径',async({page})=>{
  await page.locator('.rail').getByRole('button',{name:'看板',exact:true}).click();await expect(page.locator('.module-summary')).toContainText('1 进行中');await expect(page.locator('.module-summary')).toContainText('1 累计完成');
  await page.locator('.rail').getByRole('button',{name:'习惯',exact:true}).click();await expect(page.locator('.module-summary')).toContainText('1/1 今日打卡');
  await page.locator('.rail').getByRole('button',{name:'统计',exact:true}).click();await expect(page.locator('.stat-grid>div').filter({hasText:'区间习惯打卡（全部）'})).toContainText('1');
- await page.locator('.stats-toolbar select').first().selectOption('90');await expect(page.locator('.stat-grid>div').filter({hasText:'区间习惯打卡（全部）'})).toContainText('2');
+ await chooseOption(page.locator('.stats-toolbar .smart-select-trigger').first(),'90');await expect(page.locator('.stat-grid>div').filter({hasText:'区间习惯打卡（全部）'})).toContainText('2');
 });

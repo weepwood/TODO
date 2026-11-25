@@ -1,8 +1,9 @@
+import {chooseOption} from './select-helper.js';
 import {test,expect} from '@playwright/test';
 test('外观设置持久化及日历、每日规划日期双向联动',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');
  await page.getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('button',{name:'松石主题色'}).click();
- await page.getByRole('combobox',{name:'控件密度'}).selectOption('relaxed');await page.getByRole('combobox',{name:'文字大小'}).selectOption('large');
+ await chooseOption(page.getByRole('combobox',{name:'控件密度'}),'relaxed');await chooseOption(page.getByRole('combobox',{name:'文字大小'}),'large');
  await expect(page.locator('html')).toHaveAttribute('data-accent','teal');await page.reload();await expect(page.locator('html')).toHaveAttribute('data-density','relaxed');await expect(page.locator('html')).toHaveAttribute('data-font','large');
  await page.getByRole('button',{name:'每日规划',exact:true}).click();await page.getByLabel('规划日期').fill('2026-12-01');await page.getByRole('button',{name:'查看日历'}).click();
  await expect(page.getByLabel('联动日期')).toHaveValue('2026-12-01');await page.getByLabel('联动日期').fill('2026-12-05');await page.getByRole('button',{name:'查看每日规划'}).click();await expect(page.getByLabel('规划日期')).toHaveValue('2026-12-05');
