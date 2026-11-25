@@ -22,7 +22,7 @@ test('展开备注、草稿应用、完整归档验证与恢复',async({page})=>
  await expect(page.locator('.task-body').filter({hasText:'归档编辑测试'})).toBeVisible();
  await page.getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('button',{name:'完整工作空间备份',exact:true}).click();
  await archive.getByLabel('完整归档文件').setInputFiles({name:'valid.json',mimeType:'application/json',buffer:bytes});await expect(archive.getByText('完整性校验通过')).toBeVisible();
- page.once('dialog',d=>d.accept());await archive.getByRole('button',{name:'追加归档附件'}).click();await expect(archive.getByRole('button',{name:'附件已追加'})).toBeDisabled();await expect(archive.getByRole('status')).toContainText('新增 0 个附件，跳过 1 个重复附件');
+ page.once('dialog',d=>d.accept());await archive.getByRole('button',{name:'追加归档附件'}).click();await expect(archive.getByRole('button',{name:'附件已追加'})).toBeDisabled();await expect(archive.getByRole('status')).toContainText('新增 0 个附件，跳过 1 个重复附件');await archive.getByText('本机备份与恢复记录',{exact:true}).click();await expect(archive.getByText('附件恢复完成',{exact:false})).toBeVisible();await expect(archive.getByText('载入工作空间',{exact:false})).toBeVisible();
  expect(errors).toEqual([]);
 });
 test('时间块按时长渲染、重叠分列及列表切换',async({page})=>{
