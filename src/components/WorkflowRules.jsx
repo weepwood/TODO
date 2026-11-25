@@ -1,4 +1,4 @@
-import React,{useState,useMemo} from 'react';
+import React,{useState,useMemo,useEffect,useLayoutEffect} from 'react';
 import {WorkspaceSurface} from '../features/workspaces/WorkspaceSurface.jsx';
 import {Field} from '../ui.jsx';
 import {SmartSelect,SelectOption} from './SmartSelect.jsx';
@@ -6,7 +6,7 @@ import {TimeControl} from './TimeControl.jsx';
 import {ChevronDown,ChevronRight,Workflow,Clock,Filter,ArrowRight,AlertCircle} from 'lucide-react';
 import {CheckInput,Segmented,SearchField} from '../design-system/Controls.jsx';
 import {newRule,validRule,previewRules,canUndoRun} from '../core/workflow-rules.js';
-export function WorkflowRules({state,data,today,localOnly,onSave,onRun,onUndo,onClose,blocked,error,page=false}){
+export function WorkflowRules({state,data,today,localOnly,onSave,onRun,onUndo,onClose,blocked,error,page=false,onDirtyChange}){
  const [draft,setDraft]=useState(state.rules),[auto,setAuto]=useState(state.auto),[message,setMessage]=useState(''),[snapshot,setSnapshot]=useState(state.snapshot||'none'),[snapshotAt,setSnapshotAt]=useState(state.snapshotAt||'21:00');
  const [tab,setTab]=useState('rules');
  const [collapsed,setCollapsed]=useState([]),[logFilter,setLogFilter]=useState('all'),[logQuery,setLogQuery]=useState('');
@@ -27,11 +27,13 @@ export function WorkflowRules({state,data,today,localOnly,onSave,onRun,onUndo,on
  const invalidRuns=useMemo(()=> (data.workflowRuns||[]).filter(r=>!r.undone&&!canUndoRun(data,r.id)),[data]);
  const shown=name=>!page||tab===name;
  const dirty=JSON.stringify(draft)!==JSON.stringify(state.rules)||auto!==state.auto||snapshot!==(state.snapshot||'none')||snapshotAt!==(state.snapshotAt||'21:00');
+ useLayoutEffect(()=>{if(page&&onDirtyChange){onDirtyChange(dirty);return ()=>onDirtyChange(false)}},[page,dirty,onDirtyChange]);
+ useEffect(()=>{if(!page||!dirty)return;const guard=e=>{e.preventDefault();e.returnValue=''};window.addEventListener('beforeunload',guard);return()=>window.removeEventListener('beforeunload',guard)},[page,dirty]);
  const duplicate=r=>{const fresh=newRule();setDraft(old=>old.length>=20?old:[...old,{...r,id:fresh.id,name:(r.name.slice(0,74)+' 副本'),enabled:false}])};
  const change=(id,patch)=>setDraft(old=>old.map(r=>r.id===id?{...r,...patch}:r));
  const move=(index,offset)=>setDraft(old=>{const target=index+offset;if(target<0||target>=old.length)return old;const next=[...old];[next[index],next[target]]=[next[target],next[index]];return next});
  const options=(label,value,values,fn)=><SmartSelect aria-label={label} value={value} onValueChange={fn}>{values.map(([v,n])=><SelectOption key={v} value={v}>{n}</SelectOption>)}</SmartSelect>;
- return <WorkspaceSurface page={page} open onClose={()=>{if(!page||!dirty||confirm('尚有未保存规则，确认返回？'))onClose()}} title="任务工作流自动化" className="workflow-dialog" description="条件匹配普通待办；按列表顺序处理同一字段，首个有效变更优先。保留独立提醒、积分及历史，不处理重复系列。">
+ return <WorkspaceSurface page={page} open onClose={()=>{if(!page||onDirtyChange||!dirty||confirm('尚有未保存规则，确认返回？'))onClose()}} title="任务工作流自动化" className="workflow-dialog" description="条件匹配普通待办；按列表顺序处理同一字段，首个有效变更优先。保留独立提醒、积分及历史，不处理重复系列。">
  <div className="workflow-config-scroll">
  <div className="workflow-overview"><div><small>启用规则</small><strong>{draft.filter(r=>r.enabled).length}<span> / {draft.length}</span></strong></div><div><small>本次匹配</small><strong>{rows.length}<span> 项</span></strong></div><div><small>执行记录</small><strong>{(data.workflowRuns||[]).length}<span> 次</span></strong></div></div>
  {page&&<Segmented className="studio-tabs" label="自动化工作台视图" value={tab} onValueChange={setTab} options={[{value:'rules',label:'规则编排'},{value:'preview',label:'执行预览'},{value:'logs',label:'执行记录'},{value:'issues',label:'异常报告 '+(diagnostics.length+invalidRuns.length+(error?1:0))}]}/>}
