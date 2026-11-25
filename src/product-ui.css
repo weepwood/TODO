@@ -46,7 +46,10 @@
 .settings-section .appearance-settings .field>span{white-space:nowrap}
 .settings-section .appearance-settings .smart-select-trigger{width:100%}
 @media(prefers-reduced-motion:no-preference){
- .v2 :is(.nav-row,.task-row,.rail button,.icon-button,.primary,.secondary,.tag-chip),.smart-select-trigger,.settings-navigation button{transition:background-color var(--ui-fast),border-color var(--ui-fast),color var(--ui-fast),box-shadow var(--ui-fast),transform var(--ui-fast)}
+ .v2 :is(.nav-row,.rail button,.icon-button,.primary,.secondary,.tag-chip),.smart-select-trigger,.settings-navigation button{transition:background-color var(--ui-fast),border-color var(--ui-fast),color var(--ui-fast),box-shadow var(--ui-fast),transform var(--ui-fast)}
+ /* Sortable rows delegate transform transitions to dnd-kit; the pointer
+    source must not inherit the generic transform easing. */
+ .v2 .task-row{transition:background-color var(--ui-fast),border-color var(--ui-fast),color var(--ui-fast),box-shadow var(--ui-fast)}
  .v2 :is(.primary,.secondary,.rail button,.icon-button):active:not(:disabled),.smart-select-trigger:active:not(:disabled){transform:scale(.97)}
  .v2 .task-content{animation:ui-workspace-in var(--motion-popup) var(--motion-ease)}
  @keyframes ui-workspace-in{from{opacity:.82;translate:0 3px}to{opacity:1;translate:0 0}}

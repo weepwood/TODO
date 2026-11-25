@@ -18,7 +18,7 @@ test('紧凑工具栏、底部录入、选择模式和任务完成反馈',async(
  await expect(page.getByText('已选 1 项',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'结束选择'}).click();
  await row.getByRole('button',{name:'任务操作 移动操作验收'}).click();
- await expect(page.getByRole('menuitem',{name:'安排今天'})).toBeVisible();
+ await expect(page.getByRole('menuitem',{name:'今天',exact:true})).toBeVisible();
  await page.keyboard.press('Escape');
  await row.getByRole('button',{name:'完成 移动操作验收'}).click();
  await expect(page.getByRole('status').filter({hasText:'任务已完成'})).toBeVisible();

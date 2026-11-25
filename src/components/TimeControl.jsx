@@ -5,15 +5,19 @@ import * as Popover from '@radix-ui/react-popover';
 import {Clock} from 'lucide-react';
 import {validTime} from '../core/domain.js';
 const pad=n=>String(n).padStart(2,'0');
-export function TimeControl({label,value,onChange,required=false}){
+export function TimeControl({label,value,onChange,required=false,inline=false}){
  const feedback=useFieldControl(),errorId=useId();const [draft,setDraft]=useState(value||''),[open,setOpen]=useState(false),[hour,setHour]=useState('09'),[minute,setMinute]=useState('00');
- useEffect(()=>setDraft(value||''),[value]);
+ useEffect(()=>{setDraft(value||'');if(inline){const [h,m]=(validTime(value)?value:'09:00').split(':');setHour(h);setMinute(m)}},[value,inline]);
  useTransientPopover(open,()=>setOpen(false));
  const valid=validTime(draft)||(!required&&!draft);
  const choose=next=>{if(!validTime(next)&&(required||next!==''))return;setDraft(next);if(next!==value)onChange(next);setOpen(false)};
- return <div className="time-control" data-invalid={!valid||undefined}>
+ return <div className="time-control" data-inline={inline||undefined} data-invalid={!valid||undefined}>
   {!valid&&<span id={errorId} className="field-sr-only">请输入有效时间，格式为 HH:mm</span>}<input id={feedback.id} type="text" aria-label={label} aria-required={required||undefined} aria-invalid={!valid||feedback['aria-invalid']||undefined} aria-describedby={[feedback['aria-describedby'],!valid?errorId:null].filter(Boolean).join(' ')||undefined} value={draft} placeholder="HH:mm" maxLength={5} autoComplete="off" spellCheck={false} onChange={e=>{const next=e.target.value;setDraft(next);if(validTime(next)||(!required&&!next))onChange(next)}} onBlur={()=>{if(!valid)setDraft(value||'')}} onKeyDown={e=>{if(e.key==='Enter'&&!e.nativeEvent.isComposing){e.preventDefault();if(valid)e.currentTarget.blur()}if(e.key==='Escape'&&!valid){e.stopPropagation();setDraft(value||'')}}}/>
-  <Popover.Root open={open} onOpenChange={next=>{setOpen(next);if(next){const [h,m]=(validTime(value)?value:'09:00').split(':');setHour(h);setMinute(m)}}}>
+  {inline?<div className="time-picker-inline">
+    <div className="time-picker-label">小时</div><div className="time-picker-grid hours">{Array.from({length:24},(_,n)=>pad(n)).map(h=><button type="button" key={h} aria-pressed={validTime(value)&&hour===h} aria-label={h+'时'} onClick={()=>choose(h+':'+minute)}>{h}</button>)}</div>
+    <div className="time-picker-label">分钟</div><div className="time-picker-grid minutes">{[...new Set(['00','15','30','45',minute])].sort().map(m=><button type="button" key={m} aria-pressed={validTime(value)&&minute===m} aria-label={m+'分'} onClick={()=>choose(hour+':'+m)}>{m}</button>)}</div>
+    {!required&&<button type="button" className="secondary compact time-inline-clear" onClick={()=>choose('')}>清除时间</button>}
+  </div>:<Popover.Root open={open} onOpenChange={next=>{setOpen(next);if(next){const [h,m]=(validTime(value)?value:'09:00').split(':');setHour(h);setMinute(m)}}}>
    <Popover.Trigger asChild><button type="button" className="time-picker-trigger" aria-label={label+'选择器'}><Clock size={15}/></button></Popover.Trigger>
    <Popover.Portal><Popover.Content className="time-picker-popover" {...popoverGeometry} aria-label={label+'选择器'}>
     <div className="time-picker-head"><strong>选择时间</strong><span>{hour}:{minute}</span></div>
@@ -22,6 +26,6 @@ export function TimeControl({label,value,onChange,required=false}){
     <div className="time-picker-actions">{!required&&<button type="button" className="secondary" onClick={()=>choose('')}>清除</button>}<button type="button" className="primary" onClick={()=>choose(hour+':'+minute)}>应用时间</button></div>
     <small>任意分钟可直接输入 HH:mm。</small>
    </Popover.Content></Popover.Portal>
-  </Popover.Root>
+  </Popover.Root>}
  </div>
 }

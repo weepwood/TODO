@@ -18,6 +18,8 @@ export function useTaskListMotion(container,{scope,order,enabled,layoutKey}){
  };
  useLayoutEffect(()=>{
   const host=container.current;
+  // During dnd-kit sorting, discard the pre-drag baseline. On release the
+  // first enabled pass seeds the committed order instead of replaying it.
   if(!host||!enabled||matchMedia('(prefers-reduced-motion: reduce)').matches){stop();previous.current=null;return}
   const old=previous.current,next=snapshot(host);
   previous.current=next;

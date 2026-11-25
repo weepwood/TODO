@@ -119,3 +119,85 @@ html[data-focus-mode=enhanced] .shared-search:focus-within{box-shadow:0 0 0 2px 
  .shared-search:not([data-invalid=true]):hover,.number-control:not([data-invalid=true]):hover,.time-control:not([data-invalid=true]):hover{border-color:color-mix(in srgb,var(--line) 75%,var(--muted))}
  .shared-search:not([data-invalid=true]):focus-within,.number-control:not([data-invalid=true]):focus-within,.time-control:not([data-invalid=true]):focus-within{border-color:var(--accent)}
 }
+
+/* Shared calendar presentation. Keep the table geometry independent of host width. */
+.date-popover{width: min(328px,calc(100vw - 24px));box-sizing:border-box;padding:12px}
+.date-popover .date-month-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px 0 8px}
+.date-month-toolbar strong{font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
+.date-month-actions{display:flex;align-items:center;gap:2px}
+.date-month-actions .icon-button{width:32px;height:32px;color:var(--muted)}
+.date-month-actions .icon-button:hover{color:var(--text);background:var(--hover)}
+.date-popover .rdp-root{--rdp-accent-color:var(--accent);--rdp-accent-background-color:var(--active);--rdp-day-width:auto;--rdp-day-height:38px;--rdp-day_button-width:34px;--rdp-day_button-height:34px;--rdp-day_button-border:0;--rdp-selected-border:0;--rdp-weekday-padding:5px 0;--rdp-outside-opacity:.52;--rdp-weekday-opacity:1;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+.date-popover .rdp-months,.date-popover .rdp-month{width:100%;max-width:none}
+.date-popover .rdp-month_caption{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.date-popover .rdp-month_grid{width:100%;table-layout:fixed;border-collapse:collapse}
+.date-popover .rdp-weekday{font-size:12px;font-weight:400;color:var(--muted)}
+.date-popover .rdp-day_button{margin-inline:auto;max-width:100%;border:0;font-weight:450}
+.date-popover .rdp-day_button:hover{background:var(--hover)}
+.date-popover .rdp-today:not(.rdp-selected) .rdp-day_button{color:var(--accent-text);font-weight:650}
+.date-popover .rdp-selected .rdp-day_button{background:var(--accent);color:var(--accent-contrast,#fff);border:0;font-size:inherit;font-weight:600}
+.date-popover .rdp-selected .rdp-day_button:hover{background:var(--accent)}
+.date-popover .date-presets{gap:6px;border:0;padding:0;margin:8px 0;flex-wrap:wrap}
+.date-popover .date-presets button{flex:1;background:var(--panel);border-radius:7px;min-height:32px;color:var(--muted)}
+.date-popover .date-presets button:hover,.date-popover .date-presets button[aria-pressed=true]{background:var(--active);color:var(--accent-text)}
+.task-date-dialog.dialog{width:min(360px,calc(100vw - 24px));padding:16px;max-height:calc(100dvh - 24px);overflow:auto}
+.task-date-dialog .dialog-head{margin-bottom:12px}
+.task-date-dialog .dialog-head h2{font-size:17px;font-weight:600}
+.task-date-dialog .date-picker-inline{position:static;width:100%;max-width:none;max-height:none;border:0;padding:0;box-shadow:none;background:transparent;overflow:visible}
+.date-manual{margin-top:8px;color:var(--muted);font-size:12px}
+.date-manual summary{cursor:pointer;padding:8px 0}
+.date-manual .date-direct{padding:0 0 8px}
+.date-confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.date-confirm-actions button{min-height:38px;font-weight:550;border-radius:9px}
+@media(max-width:860px){
+ .date-popover .rdp-root{--rdp-day-height:42px;--rdp-day_button-height:40px;--rdp-day_button-width:40px}
+ .date-month-actions .icon-button,.date-popover .date-presets button,.date-confirm-actions button{min-height:44px}
+ .date-month-actions .icon-button{width:36px}
+ .task-date-dialog.dialog{padding:14px}
+}
+
+.date-month-title{display:flex;align-items:center;padding:6px 5px;margin-left:-5px;border-radius:7px;text-align:left}
+.date-month-title:hover{background:var(--hover)}
+.date-month-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;min-height:calc(6 * 38px + 24px);align-content:center}
+.date-month-grid button{display:grid;place-items:center;min-height:60px;min-width:0;font-size:15px}
+.date-month-grid button span{display:grid;place-items:center;width:48px;height:48px;border-radius:50%}
+.date-month-grid button:hover span{background:var(--hover)}
+.date-month-grid button[aria-pressed=true] span{background:var(--accent);color:var(--accent-contrast,#fff);font-weight:600}
+.schedule-options{display:grid;gap:2px;margin-top:10px;padding-top:8px;border-top:1px solid var(--line)}
+.schedule-option{display:flex;align-items:center;gap:10px;text-align:left;min-height:42px;padding:8px 4px;border-radius:7px;color:var(--muted)}
+.schedule-option:hover,.schedule-back:hover{background:var(--hover)}
+.schedule-option>span{color:var(--text);font-weight:500}
+.schedule-option>small{margin-left:auto;font-size:12px;overflow-wrap:anywhere}
+.schedule-option[data-active=true]>small,.schedule-option[data-active=true]>svg:first-child{color:var(--accent-text)}
+.schedule-subpanel{display:grid;gap:12px;min-width:0}
+.schedule-subpanel h3{margin:0;font-size:16px}
+.schedule-back{display:flex;align-items:center;gap:4px;color:var(--muted);padding:6px 0;text-align:left;border-radius:7px;width:max-content}
+.schedule-reminder-presets{display:flex;flex-wrap:wrap;gap:6px}
+.schedule-subpanel .field{min-width:0}
+.task-schedule-dialog .date-confirm-actions{margin-top:14px}
+@media(max-width:860px){.date-month-grid{min-height:calc(6 * 42px + 24px)}.schedule-option,.schedule-back{min-height:44px}}
+
+/* Shared side panel: Radix collision detection, nested popover compatibility,
+   stable parent calendar. It is not a second modal or a navigation page. */
+.schedule-flyout-anchor{min-width:0}
+.schedule-flyout-anchor .schedule-option{width:100%}
+.schedule-option[aria-expanded=true]{background:var(--hover)}
+.schedule-flyout{width: min(310px,calc(100vw - 24px));max-height:var(--radix-popover-content-available-height,80vh);overflow:auto;box-sizing:border-box;padding:14px;display:grid;gap:12px;border:var(--control-border);border-radius:var(--popup-radius);background:var(--bg);color:var(--text);box-shadow:var(--shadow);z-index:var(--popup-z-side);outline:none}
+.schedule-flyout-title{font-size:15px;font-weight:600}
+.schedule-flyout .field,.schedule-flyout .reminder-fields{min-width:0}
+.schedule-flyout .field,.schedule-subpanel .field{display:grid;grid-template-columns:minmax(76px,max-content) minmax(0,1fr);align-items:center;gap:8px}
+.schedule-flyout .field>span,.schedule-subpanel .field>span{white-space:nowrap;overflow-wrap:normal;word-break:normal}
+.schedule-flyout .field>.smart-select-trigger,.schedule-subpanel .field>.smart-select-trigger{width:100%;min-width:0}
+.date-month-actions .icon-button[title]{color:var(--muted)}
+.date-month-actions .icon-button[title]:hover{color:var(--accent-text);background:var(--active)}
+.schedule-flyout p{margin:0}
+@media(prefers-reduced-motion:no-preference){.schedule-flyout[data-state=open]{animation:ui-pop-in var(--motion-popup) var(--motion-ease)}}
+.time-control[data-inline=true]{display:grid;align-items:stretch;gap:10px;width:100%;min-width:0;height:auto;overflow:visible;padding:0;border:0;background:transparent}
+.time-control[data-inline=true]>input{width:100%;height:auto;min-height:36px;box-sizing:border-box;background:var(--panel);border:var(--control-border);border-radius:var(--radius-control);padding:8px 10px}
+.schedule-flyout .field:has(.time-picker-inline),.schedule-subpanel .field:has(.time-picker-inline){display:grid;grid-template-columns:minmax(0,1fr);gap:6px}
+.time-picker-inline{display:grid;gap:8px;min-width:0}
+.time-picker-inline .time-picker-grid.hours{grid-template-columns:repeat(6,minmax(0,1fr))}
+.time-picker-inline .time-picker-grid.minutes{grid-template-columns:repeat(5,minmax(0,1fr))}
+.time-picker-inline .time-picker-grid button{min-height:32px}
+.time-inline-clear{justify-self:stretch}
+@media(max-width:860px){.time-picker-inline .time-picker-grid button{min-height:40px}}
