@@ -5,6 +5,8 @@ export function useFieldControl(){
  const f=useContext(FieldContext);
  return f?{id:f.controlId,'aria-describedby':f.descriptionId,'aria-invalid':f.error||undefined}:{};
 }
+// Nested editors own their own input IDs, not the outer trigger label.
+export function FieldControlBoundary({children}){return <FieldContext.Provider value={null}>{children}</FieldContext.Provider>}
 export function FieldMessage({id,error,help,success,announce=true}){
  const Icon=error?AlertCircle:success?CheckCircle2:Info;
  return error||help||success?<small id={id} className="field-feedback" data-tone={error?'error':success?'success':'help'} role={error&&announce?'alert':undefined}><Icon size={13} aria-hidden="true"/><span>{error||success||help}</span></small>:null;

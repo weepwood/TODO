@@ -2,7 +2,7 @@
 :root{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;font-size:14px;color-scheme:light;--bg:#fff;--panel:#f7f8fa;--detail:#fcfcfd;--text:#252b36;--muted:#7d8797;--line:#e7e9ee;--hover:#eef0f4;--active:#e7edfc;--accent:#5276d6;--accent-text:#355fc1;--danger:#c54c57;--shadow:0 15px 60px #202c4420}
 :root[data-theme=dark]{color-scheme:dark;--bg:#202126;--panel:#191b20;--detail:#23252b;--text:#ebedf2;--muted:#a0a8b6;--line:#353841;--hover:#30323a;--active:#2c3856;--accent:#7394ec;--accent-text:#a1b7fa;--danger:#f18d95;--shadow:0 15px 60px #0005}
 @media(prefers-color-scheme:dark){:root[data-theme=system]{color-scheme:dark;--bg:#202126;--panel:#191b20;--detail:#23252b;--text:#ebedf2;--muted:#a0a8b6;--line:#353841;--hover:#30323a;--active:#2c3856;--accent:#7394ec;--accent-text:#a1b7fa;--danger:#f18d95;--shadow:0 15px 60px #0005}}
-/* Shared semantic tokens. Theme palette remains in styles.css. */
+/* Shared semantic tokens. Theme palette is owned by this file. */
 :root{
  --space-1:4px;
  --space-2:8px;
@@ -12,6 +12,12 @@
  --radius-control:8px;
  --radius-surface:12px;
  --control-height:36px;
+ --control-font:12px;
+ --numeric-font:14px;
+ --popup-radius:10px;
+ --popup-z-menu:70;
+ --popup-z-control:1200;
+ --popup-z-date:1300;
  --control-touch-height:44px;
  --row-gap:var(--space-1);
  --nav-gap:var(--space-1);
@@ -32,4 +38,13 @@
 :root[data-theme=dark]{--surface-shadow:0 1px 2px #0003}
 @media(prefers-color-scheme:dark){:root[data-theme=system]{--surface-shadow:0 1px 2px #0003}}
 
-:root{--space-8:32px;--radius-small:6px;--radius-large:16px;--motion-fast:120ms;--motion-popup:180ms;--motion-layout:240ms;--motion-selection:200ms;--font-caption:11px;--font-body:13px;--font-heading:14px;--priority-low:#5276d6;--priority-medium:#bb842e;--priority-high:#c64b53}
+:root{--space-8:32px;--radius-small:6px;--radius-large:16px;--motion-fast:120ms;--motion-popup:180ms;--motion-layout:240ms;--motion-selection:200ms;--motion-exit:140ms;--motion-ease:cubic-bezier(.2,.75,.25,1);--font-caption:11px;--font-body:13px;--font-heading:14px;--priority-low:#5276d6;--priority-medium:#bb842e;--priority-high:#c64b53}
+
+/* Density and type scale apply to real controls. Gallery may scope the same
+   tokens without writing appearance preferences or changing the app root. */
+:root[data-density=compact],.component-gallery[data-preview-density=compact]{--control-height:32px}
+:root[data-density=regular],.component-gallery[data-preview-density=regular]{--control-height:36px}
+:root[data-density=relaxed],.component-gallery[data-preview-density=relaxed]{--control-height:40px}
+:root[data-font=small],.component-gallery[data-preview-font=small]{--control-font:11px;--numeric-font:12px}
+:root[data-font=normal],.component-gallery[data-preview-font=normal]{--control-font:12px;--numeric-font:14px}
+:root[data-font=large],.component-gallery[data-preview-font=large]{--control-font:14px;--numeric-font:16px}

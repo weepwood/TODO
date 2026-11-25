@@ -32,7 +32,7 @@
 .number-control,.time-control{display:flex;align-items:center;min-width:0;max-width:100%;height:var(--control-height);padding:3px;gap:3px;border:1px solid transparent;border-radius:var(--radius-control);background:var(--panel);overflow:hidden}
 .time-control{display:inline-flex;width:132px}
 .number-value{display:flex;align-items:center;justify-content:center;flex:1;min-width:0;height:100%;gap:3px}
-.number-control .number-value>.number-field,.time-control>input{border:0;border-radius:0;box-shadow:none;background:transparent;min-width:0;max-width:none;width:0;flex:1;height:100%;font-variant-numeric:tabular-nums;color:var(--text)}
+.number-control .number-value>.number-field,.time-control>input{border:0;border-radius:0;box-shadow:none;background:transparent;min-width:0;max-width:none;width:0;flex:1;height:100%;font-variant-numeric:tabular-nums;color:var(--text);font-size:var(--numeric-font)}
 .number-control .number-value>.number-field{text-align:center;padding:0 4px;font-weight:550;appearance:textfield}
 .number-field::-webkit-inner-spin-button,.number-field::-webkit-outer-spin-button{appearance:none;margin:0}
 .time-control>input{padding:0 8px;outline-offset:-2px}
@@ -76,3 +76,24 @@ html[data-focus-mode=enhanced] .shared-search:focus-within{box-shadow:0 0 0 2px 
 @media(max-width:860px){.gallery-heading{flex-wrap:wrap}.component-gallery>section{padding:var(--space-3)}.gallery-row label,.gallery-heading button{min-height:44px}.component-gallery .field-control>input{min-height:44px}}
 .link-add>.field-feedback{grid-column:1/-1;flex-basis:100%}
 .shortcut-settings>.field-feedback{margin-block:var(--space-2)}
+
+/* Shared popup surface and lifecycle. Keep established layer ordering. */
+.smart-select-content,.dropdown,.date-popover,.datetime-popover,.time-picker-popover,.color-picker-popover{border:var(--control-border);border-radius:var(--popup-radius);background:var(--bg);color:var(--text);box-shadow:var(--shadow)}
+@media(prefers-reduced-motion:no-preference){
+ :is(.smart-select-content,.dropdown,.date-popover,.datetime-popover,.time-picker-popover,.color-picker-popover)[data-state=open]{animation:ui-pop-in var(--motion-popup) var(--motion-ease) both}
+ :is(.smart-select-content,.dropdown,.date-popover,.datetime-popover,.time-picker-popover,.color-picker-popover)[data-state=closed]{animation:ui-pop-out var(--motion-fast) ease both;pointer-events:none}
+ @keyframes ui-pop-in{from{opacity:0;transform:translateY(-3px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+ @keyframes ui-pop-out{to{opacity:0;transform:translateY(-2px) scale(.985)}}
+}
+@media(prefers-reduced-motion:reduce){.smart-select-content,.dropdown,.date-popover,.datetime-popover,.time-picker-popover,.color-picker-popover{animation:none;transition:none}}
+.component-gallery .gallery-preview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.gallery-preview>div{display:grid;gap:4px;min-width:0}
+.component-gallery .gallery-preview .shared-segment{display:flex;flex-wrap:wrap;gap:4px}
+.component-gallery .gallery-preview .shared-segment>button{padding:6px 8px;min-height:32px;background:var(--bg);color:var(--muted);font-size:12px}
+.component-gallery .gallery-preview .shared-segment>button.chosen{background:var(--active);color:var(--accent-text)}
+.component-gallery :is(.field,.gallery-row){font-size:var(--control-font)}
+.component-gallery .shared-search>input{font-size:var(--numeric-font)}
+@media(max-width:860px){.component-gallery .gallery-preview .shared-segment>button{min-height:44px}.component-gallery :is(.smart-select-trigger,.date-trigger,.datetime-trigger,.color-picker-trigger){min-height:44px}.component-gallery .shared-search>input{font-size:16px}}
+@media(max-width:480px){.component-gallery .gallery-preview{grid-template-columns:1fr}}
+.field-control>:is(.smart-select-trigger,.date-trigger,.datetime-trigger,.color-picker-trigger,.time-control){width:100%;min-width:0}
+.field-control>:is(.smart-select-trigger,.date-trigger,.datetime-trigger,.color-picker-trigger)[aria-invalid=true]{border-color:var(--danger)}

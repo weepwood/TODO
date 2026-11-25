@@ -442,3 +442,8 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - 两个失败：styles.css 仍存在更早的 detail-content label input 后代选择器，限制组合时间输入宽度；已改为直接子元素并扩充CSS所有权单测。展厅固定错误样本被错误作为live alert，已通过announce=false消除静态报警；快捷键真实冲突使用FieldMessage并关联到记录按钮，测试定位到实际快捷键区域，同时断言ARIA描述。关联链接及外观保存错误接入共享反馈，不修改业务校验。新增展厅无初始live alert断言。
 - 103/103单测、diff检查通过；本机资源门禁内存压力2拒绝最终Web构建和浏览器专项，未绕过。最终CI及截图仍需验收，保持原PR、未构建安装包、未新增依赖、不修改数据模型和发布配置。
 - 人工审阅45627548749的gallery-feedback-light/dark实际截图：即时数字输入值被flex挤窄，搜索/步进背景与展厅卡片同色难以区分。调整展厅Field双列布局（窄屏单列），统一使用主题背景与边框，显式保留错误颜色；增加即时数字可见宽度断言。未将此前截图当作修复后证据。
+
+### PR #21 收口及 V1.2 公共弹层深化
+- 151547e CI 45630301794成功；下载该次完整真实证据到artifacts/TODO/ui-pr21-45630301794，人工审阅selection-detail-controls/mobile及gallery-feedback-light/dark，之前数值缺失、时间尾部留白、主题表面问题已解决。PR #21合并d53ad8d并同步正式main；Pages 45631228394已启动，需核对最终部署。
+- 新独立worktree v12-control-refinement，分支feat/v12-control-refinement基于d53ad8d。统一六类弹层表面/动画/层级令牌，详情关闭使用共享时长；真实公共控件密度与文字令牌，展厅局部预览和重置（门户仍随全局），Field关联覆盖日期/时间/提醒/颜色/下拉，嵌套上下文隔离，重复截止日期帮助。保留数据/同步/原生/签名与发布配置。
+- 新增尺寸/字号/偏好隔离/嵌套ID/无障碍说明/触控尺寸浏览器测试和弹层所有权单测。最终104/104单测通过，全源码及E2E解析、相对导入、CSS及diff检查通过。新工作树临时复用既有依赖，仅执行单测及解析，不引入依赖变更；重型验证因内存压力2被门禁拒绝（control-refinement-verify.log），不绕过。最终Web构建、浏览器及截图待新PR CI。未构建安装包。

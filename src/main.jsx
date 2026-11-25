@@ -1,3 +1,4 @@
+import {motion} from './design-system/motion.js';
 import {useScrollMemory} from './components/useScrollMemory.js';
 import {WorkspaceSettings} from "./components/WorkspaceSettings.jsx";
 import {WorkspaceSidebar} from "./layouts/WorkspaceSidebar.jsx";
@@ -162,7 +163,7 @@ function App({session,hydration}){
  const closeTimer=useRef(null),detailSwipe=useRef(null);
  useEffect(()=>()=>clearTimeout(closeTimer.current),[]);
  const cancelDetailClose=()=>{clearTimeout(closeTimer.current);closeTimer.current=null;setDetailClosing(false)};
- const closeDetail=()=>{if(closeTimer.current!==null)return;const finish=()=>{closeTimer.current=null;setDetailClosing(false);setDetail(false);requestAnimationFrame(()=>{const row=[...document.querySelectorAll('.task-body[data-task-id]')].find(n=>n.dataset.taskId===selected);(row||inputRef.current||document.querySelector(".toolbar .global-search-trigger"))?.focus()})};if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){finish();return}setDetailClosing(true);closeTimer.current=setTimeout(finish,140)};
+ const closeDetail=()=>{if(closeTimer.current!==null)return;const finish=()=>{closeTimer.current=null;setDetailClosing(false);setDetail(false);requestAnimationFrame(()=>{const row=[...document.querySelectorAll('.task-body[data-task-id]')].find(n=>n.dataset.taskId===selected);(row||inputRef.current||document.querySelector(".toolbar .global-search-trigger"))?.focus()})};if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){finish();return}setDetailClosing(true);closeTimer.current=setTimeout(finish,motion.exit)};
  const select=tid=>{cancelDetailClose();setFocusRequest(null);setSelected(tid);setDetail(true)};
  const patch=(tid,fields)=>setData(d=>({...d,tasks:d.tasks.map(t=>t.id===tid?{...t,...fields,...('reminderAt' in fields?{remindedAt:null}:{})}:t)}));
  const completionRequest=useRef(null);

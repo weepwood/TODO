@@ -56,3 +56,35 @@ test('展厅实际表单反馈、关联描述、深浅主题及重置',async({pa
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  }
 });
+
+test('展厅密度和字号预览隔离、弹层关联说明与移动触控尺寸',async({page})=>{
+ await seed(page);
+ await page.locator('.rail').getByRole('button',{name:'设置',exact:true}).click();
+ const nav=page.getByRole('navigation',{name:'设置分类'});
+ await nav.getByRole('button',{name:'组件展厅'}).click();
+ const gallery=page.locator('.component-gallery'),density=gallery.getByRole('group',{name:'展厅密度'}),font=gallery.getByRole('group',{name:'展厅文字大小'});
+ const before=await page.evaluate(()=>({appearance:localStorage.getItem('todo-appearance-v1'),density:document.documentElement.dataset.density,font:document.documentElement.dataset.font}));
+ const numeric=gallery.getByRole('spinbutton',{name:'演示即时数值'}),control=numeric.locator('xpath=../..');
+ await density.getByRole('button',{name:'紧凑',exact:true}).click();await expect(control).toHaveCSS('height','32px');
+ await density.getByRole('button',{name:'舒展',exact:true}).click();await expect(control).toHaveCSS('height','40px');
+ await font.getByRole('button',{name:'较大',exact:true}).click();await expect(numeric).toHaveCSS('font-size','16px');
+ expect(await page.evaluate(()=>({appearance:localStorage.getItem('todo-appearance-v1'),density:document.documentElement.dataset.density,font:document.documentElement.dataset.font}))).toEqual(before);
+ await expect(gallery.getByRole('combobox',{name:'演示下拉'})).toHaveAccessibleDescription('可通过方向键选择');
+ await expect(gallery.getByRole('button',{name:'演示日期',exact:true})).toHaveAccessibleDescription('可直接输入日期或使用日历选择');
+ await expect(gallery.getByRole('textbox',{name:'演示时间',exact:true})).toHaveAccessibleDescription('格式：HH:mm');
+ const reminder=gallery.getByRole('button',{name:'演示提醒',exact:true});
+ await expect(reminder).toHaveAccessibleDescription('应用后才提交提醒');await reminder.click();
+ const editor=page.getByRole('dialog',{name:'演示提醒编辑'});
+ await expect(editor).toBeVisible();
+ const id=await reminder.getAttribute('id');expect(id).toBeTruthy();
+ expect(await page.evaluate(id=>[...document.querySelectorAll('[id]')].filter(el=>el.id===id).length,id)).toBe(1);
+ await editor.getByRole('button',{name:'取消',exact:true}).click();
+ await expect(editor).toBeHidden();
+ await page.screenshot({path:'test-results/gallery-density-relaxed.png',animations:'disabled'});
+ await page.setViewportSize({width:390,height:844});
+ await expect(control).toHaveCSS('height','50px');
+ expect((await gallery.getByRole('button',{name:'演示日期',exact:true}).boundingBox()).height).toBeGreaterThanOrEqual(44);
+ await gallery.getByRole('button',{name:'重置演示'}).click();
+ await expect(gallery).toHaveAttribute('data-preview-density','inherit');
+ await expect(gallery).toHaveAttribute('data-preview-font','inherit');
+});

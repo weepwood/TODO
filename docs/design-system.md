@@ -42,3 +42,9 @@ TaskRow、TaskDetail、EntityDialog、WorkspaceSidebar、WorkspaceSettings已从
 ### 反馈状态与所有权补充
 - 历史 label 后代输入选择器同样必须限制为直接子元素，防止组合控件内部输入被最大宽度约束。所有权单测覆盖这类选择器。
 - FieldMessage/FeedbackField 的 announce=false 仅用于固定展厅示例等非实时反馈；实际验证错误保持 alert。快捷键冲突关联录制控件，链接错误关联地址输入，修改地址清除过期错误。外观保存异常复用同一消息组件。
+
+## 第三轮：弹层与尺寸规范
+- 公共弹层表面、入场180ms及退场120ms由controls.css拥有，使用tokens.css的颜色/边框/阴影/动效/层级令牌，保留各弹层类型的尺寸和定位差异；减少动效时禁用动画。详情关闭定时器使用motion.exit=140ms，对应CSS令牌。
+- 桌面密度32/36/40px、控件文字11/12/14px、数字12/14/16px，保留移动端原44/50px触控尺寸。展厅可局部选择跟随应用/三种密度/三种字号，重置回跟随应用。局部预览只作用于展厅内联控件；挂载于门户的弹层仍跟随应用全局外观。
+- SmartSelect、DatePicker、DateControl、TimeControl、DateTimeControl、ColorControl接入useFieldControl。嵌套编辑器通过FieldControlBoundary隔离外部ID及描述，保持实际错误与本地输入反馈；重复截止日期使用统一帮助说明。
+- 新增真实浏览器展厅尺寸、偏好隔离、嵌套ID、ARIA说明、移动触控测试，新增弹层所有权单测。最终浏览器验收仍待CI；不将代码和单测视为视觉实测。
