@@ -34,3 +34,26 @@ test('命令面板非连续字符搜索、最近使用及关闭详情焦点恢�
  await page.getByRole('button',{name:'关闭详情'}).click();await expect(page.locator('.task-body').filter({hasText:'项目文档整理'})).toBeFocused();
  await page.locator('.rail').getByRole('button',{name:'命令面板',exact:true}).click();await expect(page.getByRole('option').first()).toContainText('项目文档整理');
 });
+
+test('保存前撤销直接录入后终止请求，不重新插入（模拟 IPC）',async({page})=>{
+ await page.addInitScript(()=>{
+  window.isTauri=true;window.__fail=false;window.__request=null;window.__cancelled=0;window.__acked=0;
+  window.__TAURI_INTERNALS__={transformCallback:()=>1,invoke:async(cmd,args)=>{
+   if(cmd==='native_load_store')return localStorage.getItem('qa-undo-store');
+   if(cmd==='native_load')return null;
+   if(cmd==='native_write_store'){if(window.__fail)throw Error('测试写入失败');localStorage.setItem('qa-undo-store',args.store);return null}
+   if(cmd==='native_direct_pending')return window.__request;
+   if(cmd==='native_direct_ack'){window.__acked++;return false}
+   if(cmd==='native_direct_cancel_pending'){window.__cancelled++;window.__request=null;return true}
+   if(cmd==='plugin:event|listen')return 1;return null;
+  }};
+ });
+ await page.goto('/');await expect(page.getByRole('textbox',{name:'新任务名称'})).toBeVisible();
+ await page.evaluate(()=>{window.__fail=true;window.__request={scope:'guest',generation:5,id:'00000000-0000-4000-8000-000000000022',text:'撤销录入 今天 10:00'}});
+ await expect(page.getByText(/SQLite 保存失败：/)).toBeVisible({timeout:8000});
+ await page.evaluate(()=>{document.activeElement?.blur();window.__fail=false});
+ await page.keyboard.press('Control+z');
+ await expect(page.locator('.task-body').filter({hasText:'撤销录入'})).toHaveCount(0);
+ await expect.poll(()=>page.evaluate(()=>window.__cancelled),{timeout:8000}).toBe(1);
+ expect(await page.evaluate(()=>JSON.parse(JSON.parse(localStorage.getItem('qa-undo-store'))['todo-workbench-v1']).tasks)).toHaveLength(0);
+});

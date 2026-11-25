@@ -23,6 +23,7 @@
     "allow-native-exit",
     "allow-native-test-notification",
     "allow-native-direct-pending",
-    "allow-native-direct-ack"
+    "allow-native-direct-ack",
+    "allow-native-direct-cancel-pending"
   ]
 }

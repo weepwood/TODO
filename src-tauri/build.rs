@@ -10,6 +10,7 @@ fn main() {
     "native_capture_direct_status",
     "native_direct_pending",
     "native_direct_ack",
+    "native_direct_cancel_pending",
     "native_list_backups",
     "native_read_backup",
     "native_create_backup",

@@ -10,8 +10,8 @@ struct ActiveScope(Mutex<Option<String>>);
 // The secondary window owns no workspace. It can hand a bounded draft to the
 // main window only while the same active scope and capture generation remain valid.
 #[derive(Clone,serde::Serialize)]
-struct DirectCapture{scope:String,generation:u64,id:String,text:String,saved:bool}
-#[derive(Default)]
+struct DirectCapture{scope:String,generation:u64,id:String,text:String,saved:bool,created_at:i64}
+#[derive(Default,Clone)]
 struct CaptureState{generation:u64,scope:Option<String>,pending:Option<(String,String)>,open_main:bool,direct:Option<DirectCapture>}
 impl CaptureState{
  fn begin(&mut self,scope:&str)->u64{self.generation=self.generation.wrapping_add(1);self.scope=Some(scope.into());self.direct=None;self.generation}
@@ -29,7 +29,7 @@ impl CaptureState{
   if id.len()!=36||!id.bytes().enumerate().all(|(i,b)|if [8,13,18,23].contains(&i){b==b'-'}else{b.is_ascii_hexdigit()})||text.is_empty()||text.chars().count()>500{return Err("无效录入请求".into())}
   if let Some(d)=&self.direct{if d.id==id&&d.text==text&&d.generation==generation{return Ok(())}return Err("已有录入请求，请等待保存结果".into())}
   if self.pending.is_some(){return Err("已有待确认草稿".into())}
-  self.direct=Some(DirectCapture{scope:scope.into(),generation,id:id.into(),text:text.into(),saved:false});Ok(())
+  self.direct=Some(DirectCapture{scope:scope.into(),generation,id:id.into(),text:text.into(),saved:false,created_at:Local::now().timestamp()});Ok(())
  }
 
  fn take(&mut self,scope:&str)->Option<String>{
@@ -51,7 +51,7 @@ fn reset_capture_window(app:&tauri::AppHandle){if let Some(w)=app.get_webview_wi
 fn request_quick_capture(app:&tauri::AppHandle){
  let active=app.state::<ActiveScope>();let capture=app.state::<QuickCapture>();
  let decision=if let (Ok(current),Ok(mut state))=(active.0.lock(),capture.0.lock()){
-  if let Some(scope)=current.as_deref(){if state.pending.is_none(){let reset=state.scope.as_deref()!=Some(scope)||state.direct.as_ref().is_some_and(|d|d.saved);if reset{state.begin(scope);}Some(reset)}else{None}}else{None}
+  if let Some(scope)=current.as_deref(){if let Some(d)=state.direct.as_mut(){if let Ok(c)=app.state::<Database>().0.lock(){d.saved=matches!(direct_status(&c,&d.scope,&d.id).ok().flatten().as_deref(),Some("saved"|"cancelled"));}}if state.pending.is_none(){let reset=state.scope.as_deref()!=Some(scope)||state.direct.as_ref().is_some_and(|d|d.saved);if reset{state.begin(scope);if let Ok(c)=app.state::<Database>().0.lock(){if let Ok(Some(mut d))=pending_direct(&c,scope){d.generation=state.generation;state.direct=Some(d);}}}Some(reset)}else{None}}else{None}
  }else{None};
  let opened=if let (Some(reset),Some(w))=(decision,app.get_webview_window("capture")){
   if reset{let _=app.emit_to("capture","todo-capture-reset",());}
@@ -77,29 +77,52 @@ fn native_capture_cancel(pending:tauri::State<QuickCapture>,app:tauri::AppHandle
  reset_capture_window(&app);Ok(())
 }
 
+// Only the capture request, not the task workspace, is written by capture IPC.
+// The main window consumes the durable queue; the workspace transaction owns the receipt.
+fn direct_status(c:&Connection,scope:&str,id:&str)->rusqlite::Result<Option<String>>{
+ c.query_row("SELECT status FROM direct_capture_requests WHERE scope=?1 AND id=?2",params![scope,id],|r|r.get(0)).optional()
+}
+fn enqueue_direct(c:&Connection,d:&DirectCapture)->Result<(),String>{
+ let existing:Option<(i64,String,String)>=c.query_row("SELECT generation,text,status FROM direct_capture_requests WHERE scope=?1 AND id=?2",params![d.scope,d.id],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional().map_err(|e|e.to_string())?;
+ if let Some((g,text,status))=existing{return if g==d.generation as i64&&(status!="pending"||text==d.text){Ok(())}else{Err("录入请求标识冲突".into())}}
+ if direct_task_exists(c,&d.scope,&d.id).map_err(|e|e.to_string())?{return Err("任务标识已存在".into())}
+ c.execute("INSERT INTO direct_capture_requests(scope,id,generation,text,status,created_at) VALUES(?1,?2,?3,?4,'pending',?5)",params![d.scope,d.id,d.generation as i64,d.text,d.created_at]).map_err(|e|e.to_string())?;
+ Ok(())
+}
+fn pending_direct(c:&Connection,scope:&str)->rusqlite::Result<Option<DirectCapture>>{
+ c.query_row("SELECT scope,generation,id,text,created_at FROM direct_capture_requests WHERE scope=?1 AND status='pending' ORDER BY created_at,id LIMIT 1",[scope],|r|Ok(DirectCapture{scope:r.get(0)?,generation:r.get::<_,i64>(1)? as u64,id:r.get(2)?,text:r.get(3)?,saved:false,created_at:r.get(4)?})).optional()
+}
+fn cancel_direct(c:&Connection,scope:&str,id:&str)->rusqlite::Result<bool>{
+ Ok(c.execute("UPDATE direct_capture_requests SET status='cancelled',text='' WHERE scope=?1 AND id=?2 AND status='pending'",params![scope,id])?==1)
+}
 #[tauri::command]
-fn native_capture_submit_direct(generation:u64,id:String,text:String,pending:tauri::State<QuickCapture>,active:tauri::State<ActiveScope>)->Result<(),String>{
+fn native_capture_submit_direct(generation:u64,id:String,text:String,pending:tauri::State<QuickCapture>,active:tauri::State<ActiveScope>,db:tauri::State<Database>)->Result<(),String>{
  let current=active.0.lock().map_err(|e|e.to_string())?;let scope=current.as_deref().ok_or("工作空间尚未就绪")?;
- pending.0.lock().map_err(|e|e.to_string())?.submit_direct(scope,generation,&id,&text)
+ let mut state=pending.0.lock().map_err(|e|e.to_string())?;let mut proposed=state.clone();proposed.submit_direct(scope,generation,&id,&text)?;
+ let c=db.0.lock().map_err(|e|e.to_string())?;enqueue_direct(&c,proposed.direct.as_ref().ok_or("录入请求不存在")?)?;*state=proposed;Ok(())
 }
 #[tauri::command]
-fn native_capture_direct_status(generation:u64,pending:tauri::State<QuickCapture>)->String{
- let Ok(state)=pending.0.lock()else{return "unavailable".into()};if state.generation!=generation||state.scope.is_none(){return "expired".into()}
- match &state.direct{Some(d) if d.saved=>"saved",Some(_)=>"pending",None=>"idle"}.into()
+fn native_capture_direct_status(generation:u64,pending:tauri::State<QuickCapture>,db:tauri::State<Database>)->String{
+ let Ok(mut state)=pending.0.lock()else{return "unavailable".into()};if state.generation!=generation||state.scope.is_none(){return "expired".into()}
+ let Some(d)=state.direct.as_mut()else{return "idle".into()};
+ let Ok(c)=db.0.lock()else{return "unavailable".into()};
+ match direct_status(&c,&d.scope,&d.id){Ok(Some(status))=>{d.saved=status!="pending";status},_=>"unavailable".into()}
 }
 #[tauri::command]
-fn native_direct_pending(scope:String,pending:tauri::State<QuickCapture>,active:tauri::State<ActiveScope>)->Result<Option<DirectCapture>,String>{
+fn native_direct_pending(scope:String,active:tauri::State<ActiveScope>,db:tauri::State<Database>)->Result<Option<DirectCapture>,String>{
  let current=active.0.lock().map_err(|e|e.to_string())?;if current.as_deref()!=Some(&scope){return Ok(None)}
- Ok(pending.0.lock().map_err(|e|e.to_string())?.direct.as_ref().filter(|d|d.scope==scope&&!d.saved).cloned())
+ let c=db.0.lock().map_err(|e|e.to_string())?;pending_direct(&c,&scope).map_err(|e|e.to_string())
 }
 #[tauri::command]
-fn native_direct_ack(scope:String,generation:u64,id:String,pending:tauri::State<QuickCapture>,active:tauri::State<ActiveScope>,db:tauri::State<Database>)->Result<bool,String>{
+fn native_direct_ack(scope:String,generation:u64,id:String,active:tauri::State<ActiveScope>,db:tauri::State<Database>)->Result<bool,String>{
  let current=active.0.lock().map_err(|e|e.to_string())?;if current.as_deref()!=Some(&scope){return Ok(false)}
- let mut state=pending.0.lock().map_err(|e|e.to_string())?;
- let Some(d)=state.direct.as_mut().filter(|d|d.scope==scope&&d.generation==generation&&d.id==id)else{return Ok(false)};
  let c=db.0.lock().map_err(|e|e.to_string())?;
- let exists=direct_task_exists(&c,&scope,&id).map_err(|e|e.to_string())?;
- if exists{d.saved=true}Ok(exists)
+ c.query_row("SELECT EXISTS(SELECT 1 FROM direct_capture_requests WHERE scope=?1 AND id=?2 AND generation=?3 AND status='saved')",params![scope,id,generation as i64],|r|r.get(0)).map_err(|e|e.to_string())
+}
+#[tauri::command]
+fn native_direct_cancel_pending(scope:String,id:String,active:tauri::State<ActiveScope>,db:tauri::State<Database>)->Result<bool,String>{
+ let current=active.0.lock().map_err(|e|e.to_string())?;if current.as_deref()!=Some(&scope){return Ok(false)}
+ let c=db.0.lock().map_err(|e|e.to_string())?;cancel_direct(&c,&scope,&id).map_err(|e|e.to_string())
 }
 
 fn direct_task_exists(c:&Connection,scope:&str,id:&str)->rusqlite::Result<bool>{
@@ -108,7 +131,7 @@ fn direct_task_exists(c:&Connection,scope:&str,id:&str)->rusqlite::Result<bool>{
 
 fn valid_scope(s:&str)->bool { s=="guest" || (s.len()==36 && s.chars().all(|c|c.is_ascii_hexdigit()||c=='-')) }
 fn schema(c:&Connection)->rusqlite::Result<()> {
- c.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; CREATE TABLE IF NOT EXISTS snapshots(scope TEXT PRIMARY KEY, body TEXT NOT NULL, updated_at INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS backups(scope TEXT NOT NULL, body TEXT NOT NULL, saved_at INTEGER NOT NULL, PRIMARY KEY(scope,saved_at)); CREATE TABLE IF NOT EXISTS delivered(scope TEXT NOT NULL, reminder TEXT NOT NULL, PRIMARY KEY(scope,reminder)); CREATE TABLE IF NOT EXISTS reminder_retry(scope TEXT NOT NULL, reminder TEXT NOT NULL, attempts INTEGER NOT NULL, next_at INTEGER NOT NULL, PRIMARY KEY(scope,reminder)); CREATE TABLE IF NOT EXISTS workspace_store(scope TEXT PRIMARY KEY, body TEXT NOT NULL); CREATE VIRTUAL TABLE IF NOT EXISTS task_search USING fts5(scope UNINDEXED, task_id UNINDEXED, title, notes, tokenize='trigram');")
+ c.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; CREATE TABLE IF NOT EXISTS snapshots(scope TEXT PRIMARY KEY, body TEXT NOT NULL, updated_at INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS backups(scope TEXT NOT NULL, body TEXT NOT NULL, saved_at INTEGER NOT NULL, PRIMARY KEY(scope,saved_at)); CREATE TABLE IF NOT EXISTS delivered(scope TEXT NOT NULL, reminder TEXT NOT NULL, PRIMARY KEY(scope,reminder)); CREATE TABLE IF NOT EXISTS direct_capture_requests(scope TEXT NOT NULL,id TEXT NOT NULL,generation INTEGER NOT NULL,text TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('pending','saved','cancelled')),created_at INTEGER NOT NULL,PRIMARY KEY(scope,id)); CREATE UNIQUE INDEX IF NOT EXISTS direct_capture_one_pending ON direct_capture_requests(scope) WHERE status='pending'; CREATE TABLE IF NOT EXISTS reminder_retry(scope TEXT NOT NULL, reminder TEXT NOT NULL, attempts INTEGER NOT NULL, next_at INTEGER NOT NULL, PRIMARY KEY(scope,reminder)); CREATE TABLE IF NOT EXISTS workspace_store(scope TEXT PRIMARY KEY, body TEXT NOT NULL); CREATE VIRTUAL TABLE IF NOT EXISTS task_search USING fts5(scope UNINDEXED, task_id UNINDEXED, title, notes, tokenize='trigram');")
 }
 fn save(c:&mut Connection,scope:&str,body:&str)->Result<(),String>{save_with_store(c,scope,body,None)}
 fn save_with_store(c:&mut Connection,scope:&str,body:&str,store:Option<&str>)->Result<(),String>{
@@ -124,6 +147,8 @@ fn save_with_store(c:&mut Connection,scope:&str,body:&str,store:Option<&str>)->R
  let prior_state=prior.as_ref().and_then(|x|serde_json::from_str::<serde_json::Value>(x).ok());
  update_index(&tx,scope,prior_state.as_ref(),&state).map_err(|e|e.to_string())?;
  }
+ // Mark receipt atomically with snapshot, never infer success from frontend memory.
+ tx.execute("UPDATE direct_capture_requests SET status='saved',text='' WHERE scope=?1 AND status='pending' AND id IN (SELECT json_extract(value,'$.id') FROM json_each(?2,'$.tasks'))",params![scope,body]).map_err(|e|e.to_string())?;
  if let Some(store)=store{tx.execute("INSERT INTO workspace_store VALUES(?1,?2) ON CONFLICT(scope) DO UPDATE SET body=excluded.body",params![scope,store]).map_err(|e|e.to_string())?;}
  tx.commit().map_err(|e|e.to_string())
 }
@@ -310,7 +335,7 @@ pub fn run(){
  .plugin(tauri_plugin_single_instance::init(|app,_,_|show(app)))
  .plugin(tauri_plugin_notification::init())
  .plugin(tauri_plugin_global_shortcut::Builder::new().with_handler(|app,_,event|{if event.state()==ShortcutState::Pressed{request_quick_capture(app);}}).build())
- .invoke_handler(tauri::generate_handler![native_load,native_save,native_load_store,native_write_store,native_activate,native_search,native_list_backups,native_read_backup,native_create_backup,native_notify,native_exit,native_test_notification,native_take_quick_capture,native_shortcut_status,native_open_capture,native_capture_generation,native_capture_handoff,native_capture_cancel,native_capture_submit_direct,native_capture_direct_status,native_direct_pending,native_direct_ack])
+ .invoke_handler(tauri::generate_handler![native_load,native_save,native_load_store,native_write_store,native_activate,native_search,native_list_backups,native_read_backup,native_create_backup,native_notify,native_exit,native_test_notification,native_take_quick_capture,native_shortcut_status,native_open_capture,native_capture_generation,native_capture_handoff,native_capture_cancel,native_capture_submit_direct,native_capture_direct_status,native_direct_pending,native_direct_ack,native_direct_cancel_pending])
  .setup(|app|{
   let path=app.path().app_data_dir()?;std::fs::create_dir_all(&path)?;let c=Connection::open(path.join("todo.sqlite3"))?;schema(&c)?;
   app.manage(Database(Mutex::new(c)));app.manage(ActiveScope(Mutex::new(None)));app.manage(QuickCapture(Mutex::new(CaptureState::default())));app.manage(ShortcutStatus(Mutex::new("not-registered".into())));
@@ -335,6 +360,36 @@ pub fn run(){
  assert!(c.handoff("guest",generation,"   ").is_err());c.handoff("guest",generation," hello ").unwrap();
  assert!(c.handoff("guest",generation,"duplicate").is_err());assert!(c.take("other").is_none());assert_eq!(c.take("guest"),Some("hello".into()));assert!(c.take("guest").is_none());
  let generation=c.begin("guest");c.invalidate();assert!(c.handoff("guest",generation,"stale").is_err());
+ }
+ #[test]fn durable_capture_survives_reopen_rollback_and_removal(){
+  let dir=std::env::temp_dir().join(format!("todo-capture-test-{}-{}",std::process::id(),Local::now().timestamp_nanos_opt().unwrap()));
+  std::fs::create_dir(&dir).unwrap();let path=dir.join("capture.sqlite");
+  let id="00000000-0000-4000-8000-000000000021";let other="00000000-0000-4000-8000-000000000001";
+  let mut state=CaptureState::default();let g=state.begin("guest");state.submit_direct("guest",g,id,"test 明天").unwrap();
+  let d=state.direct.as_ref().unwrap();
+  {let c=Connection::open(&path).unwrap();schema(&c).unwrap();enqueue_direct(&c,d).unwrap();enqueue_direct(&c,d).unwrap();
+   assert!(pending_direct(&c,other).unwrap().is_none());
+   let mut second=d.clone();second.id=other.into();assert!(enqueue_direct(&c,&second).is_err());
+  }
+  {let mut c=Connection::open(&path).unwrap();schema(&c).unwrap();
+   let pending=pending_direct(&c,"guest").unwrap().unwrap();assert_eq!(pending.text,"test 明天");assert_eq!(pending.created_at,d.created_at);
+   let body=serde_json::json!({"version":2,"tasks":[{"id":id,"title":"test","notes":""}]}).to_string();
+   c.execute_batch("CREATE TRIGGER qa_abort BEFORE INSERT ON workspace_store BEGIN SELECT RAISE(ABORT,'QA rollback'); END;").unwrap();
+   assert!(save_with_store(&mut c,"guest",&body,Some("{}")).is_err());
+   assert_eq!(direct_status(&c,"guest",id).unwrap().as_deref(),Some("pending"));assert!(!direct_task_exists(&c,"guest",id).unwrap());
+   c.execute_batch("DROP TRIGGER qa_abort").unwrap();save_with_store(&mut c,"guest",&body,Some("{}")).unwrap();
+   assert_eq!(direct_status(&c,"guest",id).unwrap().as_deref(),Some("saved"));
+   assert_eq!(c.query_row("SELECT text FROM direct_capture_requests WHERE scope='guest' AND id=?1",[id],|r|r.get::<_,String>(0)).unwrap(),"");
+  }
+  {let mut c=Connection::open(&path).unwrap();schema(&c).unwrap();
+   save(&mut c,"guest",r#"{"version":2,"tasks":[]}"#).unwrap();assert!(pending_direct(&c,"guest").unwrap().is_none());assert!(!direct_task_exists(&c,"guest",id).unwrap());
+   enqueue_direct(&c,d).unwrap();assert!(pending_direct(&c,"guest").unwrap().is_none());assert!(!cancel_direct(&c,"guest",id).unwrap());
+   let mut second=d.clone();second.id=other.into();enqueue_direct(&c,&second).unwrap();
+   assert!(!cancel_direct(&c,other,other).unwrap());assert!(cancel_direct(&c,"guest",other).unwrap());
+   enqueue_direct(&c,&second).unwrap();assert!(pending_direct(&c,"guest").unwrap().is_none());
+   assert_eq!(direct_status(&c,"guest",other).unwrap().as_deref(),Some("cancelled"));
+  }
+  std::fs::remove_dir_all(&dir).unwrap();
  }
  #[test]fn direct_receipt_requires_committed_task_in_correct_scope(){
  let mut c=Connection::open_in_memory().unwrap();schema(&c).unwrap();

@@ -46,16 +46,27 @@ export function nativeOpenCapture(){return invoke('native_open_capture')}
 // UUID in the committed SQLite snapshot; retrying cannot append a second task.
 export function useDirectCapture({uid,storage,data,blocked,edit,onSaved}){
  const latest=useRef(null);latest.current={data,blocked,edit,onSaved};const inFlight=useRef(false);
- useEffect(()=>{if(!native||!storage?.flush)return;let disposed=false;
+ useEffect(()=>{if(!native||!storage?.flush)return;let disposed=false,attempt=null;
  const scope=uid||'guest';const poll=async()=>{if(disposed||inFlight.current)return;inFlight.current=true;
- try{const req=await invoke('native_direct_pending',{scope});if(disposed||!req||req.scope!==scope||latest.current.blocked)return;
- if(!latest.current.data.tasks.some(t=>t.id===req.id)){
-  const {quickParse}=await import('./advanced.js');const {newTask,dayKey}=await import('./domain.js');
-  if(disposed||latest.current.blocked)return;const parsed=quickParse(req.text,dayKey());if(!parsed.title)return;
-  const task={...newTask(parsed.title,'inbox',parsed.date,req.id),time:parsed.time,priority:parsed.priority};
-  latest.current.edit(d=>d.tasks.some(t=>t.id===req.id)?d:{...d,tasks:[...d.tasks,task]});return;
- }
- if(await storage.flush()&&!disposed&&await invoke('native_direct_ack',{scope,generation:req.generation,id:req.id}))latest.current.onSaved();
+ try{
+  if(attempt){
+   if(latest.current.blocked)return;
+   if(!await storage.flush()||disposed)return;
+   if(await invoke('native_direct_ack',{scope,generation:attempt.generation,id:attempt.id})){attempt=null;if(!disposed)latest.current.onSaved();return}
+   if(disposed)return;
+   // An attempted task is never appended again in this session. If it was
+   // undone before the first commit, terminate the outstanding request.
+   if(!latest.current.data.tasks.some(t=>t.id===attempt.id)){await invoke('native_direct_cancel_pending',{scope,id:attempt.id});attempt=null;return}
+   return;
+  }
+  const req=await invoke('native_direct_pending',{scope});if(disposed||!req||req.scope!==scope||latest.current.blocked)return;
+  if(!latest.current.data.tasks.some(t=>t.id===req.id)){
+   const {quickParse}=await import('./advanced.js');const {newTask,dayKey}=await import('./domain.js');
+   if(disposed||latest.current.blocked)return;const parsed=quickParse(req.text,dayKey(new Date(req.created_at?req.created_at*1000:Date.now())));if(!parsed.title){await invoke('native_direct_cancel_pending',{scope,id:req.id});return}
+   const task={...newTask(parsed.title,'inbox',parsed.date,req.id),time:parsed.time,priority:parsed.priority};
+   attempt=req;latest.current.edit(d=>d.tasks.some(t=>t.id===req.id)?d:{...d,tasks:[...d.tasks,task]});return;
+  }
+  attempt=req;
  }catch{}finally{inFlight.current=false}};
  const timer=setInterval(poll,1000);poll();return()=>{disposed=true;clearInterval(timer)}},[uid,storage]);
 }
