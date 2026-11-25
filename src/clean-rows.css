@@ -19,5 +19,5 @@
 .shortcut-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(112px,160px) 36px;gap:8px;align-items:center;padding:4px 0}
 .shortcut-record{min-height:36px;font-size:12px;white-space:normal;font-variant-numeric:tabular-nums}
 .shortcut-record[data-shortcut-recording=true]{border-color:var(--accent);background:var(--active);color:var(--accent-text)}
-.shortcut-error{color:var(--danger,#bd4141);font-size:12px}
+
 @media(max-width:860px){.shortcut-row{grid-template-columns:minmax(0,1fr) minmax(100px,140px) 40px}.shortcut-record,.shortcut-row .text-link{min-height:44px}}

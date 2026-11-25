@@ -67,3 +67,5 @@ html[data-focus-mode=enhanced] .shared-search:focus-within{box-shadow:0 0 0 2px 
 .component-gallery .field-control>input[aria-invalid=true]{border-color:var(--danger)}
 .component-gallery .field-control .number-control{width:100%}
 @media(max-width:860px){.gallery-heading{flex-wrap:wrap}.component-gallery>section{padding:var(--space-3)}.gallery-row label,.gallery-heading button{min-height:44px}.component-gallery .field-control>input{min-height:44px}}
+.link-add>.field-feedback{grid-column:1/-1;flex-basis:100%}
+.shortcut-settings>.field-feedback{margin-block:var(--space-2)}

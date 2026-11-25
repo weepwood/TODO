@@ -44,6 +44,7 @@ test('展厅实际表单反馈、关联描述、深浅主题及重置',async({pa
  for(const [theme,label] of [['light','浅色'],['dark','深色']]){
   await nav.getByRole('button',{name:'外观与布局'}).click();await page.getByRole('button',{name:label,exact:true}).click();
   await nav.getByRole('button',{name:'组件展厅'}).click();const gallery=page.locator('.component-gallery');
+  await expect(gallery.getByRole('alert')).toHaveCount(0);
   const name=gallery.getByRole('textbox',{name:'演示必填名称'});await name.fill('');await name.blur();
   await expect(name).toHaveAttribute('aria-invalid','true');await expect(name).toHaveAccessibleDescription('名称不能为空');
   await name.fill('示例');await expect(name).toHaveAccessibleDescription('名称有效');
