@@ -1,0 +1,12 @@
+/* Android-only shell. The desktop and browser layouts remain untouched. */
+@media(max-width:860px){
+ .app.v2.native-mobile{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
+ .native-mobile>main{grid-column:1;grid-row:1;min-width:0}
+ .native-mobile .rail{grid-column:1;grid-row:2;display:flex;flex-direction:row;align-items:center;overflow-x:auto;gap:4px;min-width:0;padding:5px 8px;border-right:0;border-top:1px solid var(--line);scrollbar-width:none}
+ .native-mobile .rail .brand-icon,.native-mobile .rail .grow{display:none}
+ .native-mobile .rail>button{flex:0 0 44px;width:44px;height:44px}
+ .native-mobile .sidebar{left:env(safe-area-inset-left,0px);bottom:calc(55px + env(safe-area-inset-bottom,0px))}
+ .native-mobile .details{top:env(safe-area-inset-top,0px);right:env(safe-area-inset-right,0px);bottom:calc(55px + env(safe-area-inset-bottom,0px));width:calc(100% - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px));max-width:none}
+ .native-mobile .task-content{padding:16px 12px}
+ .native-mobile .toolbar .icon-button{min-width:36px;min-height:36px}
+}

@@ -1,10 +1,16 @@
-use std::{sync::Mutex, time::Duration};
+use std::sync::Mutex;
+#[cfg(desktop)] use std::time::Duration;
 use chrono::Local;
 use rusqlite::{params, Connection, OptionalExtension};
-use tauri::{Emitter, Manager, WindowEvent, menu::{Menu, MenuItem}, tray::TrayIconBuilder};
-use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
+use tauri::{Emitter, Manager};
+#[cfg(desktop)] mod desktop;
+#[cfg(desktop)] use desktop::{reset_capture_window,request_quick_capture};
+#[cfg(mobile)] mod mobile;
+#[cfg(mobile)] use mobile::{reset_capture_window,request_quick_capture};
 use tauri_plugin_notification::NotificationExt;
 
+mod storage;
+use storage::*;
 struct Database(Mutex<Connection>);
 struct ActiveScope(Mutex<Option<String>>);
 // The secondary window owns no workspace. It can hand a bounded draft to the
@@ -47,18 +53,6 @@ fn native_take_quick_capture(scope:String,pending:tauri::State<QuickCapture>,act
 }
 #[tauri::command]
 fn native_shortcut_status(status:tauri::State<ShortcutStatus>)->String{status.0.lock().map(|v|v.clone()).unwrap_or_else(|_|"unknown".into())}
-fn reset_capture_window(app:&tauri::AppHandle){if let Some(w)=app.get_webview_window("capture"){let _=w.hide();let _=app.emit_to("capture","todo-capture-reset",());}}
-fn request_quick_capture(app:&tauri::AppHandle){
- let active=app.state::<ActiveScope>();let capture=app.state::<QuickCapture>();
- let decision=if let (Ok(current),Ok(mut state))=(active.0.lock(),capture.0.lock()){
-  if let Some(scope)=current.as_deref(){if let Some(d)=state.direct.as_mut(){if let Ok(c)=app.state::<Database>().0.lock(){d.saved=matches!(direct_status(&c,&d.scope,&d.id).ok().flatten().as_deref(),Some("saved"|"cancelled"));}}if state.pending.is_none(){let reset=state.scope.as_deref()!=Some(scope)||state.direct.as_ref().is_some_and(|d|d.saved);if reset{state.begin(scope);if let Ok(c)=app.state::<Database>().0.lock(){if let Ok(Some(mut d))=pending_direct(&c,scope){d.generation=state.generation;state.direct=Some(d);}}}Some(reset)}else{None}}else{None}
- }else{None};
- let opened=if let (Some(reset),Some(w))=(decision,app.get_webview_window("capture")){
-  if reset{let _=app.emit_to("capture","todo-capture-reset",());}
-  w.show().and_then(|_|w.unminimize()).and_then(|_|w.set_focus()).is_ok()
- }else{false};
- if !opened{if let Ok(mut state)=capture.0.lock(){state.open_main=true;}show(app);let _=app.emit_to("main","todo-quick-add",());}
-}
 #[tauri::command]
 fn native_open_capture(app:tauri::AppHandle){request_quick_capture(&app)}
 #[tauri::command]
@@ -69,7 +63,7 @@ fn native_capture_generation(pending:tauri::State<QuickCapture>)->Option<u64>{
 fn native_capture_handoff(generation:u64,text:String,pending:tauri::State<QuickCapture>,active:tauri::State<ActiveScope>,app:tauri::AppHandle)->Result<(),String>{
  {let current=active.0.lock().map_err(|e|e.to_string())?;let scope=current.as_deref().ok_or("工作空间尚未就绪")?;
  pending.0.lock().map_err(|e|e.to_string())?.handoff(scope,generation,&text)?;}
- reset_capture_window(&app);show(&app);let _=app.emit_to("main","todo-quick-add",());Ok(())
+ reset_capture_window(&app);#[cfg(desktop)] desktop::show(&app);let _=app.emit_to("main","todo-quick-add",());Ok(())
 }
 #[tauri::command]
 fn native_capture_cancel(pending:tauri::State<QuickCapture>,app:tauri::AppHandle)->Result<(),String>{
@@ -129,49 +123,6 @@ fn direct_task_exists(c:&Connection,scope:&str,id:&str)->rusqlite::Result<bool>{
  c.query_row("SELECT EXISTS(SELECT 1 FROM snapshots,json_each(body,'$.tasks') WHERE scope=?1 AND json_extract(value,'$.id')=?2)",params![scope,id],|r|r.get(0))
 }
 
-fn valid_scope(s:&str)->bool { s=="guest" || (s.len()==36 && s.chars().all(|c|c.is_ascii_hexdigit()||c=='-')) }
-fn schema(c:&Connection)->rusqlite::Result<()> {
- c.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; CREATE TABLE IF NOT EXISTS snapshots(scope TEXT PRIMARY KEY, body TEXT NOT NULL, updated_at INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS backups(scope TEXT NOT NULL, body TEXT NOT NULL, saved_at INTEGER NOT NULL, PRIMARY KEY(scope,saved_at)); CREATE TABLE IF NOT EXISTS delivered(scope TEXT NOT NULL, reminder TEXT NOT NULL, PRIMARY KEY(scope,reminder)); CREATE TABLE IF NOT EXISTS direct_capture_requests(scope TEXT NOT NULL,id TEXT NOT NULL,generation INTEGER NOT NULL,text TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('pending','saved','cancelled')),created_at INTEGER NOT NULL,PRIMARY KEY(scope,id)); CREATE UNIQUE INDEX IF NOT EXISTS direct_capture_one_pending ON direct_capture_requests(scope) WHERE status='pending'; CREATE TABLE IF NOT EXISTS reminder_retry(scope TEXT NOT NULL, reminder TEXT NOT NULL, attempts INTEGER NOT NULL, next_at INTEGER NOT NULL, PRIMARY KEY(scope,reminder)); CREATE TABLE IF NOT EXISTS workspace_store(scope TEXT PRIMARY KEY, body TEXT NOT NULL); CREATE VIRTUAL TABLE IF NOT EXISTS task_search USING fts5(scope UNINDEXED, task_id UNINDEXED, title, notes, tokenize='trigram');")
-}
-fn save(c:&mut Connection,scope:&str,body:&str)->Result<(),String>{save_with_store(c,scope,body,None)}
-fn save_with_store(c:&mut Connection,scope:&str,body:&str,store:Option<&str>)->Result<(),String>{
- if !valid_scope(scope)||body.len()>16_000_000{return Err("无效工作空间或数据过大".into())}
- let state:serde_json::Value=serde_json::from_str(body).map_err(|e|e.to_string())?;
- if state["version"]!=2||!state["tasks"].is_array(){return Err("不支持的工作空间格式".into())}
- let now=Local::now().timestamp();let tx=c.transaction().map_err(|e|e.to_string())?;
- let prior:Option<String>=tx.query_row("SELECT body FROM snapshots WHERE scope=?1",[scope],|r|r.get(0)).optional().map_err(|e|e.to_string())?;
- if prior.as_deref()!=Some(body){
- tx.execute("INSERT OR IGNORE INTO backups SELECT scope,body,?2 FROM snapshots WHERE scope=?1 AND NOT EXISTS(SELECT 1 FROM backups WHERE scope=?1 AND saved_at>?2-3600)",params![scope,now]).map_err(|e|e.to_string())?;
- tx.execute("DELETE FROM backups WHERE scope=?1 AND saved_at NOT IN (SELECT saved_at FROM backups WHERE scope=?1 ORDER BY saved_at DESC LIMIT 24)",[scope]).map_err(|e|e.to_string())?;
- tx.execute("INSERT INTO snapshots VALUES(?1,?2,?3) ON CONFLICT(scope) DO UPDATE SET body=excluded.body,updated_at=excluded.updated_at",params![scope,body,now]).map_err(|e|e.to_string())?;
- let prior_state=prior.as_ref().and_then(|x|serde_json::from_str::<serde_json::Value>(x).ok());
- update_index(&tx,scope,prior_state.as_ref(),&state).map_err(|e|e.to_string())?;
- }
- // Mark receipt atomically with snapshot, never infer success from frontend memory.
- tx.execute("UPDATE direct_capture_requests SET status='saved',text='' WHERE scope=?1 AND status='pending' AND id IN (SELECT json_extract(value,'$.id') FROM json_each(?2,'$.tasks'))",params![scope,body]).map_err(|e|e.to_string())?;
- if let Some(store)=store{tx.execute("INSERT INTO workspace_store VALUES(?1,?2) ON CONFLICT(scope) DO UPDATE SET body=excluded.body",params![scope,store]).map_err(|e|e.to_string())?;}
- tx.commit().map_err(|e|e.to_string())
-}
-fn index_values(state:&serde_json::Value)->std::collections::BTreeMap<String,(String,String)>{
- let mut out=std::collections::BTreeMap::new();
- if let Some(tasks)=state["tasks"].as_array(){for t in tasks{if t["deletedAt"].is_null(){if let Some(id)=t["id"].as_str(){out.insert(id.to_owned(),(t["title"].as_str().unwrap_or("").to_owned(),t["notes"].as_str().unwrap_or("").to_owned()));}}}}
- out
-}
-fn update_index(c:&Connection,scope:&str,prior:Option<&serde_json::Value>,state:&serde_json::Value)->rusqlite::Result<()>{
- let next=index_values(state);
- let old=prior.map(index_values).unwrap_or_default();
- let changed:Vec<_>=old.keys().chain(next.keys()).collect::<std::collections::BTreeSet<_>>().into_iter().filter(|id|old.get(*id)!=next.get(*id)).collect();
- if prior.is_none()||changed.len()>100{
-  c.execute("DELETE FROM task_search WHERE scope=?1",[scope])?;
-  let mut q=c.prepare("INSERT INTO task_search VALUES(?1,?2,?3,?4)")?;
-  for (id,(title,notes)) in next{q.execute(params![scope,id,title,notes])?;}
- }else{
-  let mut del=c.prepare("DELETE FROM task_search WHERE scope=?1 AND task_id=?2")?;
-  let mut put=c.prepare("INSERT INTO task_search VALUES(?1,?2,?3,?4)")?;
-  for id in changed{del.execute(params![scope,id])?;if let Some((title,notes))=next.get(id){put.execute(params![scope,id,title,notes])?;}}
- }
- Ok(())
-}
 #[derive(serde::Serialize)]
 struct BackupInfo { saved_at:i64, bytes:i64 }
 #[tauri::command]
@@ -185,15 +136,6 @@ fn native_list_backups(scope:String,db:tauri::State<Database>)->Result<Vec<Backu
 fn native_read_backup(scope:String,saved_at:i64,db:tauri::State<Database>)->Result<Option<String>,String>{
  if !valid_scope(&scope){return Err("invalid scope".into())}
  db.0.lock().map_err(|e|e.to_string())?.query_row("SELECT body FROM backups WHERE scope=?1 AND saved_at=?2",params![scope,saved_at],|r|r.get(0)).optional().map_err(|e|e.to_string())
-}
-fn create_backup(c:&mut Connection,scope:&str)->Result<(),String>{
- if !valid_scope(scope){return Err("invalid scope".into())}
- let now=Local::now().timestamp();
- let tx=c.transaction().map_err(|e|e.to_string())?;
- let count=tx.execute("INSERT INTO backups(scope,body,saved_at) SELECT scope,body,MAX(?2,COALESCE((SELECT MAX(saved_at)+1 FROM backups WHERE scope=?1),?2)) FROM snapshots WHERE scope=?1",params![scope,now]).map_err(|e|e.to_string())?;
- if count!=1{return Err("没有可备份的工作空间".into())}
- tx.execute("DELETE FROM backups WHERE scope=?1 AND saved_at NOT IN (SELECT saved_at FROM backups WHERE scope=?1 ORDER BY saved_at DESC LIMIT 24)",[scope]).map_err(|e|e.to_string())?;
- tx.commit().map_err(|e|e.to_string())
 }
 #[tauri::command]
 fn native_create_backup(scope:String,db:tauri::State<Database>)->Result<(),String>{
@@ -210,15 +152,6 @@ fn native_save(scope:String,body:String,db:tauri::State<Database>)->Result<(),St
 fn native_load_store(scope:String,db:tauri::State<Database>)->Result<Option<String>,String>{
  if !valid_scope(&scope){return Err("invalid scope".into())}
  db.0.lock().map_err(|e|e.to_string())?.query_row("SELECT body FROM workspace_store WHERE scope=?1",[scope],|r|r.get(0)).optional().map_err(|e|e.to_string())
-}
-fn persist_store(c:&mut Connection,scope:&str,store:&str)->Result<(),String>{
- if !valid_scope(scope)||store.len()>64_000_000{return Err("工作空间存储过大或标识无效".into())}
- let value:serde_json::Value=serde_json::from_str(store).map_err(|e|e.to_string())?;
- let map=value.as_object().ok_or("无效工作空间存储")?;
- let keys=["todo-workbench-v1","todo-workbench-backup","todo-workbench-backup-at","todo-workbench-backup-corrupt","todo-cloud-meta","todo-cloud-base","todo-conflict-backup","todo-field-merge-backup","todo-native-migration-backup"];
- if map.iter().any(|(k,v)|!keys.contains(&k.as_str())||!v.is_string()){return Err("工作空间存储键无效".into())}
- let body=map.get("todo-workbench-v1").and_then(|x|x.as_str()).ok_or("缺少工作空间数据")?;
- save_with_store(c,scope,body,Some(store))
 }
 #[tauri::command]
 fn native_write_store(scope:String,store:String,db:tauri::State<Database>)->Result<(),String>{
@@ -251,36 +184,11 @@ fn native_notify(scope:String,task_id:String,at:String,title:String,db:tauri::St
 
 }
 #[tauri::command]
-fn native_exit(app:tauri::AppHandle){if let Some(w)=app.get_webview_window("main"){save_window(&w);}app.exit(0)}
+fn native_exit(app:tauri::AppHandle){#[cfg(desktop)] if let Some(w)=app.get_webview_window("main"){desktop::save_window(&w);}app.exit(0)}
 #[tauri::command]
 fn native_test_notification(app:tauri::AppHandle)->Result<(),String>{
  app.notification().builder().title("TODO").body("这是一条测试提醒。请在系统通知中心确认。").show().map_err(|e|e.to_string())
 }
-#[derive(serde::Serialize,serde::Deserialize)]
-struct WindowGeometry { width:u32,height:u32,maximized:bool }
-fn geometry_path(app:&tauri::AppHandle)->Option<std::path::PathBuf>{app.path().app_data_dir().ok().map(|p|p.join("window-state.json"))}
-fn save_window(w:&tauri::WebviewWindow){
- let Some(path)=geometry_path(w.app_handle())else{return};
- let Ok(maximized)=w.is_maximized()else{return};
- if maximized{
-  if let Ok(raw)=std::fs::read(&path){if let Ok(mut g)=serde_json::from_slice::<WindowGeometry>(&raw){g.maximized=true;let _=write_geometry(&path,&g);return}}
- }
- let (Ok(size),Ok(scale))=(w.inner_size(),w.scale_factor())else{return};let logical=size.to_logical::<f64>(scale);
- let g=WindowGeometry{width:logical.width.round().clamp(760.,3840.) as u32,height:logical.height.round().clamp(520.,2160.) as u32,maximized};
- let _=write_geometry(&path,&g);
-}
-fn write_geometry(path:&std::path::Path,g:&WindowGeometry)->Result<(),String>{
- let tmp=path.with_extension("tmp");std::fs::write(&tmp,serde_json::to_vec(g).map_err(|e|e.to_string())?).map_err(|e|e.to_string())?;
- std::fs::rename(tmp,path).map_err(|e|e.to_string())
-}
-fn restore_window(w:&tauri::WebviewWindow){
- let Some(path)=geometry_path(w.app_handle())else{return};let Ok(raw)=std::fs::read(path)else{return};
- let Ok(g)=serde_json::from_slice::<WindowGeometry>(&raw)else{return};
- let (mut width,mut height)=(g.width.clamp(760,3840),g.height.clamp(520,2160));
- if let Ok(Some(m))=w.current_monitor(){let scale=m.scale_factor();let limit=m.size().to_logical::<f64>(scale);width=width.min((limit.width-40.).max(760.) as u32);height=height.min((limit.height-100.).max(520.) as u32);}
- let _=w.set_size(tauri::LogicalSize::new(width,height));let _=w.center();if g.maximized{let _=w.maximize();}
-}
-fn show(app:&tauri::AppHandle){if let Some(w)=app.get_webview_window("main"){let _=w.show();let _=w.unminimize();let _=w.set_focus();}}
 // Persist a bounded retry schedule before invoking the OS. Delivery is marked only
 // after show() returns success. A crash between show and the SQLite commit may
 // duplicate a reminder; it must not silently suppress the only attempt.
@@ -314,6 +222,7 @@ fn reminder_candidates(state:&serde_json::Value,now:chrono::DateTime<Local>)->Ve
  }
  out
 }
+#[cfg(desktop)]
 fn schedule(app:tauri::AppHandle){
  std::thread::spawn(move||loop{
   std::thread::sleep(Duration::from_secs(5));
@@ -331,25 +240,17 @@ fn schedule(app:tauri::AppHandle){
 }
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run(){
- tauri::Builder::default()
- .plugin(tauri_plugin_single_instance::init(|app,_,_|show(app)))
- .plugin(tauri_plugin_notification::init())
- .plugin(tauri_plugin_global_shortcut::Builder::new().with_handler(|app,_,event|{if event.state()==ShortcutState::Pressed{request_quick_capture(app);}}).build())
+ let builder=tauri::Builder::default();
+ #[cfg(desktop)] let builder=desktop::configure(builder);
+ builder.plugin(tauri_plugin_notification::init())
  .invoke_handler(tauri::generate_handler![native_load,native_save,native_load_store,native_write_store,native_activate,native_search,native_list_backups,native_read_backup,native_create_backup,native_notify,native_exit,native_test_notification,native_take_quick_capture,native_shortcut_status,native_open_capture,native_capture_generation,native_capture_handoff,native_capture_cancel,native_capture_submit_direct,native_capture_direct_status,native_direct_pending,native_direct_ack,native_direct_cancel_pending])
  .setup(|app|{
   let path=app.path().app_data_dir()?;std::fs::create_dir_all(&path)?;let c=Connection::open(path.join("todo.sqlite3"))?;schema(&c)?;
   app.manage(Database(Mutex::new(c)));app.manage(ActiveScope(Mutex::new(None)));app.manage(QuickCapture(Mutex::new(CaptureState::default())));app.manage(ShortcutStatus(Mutex::new("not-registered".into())));
-  let open=MenuItem::with_id(app,"open","打开 TODO",true,None::<&str>)?;let quit=MenuItem::with_id(app,"quit","退出 TODO",true,None::<&str>)?;
-  let quick=MenuItem::with_id(app,"quick","快速新建任务",true,None::<&str>)?;let hide=MenuItem::with_id(app,"hide","隐藏主窗口",true,None::<&str>)?;let menu=Menu::with_items(app,&[&open,&quick,&hide,&quit])?;
-  let mut tray=TrayIconBuilder::new().menu(&menu).tooltip("TODO").on_menu_event(|app,event|match event.id.as_ref(){"open"=>show(app),"quick"=>request_quick_capture(app),"hide"=>{if let Some(w)=app.get_webview_window("main"){save_window(&w);let _=w.hide();}},"quit"=>{let active=app.state::<ActiveScope>();if active.0.lock().ok().and_then(|s|s.clone()).is_some(){let _=app.emit("todo-quit-request",());}else{app.exit(0)}},_=>{}});
-  if let Some(icon)=app.default_window_icon(){tray=tray.icon(icon.clone())}tray.build(app)?;
-  if app.config().identifier == "com.weepwood.todo" {
-   let status=match app.global_shortcut().register("CommandOrControl+Shift+A"){Ok(())=>"registered",Err(e)=>{eprintln!("global shortcut unavailable: {e}");"unavailable"}};
-   if let Ok(mut value)=app.state::<ShortcutStatus>().0.lock(){*value=status.into()}
-  }
-  if let Some(w)=app.get_webview_window("main"){restore_window(&w);}schedule(app.handle().clone());Ok(())
+  #[cfg(desktop)] {desktop::setup(app)?;schedule(app.handle().clone());}
+  Ok(())
  })
- .on_window_event(|window,event|{if let WindowEvent::CloseRequested{api,..}=event{api.prevent_close();if window.label()=="capture"{let app=window.app_handle();if let Ok(mut state)=app.state::<QuickCapture>().0.lock(){if !state.direct.as_ref().is_some_and(|d|!d.saved){state.invalidate();}}if let Some(w)=app.get_webview_window("capture"){let _=w.hide();}}else if window.label()=="main"{if let Some(w)=window.app_handle().get_webview_window("main"){save_window(&w);}let _=window.hide();}}})
+
  .run(tauri::generate_context!()).expect("TODO native application failed")
 }
 #[cfg(test)]mod tests{

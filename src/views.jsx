@@ -1,12 +1,12 @@
 import {PointsStats} from './points-stats.jsx';
-import {taskPoints,signedPoints} from './points.js';
+import {taskPoints,signedPoints} from './core/points.js';
 import React,{useEffect,useMemo,useState} from 'react';
-import {dayKey,shiftDay,id,timerSeconds,validDate} from './domain.js';
+import {dayKey,shiftDay,id,timerSeconds,validDate} from './core/domain.js';
 import {CalendarDays,Clock,Plus,Play,Pause,Square,RotateCcw,Check,Flame} from 'lucide-react';
 import {Empty,Field,Modal,NumberField} from './ui.jsx';
 import TimeBlocks from './time-blocks.jsx';
-import {planDay,calendarBusy,daySegments,validWorkHours,workBudget,readPlannerPreferences,PLANNER_PREFS_KEY} from './productivity.js';
-import {habitStreak,nextSlot,taskConflicts} from './advanced.js';
+import {planDay,calendarBusy,daySegments,validWorkHours,workBudget,readPlannerPreferences,PLANNER_PREFS_KEY} from './core/productivity.js';
+import {habitStreak,nextSlot,taskConflicts} from './core/advanced.js';
 export const pending=d=>d.tasks.filter(t=>!t.deletedAt&&t.status==='pending');
 const timeText=s=>[Math.floor(s/3600),Math.floor(s/60)%60,s%60].map(v=>String(v).padStart(2,'0')).join(':');
 function card(t,select){return <button className="view-task" key={t.id} onClick={()=>select(t.id)}><span className={'priority-dot p'+t.priority}/><span>{t.title}<small>{t.date||'未安排'} {t.time}{taskPoints(t)!==0?' · '+signedPoints(taskPoints(t))+' 分':''}</small></span></button>}

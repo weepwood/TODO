@@ -252,3 +252,11 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - 积分曲线按日期/清单过滤，包含期初累计净分，零轴支持负值，不减去奖励消费。目标与兑换余额始终按全工作空间，不随清单/区间过滤。余额=有效已完成任务净积分−未退款兑换成本。兑换时在最新 reducer 状态复核价格、归档、余额、ID、记录上限；重复同ID拒绝；退款保留记录且最多一次。任务撤销/删除可导致负余额，不隐式取消奖励。仅个人激励记录，非货币交易、非不可变账本。
 - 兑换操作属于完整工作空间变更，沿用已有 revision/CAS 与冲突保护，不自动合并冲突奖励记录。真实多设备并发兑换没有专项实网验证，离线两个设备各自兑换可能冲突，用户需选择/核对版本；不承诺分布式严格防超支。建议升级所有客户端，不改 Supabase DDL/账号配置。
 - 73/73 JS、7/7 关联 Edge（目标自然周期、历史累计、余额、改价、重复、退款、归档、恢复、窄屏与模拟云同步/附件归档等），实际浅色桌面、深色390px截图检查通过。生产构建通过，版本同步后执行最终积分专项；未修改 Rust 业务代码，不重跑 native 构建或完整CI。习惯积分、自定义日期范围和积分热力图尚未实施。
+
+### 跨平台基础专项（基线 bf844b6 / Alpha.2）
+- 前次 Pages 45563923562 成功；保留 Alpha.1 和 RC1 Tag/Release，本轮不发布新版安装包或修改真实账号/数据库配置。
+- JS 8个业务模块迁至 src/core（任务、积分、习惯/规划相关规则），5个同步/本地存储辅助模块迁至 src/services；旧路径保留 re-export，现有调用方逐步切换。原同步协议、任务积分和兑换数据格式不变。main.jsx 尚未完整拆分，业务 UI 沿用原组件，非一次性架构重写。
+- src/platform/runtime.js 提供能力标识，Tauri+UA 仅用于 UI 判定；桌面快捷键、托盘退出及直接录入轮询迁至 platform/desktop，移动端不调用。platform/android/notifications.js 仅显式测试操作申请通知权限，普通提醒不弹权限；当前只支持应用运行期间提醒，不保证后台定时。共享同步新增 visibilitychange 恢复唤醒，移动隐藏期间停止轮询（不等于 WorkManager，也不保证后台 Realtime）。
+- Rust desktop.rs 隔离托盘/全局快捷键/单实例/窗口几何；Cargo 桌面依赖条件编译；storage.rs 抽出共用 SQLite schema/事务/索引/备份实现，IPC 命令注册仍在 lib.rs。Android 配置单窗口、minSdk26，桌面录入与退出等权限置于 desktop-main/capture 平台清单，移动仅共享 IPC；现有 SQLite 结构不迁移。mobile.rs 为移动适配入口，系统定时及后台同步尚未实现。
+- Android 原生窄屏基础布局为横向可滚动底栏及全宽详情，不代表最终移动端交互设计；浏览器和桌面布局不变。真实 Android WebView/软键盘/系统返回键/Keystore/附件及多设备同步待验收。
+- 77/77 JS、9/9 macOS Rust、11/11 关联 Edge（含模拟 Android IPC、真实桌面 UI、模拟同步、积分、通知授权和直接录入），最后一次移动专项 1/1，生产构建通过。模拟 IPC 不是实机 Android 测试。Rust 全局缓存清理警告不影响测试。本机无 Android SDK，采用 GitHub-hosted Android ARM64 调试 APK 工作流；独立 QA 包名 com.weepwood.todo.qa.android，临时 debug 签名不保证跨次覆盖安装，产物验证包名、签名、arm64及SHA256。生成的 Gradle/Kotlin 工程暂由固定版本 CLI 在 CI 初始化，尚未提交正式 Android 工程。CI 按 workflow/Android 配置变更触发或手动运行，不为普通桌面开发强制打包。禁止自动创建正式 Release，禁止引入未经批准的收费服务；WorkManager、AlarmManager/重启调度、FCM、Widget、长期签名与真机留待后续专项。

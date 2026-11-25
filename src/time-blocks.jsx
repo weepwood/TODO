@@ -1,5 +1,5 @@
 import React,{useMemo,useState,useRef} from 'react';
-import {layoutTimeline,snapTimelineMinute,minuteClock,resizeTimelineDuration,timelineMove} from './timeline-layout.js';
+import {layoutTimeline,snapTimelineMinute,minuteClock,resizeTimelineDuration,timelineMove} from './core/timeline-layout.js';
 export default function TimeBlocks({segments,start,end,date,tasks,patch,select,conflicts,lists,hourHeight=56,onDateChange}){
  const from=start*60,to=end*60,height=(end-start)*hourHeight;
  const [target,setTarget]=useState(null),[movePreview,setMovePreview]=useState(null),[resize,setResize]=useState(null);const body=useRef(null),drag=useRef(null),move=useRef(null);

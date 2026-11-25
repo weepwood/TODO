@@ -1,6 +1,6 @@
 import React,{useEffect,useMemo,useState} from 'react';
-import {MAX_POINTS,signedPoints} from './points.js';
-import {GOAL_KEYS,MAX_REWARDS,MAX_REDEMPTIONS,programOf,goalProgress,pointsWallet,setGoals,saveReward,archiveReward,redeemReward,refundReward} from './points-program.js';
+import {MAX_POINTS,signedPoints} from './core/points.js';
+import {GOAL_KEYS,MAX_REWARDS,MAX_REDEMPTIONS,programOf,goalProgress,pointsWallet,setGoals,saveReward,archiveReward,redeemReward,refundReward} from './core/points-program.js';
 import {ActionButton,Field,Modal} from './ui.jsx';
 const labels={daily:'每日',weekly:'每周',monthly:'每月'};
 const validNumber=(s,min=0)=>String(s).trim()!==''&&Number.isInteger(Number(s))&&Number(s)>=min&&Number(s)<=MAX_POINTS;

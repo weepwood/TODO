@@ -1,0 +1,65 @@
+name: Android ARM64 基础验收（测试 APK）
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/cross-platform-foundation]
+    paths:
+      - '.github/workflows/android.yml'
+      - 'src-tauri/tauri.android.conf.json'
+permissions:
+  contents: read
+concurrency:
+  group: android-qa-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - name: Android SDK and NDK
+        run: |
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
+      - run: npm ci
+      - run: npm test
+      - name: Generate isolated Android QA project
+        run: npm run android:init -- --ci --skip-targets-install --config '{"identifier":"com.weepwood.todo.qa.android","productName":"TODO Android QA"}'
+      - name: Build test APK
+        run: npm run android:build -- --ci --debug --apk --target aarch64 --config '{"identifier":"com.weepwood.todo.qa.android","productName":"TODO Android QA"}'
+      - name: Check APK signature and ABI
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p android-qa
+          test "$(find src-tauri/gen/android/app/build/outputs/apk -type f -name '*.apk' | wc -l)" -eq 1
+          apk="$(find src-tauri/gen/android/app/build/outputs/apk -type f -name '*.apk' -print -quit)"
+          test -n "$apk"
+          cp "$apk" android-qa/TODO-Android-QA-arm64.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose android-qa/TODO-Android-QA-arm64.apk
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging android-qa/TODO-Android-QA-arm64.apk > android-qa/APK_INFO.txt
+          grep -F "package: name='com.weepwood.todo.qa.android'" android-qa/APK_INFO.txt
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging android-qa/TODO-Android-QA-arm64.apk > android-qa/badging.txt
+          grep -F "package: name='com.weepwood.todo.qa.android'" android-qa/badging.txt
+          unzip -l android-qa/TODO-Android-QA-arm64.apk | grep 'lib/arm64-v8a/.*\.so'
+          (cd android-qa && sha256sum *.apk > SHA256SUMS.txt)
+          printf '%s\n' "$GITHUB_SHA" > android-qa/BUILD_COMMIT.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TODO-Android-QA-arm64
+          path: android-qa/
+          if-no-files-found: error

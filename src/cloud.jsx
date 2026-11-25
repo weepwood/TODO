@@ -1,13 +1,15 @@
+import {subscribeSyncWake} from './platform/web/sync-wake.js';
+import {mobileNative} from './platform/runtime.js';
 import React,{useEffect,useRef,useState,useCallback} from 'react';
 import {createClient} from '@supabase/supabase-js';
 import {isTauri} from '@tauri-apps/api/core';
 import {CLOUD_URL,CLOUD_KEY} from './cloud-config.js';
-import {initialState,migrateState,readState,saveState,STORAGE_KEY} from './domain.js';
-import {mergeTasks,resolveTaskFields,saveBaseline,loadBaseline} from './sync-merge.js';
-import {buildTaskDelta,replayTaskDeltas} from './task-delta.js';
-import {appendSyncLog,readSyncLog,SYNC_LOG_KEY} from './sync-diagnostics.js';
+import {initialState,migrateState,readState,saveState,STORAGE_KEY} from './core/domain.js';
+import {mergeTasks,resolveTaskFields,saveBaseline,loadBaseline} from './services/sync-merge.js';
+import {buildTaskDelta,replayTaskDeltas} from './services/task-delta.js';
+import {appendSyncLog,readSyncLog,SYNC_LOG_KEY} from './services/sync-diagnostics.js';
 import {SyncDiagnostics,ConflictPreview,FieldMerge} from './sync-ui.jsx';
-import {scopedStorage,canonical,digest,readMeta,META_KEY,decideSync,readRemote,preserveConflict,authErrorMessage} from './cloud-core.js';
+import {scopedStorage,canonical,digest,readMeta,META_KEY,decideSync,readRemote,preserveConflict,authErrorMessage} from './services/cloud-core.js';
 export const cloud=createClient(CLOUD_URL,CLOUD_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const TABLE='todo_workspaces';
 export function useAccount(){
@@ -113,7 +115,7 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked,logStorage}){
  },[uid,storage,setData,logStorage]);
  useEffect(()=>{active.current=true;return()=>{active.current=false}},[]);
  useEffect(()=>{if(!uid||blocked)return;const t=setTimeout(()=>sync(),800);return()=>clearTimeout(t)},[data,uid,blocked,sync]);
- useEffect(()=>{if(!uid)return;const run=()=>sync();const t=setInterval(run,15000);window.addEventListener('online',run);window.addEventListener('focus',run);return()=>{clearInterval(t);window.removeEventListener('online',run);window.removeEventListener('focus',run)}},[uid,sync]);
+ useEffect(()=>{if(!uid)return;return subscribeSyncWake(()=>sync(),{foregroundOnly:mobileNative})},[uid,sync]);
  const [realtime,setRealtime]=useState('connecting');
  useEffect(()=>{if(!uid)return;let alive=true;setRealtime('connecting');const channel=cloud.channel('todo-revision:'+uid);const wake=()=>sync();
  for(const event of ['INSERT','UPDATE'])channel.on('postgres_changes',{event,schema:'public',table:TABLE,filter:'user_id=eq.'+uid},wake);

@@ -1,6 +1,6 @@
 import React,{useMemo,useState} from 'react';
-import {signedPoints,summarizePoints} from './points.js';
-import {cumulativePoints} from './points-program.js';
+import {signedPoints,summarizePoints} from './core/points.js';
+import {cumulativePoints} from './core/points-program.js';
 import {PointsProgram} from './points-rewards.jsx';
 function Tone({value}){return <span className={value>0?'points-positive':value<0?'points-negative':'muted'}>{signedPoints(value)}</span>}
 export function PointsStats({tasks,lists,days,today,list,data,edit,blocked}){

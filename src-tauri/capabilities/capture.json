@@ -12,5 +12,10 @@
     "allow-native-capture-cancel",
     "allow-native-capture-submit-direct",
     "allow-native-capture-direct-status"
+  ],
+  "platforms": [
+    "linux",
+    "macOS",
+    "windows"
   ]
 }

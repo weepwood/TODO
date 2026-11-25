@@ -1,10 +1,10 @@
-import {signedPoints} from './points.js';
+import {signedPoints} from './core/points.js';
 import React,{useEffect,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {invoke,isTauri} from '@tauri-apps/api/core';
 import {listen} from '@tauri-apps/api/event';
-import {quickParse} from './advanced.js';
-import {dayKey} from './domain.js';
+import {quickParse} from './core/advanced.js';
+import {dayKey} from './core/domain.js';
 import './capture.css';
 function Capture(){
  const [draft,setDraft]=useState(''),[generation,setGeneration]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[direct,setDirect]=useState('idle');const request=useRef(null);

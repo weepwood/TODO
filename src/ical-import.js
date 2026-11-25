@@ -1,5 +1,5 @@
 import ICAL from 'ical.js';
-import {dayKey} from './domain.js';
+import {dayKey} from './core/domain.js';
 export function parseCalendar(text,source,from=new Date(),days=180){
  if(typeof text!=='string'||new TextEncoder().encode(text).length>1000000)throw Error('日历文件超过 1 MB');
  const component=new ICAL.Component(ICAL.parse(text));if(component.name!=='vcalendar')throw Error('不是有效的 ICS 日历');

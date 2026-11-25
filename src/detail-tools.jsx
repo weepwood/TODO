@@ -1,5 +1,5 @@
 import React,{useState,lazy,Suspense} from 'react';
-import {safeLink,taskActivity} from './productivity.js';
+import {safeLink,taskActivity} from './core/productivity.js';
 import {ExternalLink,Link2,FileText,Eye} from 'lucide-react';
 const MarkdownPreview=lazy(()=>import('./markdown-preview.jsx'));
 const NoteWorkbench=lazy(()=>import('./note-workbench.jsx'));

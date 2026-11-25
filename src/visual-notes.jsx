@@ -5,7 +5,7 @@ import {Markdown} from '@tiptap/markdown';
 import {TableKit} from '@tiptap/extension-table';
 import {TaskList} from '@tiptap/extension-task-list';
 import {TaskItem} from '@tiptap/extension-task-item';
-import {safeLink} from './productivity.js';
+import {safeLink} from './core/productivity.js';
 const normalized=s=>s.replace(/\r\n/g,'\n').replace(/\n+$/,'');
 export function visualSourceAllowed(text){
  // Avoid parsing arbitrary HTML into the rich editor. Complex/unsupported Markdown

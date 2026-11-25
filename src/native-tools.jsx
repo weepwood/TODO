@@ -2,7 +2,7 @@ import React,{useEffect,useState} from 'react';
 import {invoke} from '@tauri-apps/api/core';
 import {Modal} from './ui.jsx';
 import {native} from './native.js';
-import {migrateState} from './domain.js';
+import {migrateState} from './core/domain.js';
 export function useNativeSearch({uid,query,tasks,pending}){
  const [result,setResult]=useState(null);
  useEffect(()=>{if(!native||pending||!query.trim())return;let active=true;

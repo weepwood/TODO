@@ -1,7 +1,7 @@
 import React from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import {safeLink} from './productivity.js';
+import {safeLink} from './core/productivity.js';
 // Never render raw HTML or fetch embedded remote images (which can reveal viewing activity).
 export default function MarkdownPreview({value}){
  return <Markdown remarkPlugins={[remarkGfm]} skipHtml urlTransform={url=>safeLink(url)||''} components={{

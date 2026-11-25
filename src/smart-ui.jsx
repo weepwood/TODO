@@ -1,7 +1,7 @@
 import React,{useState,useMemo} from 'react';
 import {Modal,Field} from './ui.jsx';
-import {emptyFilter,normalizeFilter,smartMatches} from './smart-lists.js';
-import {id} from './domain.js';
+import {emptyFilter,normalizeFilter,smartMatches} from './core/smart-lists.js';
+import {id} from './core/domain.js';
 export function SmartDialog({filter,data,today,onClose,onSave}){
  const [draft,setDraft]=useState(()=>({...emptyFilter,...filter}));
  const set=(k,v)=>setDraft(f=>({...f,[k]:v}));

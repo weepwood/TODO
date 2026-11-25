@@ -1,0 +1,16 @@
+{
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "TODO"
+      }
+    ]
+  },
+  "bundle": {
+    "android": {
+      "minSdkVersion": 26,
+      "versionCode": 101002
+    }
+  }
+}

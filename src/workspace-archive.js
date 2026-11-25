@@ -1,5 +1,5 @@
-import {migrateState} from './domain.js';
-import {digest} from './cloud-core.js';
+import {migrateState} from './core/domain.js';
+import {digest} from './services/cloud-core.js';
 import {makeAttachmentArchive,parseAttachmentArchive} from './attachment-archive.js';
 export const WORKSPACE_ARCHIVE_LIMIT=88*1024*1024;
 const jsonSize=v=>new Blob([JSON.stringify(v)]).size;

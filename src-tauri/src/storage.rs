@@ -1,0 +1,63 @@
+//! Shared SQLite storage, snapshots, backup and index transactions.
+use super::*;
+pub(super) fn valid_scope(s:&str)->bool { s=="guest" || (s.len()==36 && s.chars().all(|c|c.is_ascii_hexdigit()||c=='-')) }
+pub(super) fn schema(c:&Connection)->rusqlite::Result<()> {
+ c.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; CREATE TABLE IF NOT EXISTS snapshots(scope TEXT PRIMARY KEY, body TEXT NOT NULL, updated_at INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS backups(scope TEXT NOT NULL, body TEXT NOT NULL, saved_at INTEGER NOT NULL, PRIMARY KEY(scope,saved_at)); CREATE TABLE IF NOT EXISTS delivered(scope TEXT NOT NULL, reminder TEXT NOT NULL, PRIMARY KEY(scope,reminder)); CREATE TABLE IF NOT EXISTS direct_capture_requests(scope TEXT NOT NULL,id TEXT NOT NULL,generation INTEGER NOT NULL,text TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('pending','saved','cancelled')),created_at INTEGER NOT NULL,PRIMARY KEY(scope,id)); CREATE UNIQUE INDEX IF NOT EXISTS direct_capture_one_pending ON direct_capture_requests(scope) WHERE status='pending'; CREATE TABLE IF NOT EXISTS reminder_retry(scope TEXT NOT NULL, reminder TEXT NOT NULL, attempts INTEGER NOT NULL, next_at INTEGER NOT NULL, PRIMARY KEY(scope,reminder)); CREATE TABLE IF NOT EXISTS workspace_store(scope TEXT PRIMARY KEY, body TEXT NOT NULL); CREATE VIRTUAL TABLE IF NOT EXISTS task_search USING fts5(scope UNINDEXED, task_id UNINDEXED, title, notes, tokenize='trigram');")
+}
+pub(super) fn save(c:&mut Connection,scope:&str,body:&str)->Result<(),String>{save_with_store(c,scope,body,None)}
+pub(super) fn save_with_store(c:&mut Connection,scope:&str,body:&str,store:Option<&str>)->Result<(),String>{
+ if !valid_scope(scope)||body.len()>16_000_000{return Err("无效工作空间或数据过大".into())}
+ let state:serde_json::Value=serde_json::from_str(body).map_err(|e|e.to_string())?;
+ if state["version"]!=2||!state["tasks"].is_array(){return Err("不支持的工作空间格式".into())}
+ let now=Local::now().timestamp();let tx=c.transaction().map_err(|e|e.to_string())?;
+ let prior:Option<String>=tx.query_row("SELECT body FROM snapshots WHERE scope=?1",[scope],|r|r.get(0)).optional().map_err(|e|e.to_string())?;
+ if prior.as_deref()!=Some(body){
+ tx.execute("INSERT OR IGNORE INTO backups SELECT scope,body,?2 FROM snapshots WHERE scope=?1 AND NOT EXISTS(SELECT 1 FROM backups WHERE scope=?1 AND saved_at>?2-3600)",params![scope,now]).map_err(|e|e.to_string())?;
+ tx.execute("DELETE FROM backups WHERE scope=?1 AND saved_at NOT IN (SELECT saved_at FROM backups WHERE scope=?1 ORDER BY saved_at DESC LIMIT 24)",[scope]).map_err(|e|e.to_string())?;
+ tx.execute("INSERT INTO snapshots VALUES(?1,?2,?3) ON CONFLICT(scope) DO UPDATE SET body=excluded.body,updated_at=excluded.updated_at",params![scope,body,now]).map_err(|e|e.to_string())?;
+ let prior_state=prior.as_ref().and_then(|x|serde_json::from_str::<serde_json::Value>(x).ok());
+ update_index(&tx,scope,prior_state.as_ref(),&state).map_err(|e|e.to_string())?;
+ }
+ // Mark receipt atomically with snapshot, never infer success from frontend memory.
+ tx.execute("UPDATE direct_capture_requests SET status='saved',text='' WHERE scope=?1 AND status='pending' AND id IN (SELECT json_extract(value,'$.id') FROM json_each(?2,'$.tasks'))",params![scope,body]).map_err(|e|e.to_string())?;
+ if let Some(store)=store{tx.execute("INSERT INTO workspace_store VALUES(?1,?2) ON CONFLICT(scope) DO UPDATE SET body=excluded.body",params![scope,store]).map_err(|e|e.to_string())?;}
+ tx.commit().map_err(|e|e.to_string())
+}
+fn index_values(state:&serde_json::Value)->std::collections::BTreeMap<String,(String,String)>{
+ let mut out=std::collections::BTreeMap::new();
+ if let Some(tasks)=state["tasks"].as_array(){for t in tasks{if t["deletedAt"].is_null(){if let Some(id)=t["id"].as_str(){out.insert(id.to_owned(),(t["title"].as_str().unwrap_or("").to_owned(),t["notes"].as_str().unwrap_or("").to_owned()));}}}}
+ out
+}
+fn update_index(c:&Connection,scope:&str,prior:Option<&serde_json::Value>,state:&serde_json::Value)->rusqlite::Result<()>{
+ let next=index_values(state);
+ let old=prior.map(index_values).unwrap_or_default();
+ let changed:Vec<_>=old.keys().chain(next.keys()).collect::<std::collections::BTreeSet<_>>().into_iter().filter(|id|old.get(*id)!=next.get(*id)).collect();
+ if prior.is_none()||changed.len()>100{
+  c.execute("DELETE FROM task_search WHERE scope=?1",[scope])?;
+  let mut q=c.prepare("INSERT INTO task_search VALUES(?1,?2,?3,?4)")?;
+  for (id,(title,notes)) in next{q.execute(params![scope,id,title,notes])?;}
+ }else{
+  let mut del=c.prepare("DELETE FROM task_search WHERE scope=?1 AND task_id=?2")?;
+  let mut put=c.prepare("INSERT INTO task_search VALUES(?1,?2,?3,?4)")?;
+  for id in changed{del.execute(params![scope,id])?;if let Some((title,notes))=next.get(id){put.execute(params![scope,id,title,notes])?;}}
+ }
+ Ok(())
+}
+pub(super) fn create_backup(c:&mut Connection,scope:&str)->Result<(),String>{
+ if !valid_scope(scope){return Err("invalid scope".into())}
+ let now=Local::now().timestamp();
+ let tx=c.transaction().map_err(|e|e.to_string())?;
+ let count=tx.execute("INSERT INTO backups(scope,body,saved_at) SELECT scope,body,MAX(?2,COALESCE((SELECT MAX(saved_at)+1 FROM backups WHERE scope=?1),?2)) FROM snapshots WHERE scope=?1",params![scope,now]).map_err(|e|e.to_string())?;
+ if count!=1{return Err("没有可备份的工作空间".into())}
+ tx.execute("DELETE FROM backups WHERE scope=?1 AND saved_at NOT IN (SELECT saved_at FROM backups WHERE scope=?1 ORDER BY saved_at DESC LIMIT 24)",[scope]).map_err(|e|e.to_string())?;
+ tx.commit().map_err(|e|e.to_string())
+}
+pub(super) fn persist_store(c:&mut Connection,scope:&str,store:&str)->Result<(),String>{
+ if !valid_scope(scope)||store.len()>64_000_000{return Err("工作空间存储过大或标识无效".into())}
+ let value:serde_json::Value=serde_json::from_str(store).map_err(|e|e.to_string())?;
+ let map=value.as_object().ok_or("无效工作空间存储")?;
+ let keys=["todo-workbench-v1","todo-workbench-backup","todo-workbench-backup-at","todo-workbench-backup-corrupt","todo-cloud-meta","todo-cloud-base","todo-conflict-backup","todo-field-merge-backup","todo-native-migration-backup"];
+ if map.iter().any(|(k,v)|!keys.contains(&k.as_str())||!v.is_string()){return Err("工作空间存储键无效".into())}
+ let body=map.get("todo-workbench-v1").and_then(|x|x.as_str()).ok_or("缺少工作空间数据")?;
+ save_with_store(c,scope,body,Some(store))
+}

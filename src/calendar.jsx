@@ -8,7 +8,7 @@ import dayGridPlugin from '@fullcalendar/react/daygrid';
 import timeGridPlugin from '@fullcalendar/react/timegrid';
 import interactionPlugin,{Draggable} from '@fullcalendar/react/interaction';
 import zhLocale from '@fullcalendar/react/locales/zh-cn';
-import {dayKey,id,validDate,validTime} from './domain.js';
+import {dayKey,id,validDate,validTime} from './core/domain.js';
 import {fetchFeed} from './calendar-feeds.js';
 import {parseCalendar} from './ical-import.js';
 import {Modal,Field} from './ui.jsx';

@@ -7,9 +7,6 @@
   "permissions": [
     "core:default",
     "notification:default",
-    "allow-native-take-quick-capture",
-    "allow-native-shortcut-status",
-    "allow-native-open-capture",
     "allow-native-list-backups",
     "allow-native-read-backup",
     "allow-native-create-backup",
@@ -20,10 +17,6 @@
     "allow-native-activate",
     "allow-native-search",
     "allow-native-notify",
-    "allow-native-exit",
-    "allow-native-test-notification",
-    "allow-native-direct-pending",
-    "allow-native-direct-ack",
-    "allow-native-direct-cancel-pending"
+    "allow-native-test-notification"
   ]
 }

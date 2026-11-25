@@ -1,0 +1,21 @@
+{
+  "identifier": "desktop-main",
+  "description": "Desktop-only main window commands",
+  "platforms": [
+    "linux",
+    "macOS",
+    "windows"
+  ],
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "allow-native-take-quick-capture",
+    "allow-native-shortcut-status",
+    "allow-native-open-capture",
+    "allow-native-exit",
+    "allow-native-direct-pending",
+    "allow-native-direct-ack",
+    "allow-native-direct-cancel-pending"
+  ]
+}
