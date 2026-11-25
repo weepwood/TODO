@@ -76,7 +76,7 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked,logStorage}){
    if(!active.current)return;
    if(latest.current.data!==snapshot){setStatus('等待本地保存');return}
    let decision=decideSync({localHash:hash,remoteHash,remoteRevision:remote?.revision??null,meta,emptyHash});
-   const unsafePull=!resolution&&decision==='pull'&&remote&&unsafeSeriesPull(base||snapshot,remote.state);if(unsafePull)decision='conflict';
+   const unsafePull=!resolution&&decision==='pull'&&remote&&(unsafeSeriesPull(base||snapshot,remote.state)||((base||snapshot).preferenceProfile!==undefined&&remote.state.preferenceProfile===undefined));if(unsafePull)decision='conflict';
    if(resolution){
     // Recheck the exact cloud revision presented to the user.
     if((remote?.revision??null)!==conflictRef.current?.revision){decision='conflict'}

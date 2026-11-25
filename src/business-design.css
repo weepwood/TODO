@@ -17,7 +17,7 @@
 .agenda-task:hover,.planner .unscheduled>div[draggable]:hover{background:var(--hover)}
 .calendar-agenda .agenda-title{min-height:var(--control-height)}
 .calendar-agenda .agenda-title small{margin-top:3px;line-height:1.4}
-.calendar-agenda-head h3,.planner .unscheduled h3,.stats .stat-card h3{font-weight:600;font-size:14px}
+.calendar-agenda-head h3,.planner .unscheduled h3,.stats .stat-card h3{font-weight:var(--surface-heading-weight);font-size:var(--surface-heading-size)}
 .calendar-info,.planner-toolbar{gap:var(--space-2)}
 .calendar-info button,.planner-toolbar button{border-radius:var(--radius-control);min-height:var(--control-height)}
 .calendar-main .fc .fc-button{border-radius:var(--radius-control)}
@@ -262,3 +262,56 @@
 .series-center-filters>button.chosen{background:var(--active);color:var(--accent-text);font-weight:600}
 .workflow-dialog .field>.time-control{min-width:0;width:100%}
 @media(max-width:860px){.series-center-filters>button{min-height:44px;flex:1 1 auto}.workflow-dialog>.shared-search{min-height:44px}.workflow-footer>.dialog-actions>button{flex:1;min-height:44px}}
+
+
+/* V1.4: shared surfaces for rule editing, reports and settings. */
+.workflow-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2);margin-bottom:var(--space-3)}
+.workflow-overview>div{display:grid;gap:var(--space-1);padding:var(--space-3);background:var(--surface-subtle);border:var(--surface-border);border-radius:var(--surface-radius);min-width:0}
+.workflow-overview small,.workflow-overview strong span{color:var(--muted);font-size:var(--font-caption);font-weight:400}
+.workflow-overview strong{font-size:22px;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+.workflow-rule{background:var(--surface-subtle);border:var(--surface-border);border-radius:var(--surface-radius)}
+.workflow-rule[data-enabled=false] .workflow-rule-title{color:var(--muted)}
+.workflow-rule-title{font-weight:var(--surface-heading-weight);font-size:var(--surface-heading-size);overflow-wrap:anywhere;margin:8px 0}
+.workflow-condition-flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 0;color:var(--muted)}
+.workflow-condition-flow>span{display:inline-flex;align-items:center;gap:5px;background:var(--bg);border:var(--surface-border);border-radius:var(--radius-control);padding:5px 8px;font-size:var(--control-font);max-width:100%;overflow-wrap:anywhere}
+.workflow-condition-flow>span:last-child{background:var(--active);color:var(--accent-text)}
+.workflow-condition-flow svg{flex:none}
+.workflow-rule-editor[hidden]{display:none!important}
+.workflow-rule-editor:not([hidden]){border-top:1px solid var(--line);padding-top:6px}
+.workflow-log-filter{display:grid;gap:8px;margin:8px 0}
+.workflow-log-filter .shared-segment{flex-wrap:wrap}
+.workflow-change{display:grid;gap:5px;margin:8px 0;padding:8px;background:var(--bg);border-radius:var(--radius-control)}
+.workflow-change>div{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:12px}
+.workflow-change>div>span{overflow-wrap:anywhere}
+.workflow-change>div>span:last-child{color:var(--accent-text)}
+.workflow-undo-reason{color:var(--muted);font-size:11px}
+.workflow-notice{display:flex;gap:8px;align-items:center;color:var(--danger)}
+.workflow-notice svg{flex:none}
+.review-long-charts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2);margin:12px 0}
+.review-line{min-width:0;margin:0;padding:var(--space-3);border:var(--surface-border);border-radius:var(--surface-radius);background:var(--bg)}
+.review-line figcaption{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:600;font-size:var(--font-body)}
+.review-line figcaption small{font-weight:400;color:var(--muted);font-size:var(--font-caption)}
+.review-line svg{width:100%;height:auto;display:block;margin-top:6px}
+.review-line svg text{fill:var(--muted);font-size:10px;font-variant-numeric:tabular-nums}
+.chart-gridline{stroke:var(--line);stroke-dasharray:3 4}
+.trend-line-stroke{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.trend-line-dot{fill:var(--bg);stroke:var(--accent);stroke-width:1.7}
+.time-distribution-legend{display:flex;gap:14px;color:var(--muted);font-size:var(--font-caption);margin:8px 0}
+.time-distribution-legend>span::before{content:"";display:inline-block;width:8px;height:8px;margin-right:5px;border-radius:2px;background:var(--muted)}
+.time-distribution-legend>span:last-child::before{background:var(--accent)}
+.review-time-row{display:grid;gap:6px;margin:8px 0;padding:var(--space-3);background:var(--bg);border-radius:var(--radius-control)}
+.review-time-row>strong{font-size:var(--font-body);overflow-wrap:anywhere}
+.review-time-bar{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(62px,auto);gap:8px;align-items:center;color:var(--muted);font-variant-numeric:tabular-nums}
+.review-time-bar>small:last-child{text-align:right;white-space:nowrap}
+.review-bar-track{height:7px;border-radius:8px;background:var(--hover);overflow:hidden}
+.review-bar-track i{display:block;height:100%;background:var(--muted);border-radius:inherit}
+.review-time-bar.actual i{background:var(--accent)}
+.stat-card-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:var(--space-2)}
+.stat-card-heading h3{margin:0}
+.settings-preference-sync{margin-top:var(--space-4);padding:var(--surface-padding);border:var(--surface-border);background:var(--surface-subtle);border-radius:var(--surface-radius)}
+.settings-preference-sync h3{margin-top:0}
+.preference-sync-summary{display:grid;gap:4px;padding:var(--space-3);border-radius:var(--radius-control);background:var(--bg);margin:12px 0}
+.preference-sync-summary small{color:var(--muted)}
+.preference-sync-actions{display:flex;flex-wrap:wrap;gap:8px}
+@media(max-width:860px){.review-long-charts{grid-template-columns:1fr}.workflow-overview>div{padding:8px}.workflow-overview strong{font-size:18px}.workflow-log-filter .shared-segment>button,.preference-sync-actions button{min-height:44px}.stat-card-heading .shared-segment{max-width:100%}}
+@media(prefers-reduced-motion:no-preference){.review-bar-track i{transition:width var(--motion-layout) var(--motion-ease)}.workflow-condition-flow>span,.workflow-rule{transition:background-color var(--motion-fast),border-color var(--motion-fast)}}

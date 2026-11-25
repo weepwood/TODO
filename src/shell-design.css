@@ -15,12 +15,12 @@
 .v2 .breadcrumb svg{opacity:.6}
 .v2 .bulk-bar[hidden]{display:none!important}
 .v2 .sidebar .section-label{font-weight:550}
-.v2 .task-content>.heading h1{font-size:var(--shell-title);font-weight:650;line-height:1.2}
+.v2 .task-content>.heading h1{font-size:var(--shell-title);font-weight:var(--surface-heading-weight);line-height:1.2}
 .v2 .task-content>.heading .muted{line-height:1.6}
-.v2 .task-content .quick-add{background:var(--panel);box-shadow:var(--surface-shadow)}
+.v2 .task-content .quick-add{background:var(--surface-subtle);box-shadow:var(--surface-shadow)}
 .v2 .task-content .quick-add:focus-within{background:var(--bg)}
 .v2 .task-row .task-body{line-height:1.45}
-.v2 .detail-header{font-weight:550}
+.v2 .detail-header{font-weight:var(--surface-heading-weight)}
 .v2 .detail-header>span{color:var(--text)}
 .v2 .detail-content .detail-group{padding-top:16px}
 .v2 .detail-content .detail-group:first-child{padding-top:0}

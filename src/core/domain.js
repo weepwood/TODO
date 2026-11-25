@@ -1,3 +1,4 @@
+import {validPreferenceProfile} from './preference-sync.js';
 import {validRun} from './workflow-rules.js';
 import {validHold,seriesSafetyKeys} from './series-control.js';
 import {validPoints} from './points.js';
@@ -102,6 +103,7 @@ export function migrateState(input){
  check(obj(input)&&[1,2].includes(input.version),'不支持的数据版本');
  const base=initialState(),v={...base,...input,version:2};
  if(v.pointsProgram!==undefined)check(validPointsProgram(v.pointsProgram),'积分目标或兑换数据无效');
+ if(v.preferenceProfile!==undefined)check(validPreferenceProfile(v.preferenceProfile),'同步偏好数据无效');
  if(v.workflowRuns!==undefined)check(Array.isArray(v.workflowRuns)&&v.workflowRuns.length<=30&&v.workflowRuns.every(validRun)&&unique(v.workflowRuns),'自动化执行记录无效');
  if(v.smartLists!==undefined)check(validSmartLists(v.smartLists),'智能清单数据无效');
  v.folders=records(v.folders,'文件夹');v.tags=records(v.tags,'标签');v.lists=records(v.lists,'清单');

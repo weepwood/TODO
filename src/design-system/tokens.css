@@ -48,3 +48,6 @@
 :root[data-font=small],.component-gallery[data-preview-font=small]{--control-font:11px;--numeric-font:12px}
 :root[data-font=normal],.component-gallery[data-preview-font=normal]{--control-font:12px;--numeric-font:14px}
 :root[data-font=large],.component-gallery[data-preview-font=large]{--control-font:14px;--numeric-font:16px}
+
+/* V1.4 common surface and quiet secondary text. */
+:root{--surface-subtle:color-mix(in srgb,var(--panel) 77%,var(--bg));--surface-border:1px solid color-mix(in srgb,var(--line) 75%,transparent);--surface-heading-size:14px;--surface-heading-weight:650}

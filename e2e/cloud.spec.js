@@ -10,7 +10,7 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
  const token=encode({alg:'HS256',typ:'JWT'})+'.'+encode({sub:uid,exp:expires,role:'authenticated'})+'.mock';
  const session={access_token:token,refresh_token:'mock-refresh',token_type:'bearer',expires_in:3600,expires_at:expires,user:{id:uid,email:'test@example.invalid',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{},created_at:new Date().toISOString()}};
  let row=null,deltaWrites=0,metadataReads=0,deltaReads=0,deltaMisses=0,patches=[],forceRace=false;
- test.setTimeout(120000);const contexts=[];
+ test.setTimeout(180000);const contexts=[];
  async function device(){
   const ctx=await browser.newContext();contexts.push(ctx);
   await ctx.routeWebSocket("**/realtime/v1/websocket**",ws=>ws.close());
@@ -137,8 +137,28 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
   expect(await a.page.evaluate(uid=>JSON.parse(localStorage.getItem('todo-account:'+uid+':todo-workbench-v1')).tasks.find(t=>t.title==='同步重复系列').seriesHold.count,uid)).toBe(0);
   a.page.once('dialog',d=>d.accept());await a.page.getByRole('button',{name:'保留本地并上传'}).click();
   await expect.poll(()=>row.state.tasks.find(t=>t.title==='同步重复系列')?.seriesHold?.count).toBe(0);
-
-
+  await expect(a.page.locator('.sync-footer')).toContainText('已同步',{timeout:15000});
+  await a.page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'任务与清单'}).click();
+  const done=a.page.getByRole('switch',{name:'默认显示已完成任务'});if(await done.getAttribute('aria-checked')!=='true')await done.click();
+  await a.page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'账号与同步'}).click();
+  a.page.once('dialog',d=>d.accept());await a.page.getByRole('button',{name:'发布本机偏好'}).click();
+  await expect.poll(()=>row.state.preferenceProfile?.value.showCompleted,{timeout:15000}).toBe(true);
+  await b.page.getByRole('button',{name:'设置',exact:true}).click();await b.page.getByRole('button',{name:'立即同步'}).click();
+  await expect(b.page.getByRole('button',{name:'应用共享偏好'})).toBeEnabled({timeout:15000});
+  const localPrefs=page=>page.evaluate(uid=>JSON.parse(localStorage.getItem('todo-account:'+uid+':todo-view-preferences-v1')||'{}'),uid);
+  expect((await localPrefs(b.page)).showCompleted||false).toBe(false);
+  b.page.once('dialog',d=>d.accept());await b.page.getByRole('button',{name:'应用共享偏好'}).click();
+  await expect.poll(async()=>(await localPrefs(b.page)).showCompleted).toBe(true);
+  b.page.once('dialog',d=>d.accept());await b.page.getByRole('button',{name:'恢复本机偏好'}).click();
+  await expect.poll(async()=>(await localPrefs(b.page)).showCompleted).toBe(false);
+  await expect(a.page.locator('.sync-footer')).toContainText('已同步',{timeout:15000});
+  const beforeProfile=row.state.preferenceProfile;
+  const legacyState={...row.state};delete legacyState.preferenceProfile;
+  row={...row,state:legacyState,revision:row.revision+1,updated_at:new Date().toISOString()};patches=[];
+  await a.page.getByRole('button',{name:'立即同步'}).click();
+  await expect(a.page.locator('.sync-footer')).toContainText('存在同步冲突',{timeout:15000});
+  a.page.once('dialog',d=>d.accept());await a.page.getByRole('button',{name:'保留本地并上传'}).click();
+  await expect.poll(()=>row.state.preferenceProfile,{timeout:15000}).toEqual(beforeProfile);
 
  }finally{await Promise.all(contexts.map(c=>c.close()))}
 });
