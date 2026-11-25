@@ -447,3 +447,8 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - 151547e CI 45630301794成功；下载该次完整真实证据到artifacts/TODO/ui-pr21-45630301794，人工审阅selection-detail-controls/mobile及gallery-feedback-light/dark，之前数值缺失、时间尾部留白、主题表面问题已解决。PR #21合并d53ad8d并同步正式main；Pages 45631228394已启动，需核对最终部署。
 - 新独立worktree v12-control-refinement，分支feat/v12-control-refinement基于d53ad8d。统一六类弹层表面/动画/层级令牌，详情关闭使用共享时长；真实公共控件密度与文字令牌，展厅局部预览和重置（门户仍随全局），Field关联覆盖日期/时间/提醒/颜色/下拉，嵌套上下文隔离，重复截止日期帮助。保留数据/同步/原生/签名与发布配置。
 - 新增尺寸/字号/偏好隔离/嵌套ID/无障碍说明/触控尺寸浏览器测试和弹层所有权单测。最终104/104单测通过，全源码及E2E解析、相对导入、CSS及diff检查通过。新工作树临时复用既有依赖，仅执行单测及解析，不引入依赖变更；重型验证因内存压力2被门禁拒绝（control-refinement-verify.log），不绕过。最终Web构建、浏览器及截图待新PR CI。未构建安装包。
+
+### PR #22 收口与 V1.3 业务工作台第一轮
+- 3a678cc CI 45631397324通过，下载至artifacts/TODO/ui-pr22-45631397324；实际复核展厅舒展尺寸、看板、专注、统计、日历、规划和390px习惯。发现旧专注分钟输入被挤窄、看板全宽状态条及指标层次差异，属于新工作区专项。PR #22合并6027ab1，正式main同步；Pages 45632318003成功，线上HTML可读取。
+- 独立worktree v13-workspace-design，feat/v13-workspace-design基于6027ab1。共享WorkspaceMetrics，规划/统计指标与看板/习惯概要；日历/规划/专注/统计操作区统一；看板状态图标、紧凑选择器、邻近卡片重排；修复专注输入空间，习惯真实近七天目标进度；属性样式由详情移至公共组件所有权。保持数据模型、计时/任务/积分/同步和发布配置。
+- 104项单测及156+源码/测试解析、相对导入、CSS、diff检查；新增工作区指标、状态切换、专注数值宽度与编辑、习惯进度和手机触控专项。首次本地重型验收因内存压力2被门禁拒绝，日志artifacts/TODO/workspace-design-verify.log；最终Web构建和浏览器证据待CI。未新增依赖、未构建安装包。当前不宣称所有业务页面视觉重构完成。
