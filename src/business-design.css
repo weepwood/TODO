@@ -155,3 +155,25 @@
 .heatmap-legend{flex-wrap:wrap;gap:10px}
 .heatmap-key i{width:11px;height:11px}
 @media(max-width:860px){.focus-history-day{padding:var(--space-3)}.focus-record .text-link{min-height:44px}.focus-record>time{font-size:12px}.activity-heatmap-layout{--heat-cell:12px}}
+
+.task-pin{display:inline-block;vertical-align:-2px;margin-right:5px;color:var(--accent);flex:none}
+.history-filters{display:flex;gap:var(--space-2);flex-wrap:wrap;min-width:0}
+.history-filters .smart-select-trigger{width:auto;min-width:100px}
+.task-review-dialog{width:min(760px,calc(100vw - 24px))}
+.review-toolbar,.review-dates{display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-2)}
+.review-toolbar{justify-content:space-between}
+.review-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
+.review-section{padding:var(--space-3);margin-block:var(--space-3);border-radius:var(--radius-surface);background:var(--panel)}
+.review-section h3{margin:0 0 8px}
+.review-task-row{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)}
+.review-task-row:last-child{border-bottom:0}
+.review-task-link{display:grid;gap:4px;text-align:left;min-width:0;flex:1;overflow-wrap:anywhere;padding:6px;border-radius:var(--radius-small)}
+.review-task-link:hover{background:var(--hover)}
+.review-task-link small{color:var(--muted)}
+.review-footer{display:flex;justify-content:flex-end}
+@media(max-width:860px){.review-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.review-toolbar,.review-dates{width:100%}.review-task-row button{min-height:44px}.history-filters .smart-select-trigger{min-height:44px}}
+.task-review-dialog .dialog-head{position:sticky;top:0;z-index:2;background:var(--bg);padding-bottom:8px}
+.review-toolbar .shared-segment{display:inline-flex;gap:3px;padding:3px;background:var(--panel);border-radius:var(--radius-control)}
+.review-toolbar .shared-segment>button{padding:6px 12px;border-radius:var(--radius-small);color:var(--muted);min-height:32px}
+.review-toolbar .shared-segment>button.chosen{background:var(--active);color:var(--accent-text);font-weight:600}
+@media(max-width:860px){.review-toolbar .shared-segment>button{min-height:44px}}
