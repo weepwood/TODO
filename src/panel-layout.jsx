@@ -5,15 +5,15 @@ export function clampPanel(kind,value,viewport=1440,other=228){
  const min=kind==='sidebar'?176:280,max=Math.max(min,Math.min(kind==='sidebar'?340:540,viewport-52-320-other));
  return Math.round(Math.min(max,Math.max(min,Number.isFinite(value)?value:DEFAULT[kind])));
 }
-export function usePanelLayout(storage){
+export function usePanelLayout(storage,{detailVisible=true}={}){
  const [size,setSize]=useState(()=>{try{const value=JSON.parse(storage.getItem(KEY)||'{}');return {sidebar:clampPanel('sidebar',value.sidebar,2000,350),detail:clampPanel('detail',value.detail,2000,228)}}catch{return DEFAULT}});
  const [viewport,setViewport]=useState(()=>window.innerWidth);
  useEffect(()=>{const update=()=>setViewport(window.innerWidth);window.addEventListener('resize',update);return()=>window.removeEventListener('resize',update)},[]);
- const change=(kind,value)=>setSize(s=>({...s,[kind]:clampPanel(kind,value,viewport,kind==='sidebar'?s.detail:s.sidebar)}));
+ const change=(kind,value)=>setSize(s=>({...s,[kind]:clampPanel(kind,value,viewport,kind==='sidebar'?(detailVisible?s.detail:0):s.sidebar)}));
  const latest=useRef(size);latest.current=size;
  useEffect(()=>{const persist=()=>{try{storage.setItem(KEY,JSON.stringify(latest.current))}catch{}};window.addEventListener('pagehide',persist);return()=>{window.removeEventListener('pagehide',persist);persist()}},[storage]);
  useEffect(()=>{const timer=setTimeout(()=>{try{storage.setItem(KEY,JSON.stringify(size))}catch{}},180);return()=>clearTimeout(timer)},[size,storage]);
- const effective={sidebar:clampPanel('sidebar',size.sidebar,viewport,size.detail),detail:clampPanel('detail',size.detail,viewport,size.sidebar)};return {size:effective,change,reset:()=>setSize(DEFAULT),style:{'--user-sidebar':effective.sidebar+'px','--user-detail':effective.detail+'px'}};
+ const effective={sidebar:clampPanel('sidebar',size.sidebar,viewport,detailVisible?size.detail:0),detail:clampPanel('detail',size.detail,viewport,size.sidebar)};return {size:effective,change,reset:()=>setSize(DEFAULT),style:{'--user-sidebar':effective.sidebar+'px','--user-detail':effective.detail+'px'}};
 }
 export function PanelHandle({kind,value,onChange}){
  const drag=useRef(null),frame=useRef(0),sign=kind==='sidebar'?1:-1;const latest=useRef(onChange);latest.current=onChange;

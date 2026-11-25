@@ -1,0 +1,28 @@
+/* Planning workspace layout responds to its available content width rather than
+   treating a desktop with open side panels as a full-width viewport. */
+.planner{container-type:inline-size}
+.planner .planner-grid{align-items:start;gap:16px;grid-template-columns:minmax(0,1fr) minmax(190px,260px)}
+.planner .unscheduled{min-width:0;border:1px solid var(--line);border-radius:var(--surface-radius);padding:12px;background:var(--bg)}
+.planner .unscheduled>div[draggable]{border-bottom:1px solid var(--line);padding:5px 0 8px}
+.planner .unscheduled>div[draggable]:last-child{border:0}
+.planner .unscheduled .text-link{display:block;max-width:100%;padding:6px 8px;color:var(--accent-text);font-size:12px}
+.planner .planner-hours[hidden],.planner-grid>section[hidden]{display:none!important}
+.planner-pane-nav{display:none}
+@container (max-width:700px){
+ .planner .planner-grid{grid-template-columns:minmax(0,1fr)}
+ .planner .planner-overview{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .planner .planner-overview>div{border-right:0}
+}
+@media(max-width:860px){
+ .planner .planner-grid{grid-template-columns:minmax(0,1fr);scroll-margin-top:62px}
+ .planner .planner-settings-toggle{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;margin-bottom:10px;text-align:left}
+ .planner .planner-settings-toggle small{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
+ .planner .planner-pane-nav{display:grid;grid-template-columns:1fr 1fr;gap:4px;position:sticky;top:0;z-index:10;padding:5px;background:var(--panel);border:1px solid var(--line);border-radius:10px;margin:0 0 12px}
+ .planner-pane-nav button{min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;border-radius:7px;color:var(--muted)}
+ .planner-pane-nav button[aria-pressed=true]{color:var(--accent-text);background:var(--bg);box-shadow:var(--surface-shadow);font-weight:600}
+ .planner-pane-nav small{font-variant-numeric:tabular-nums;background:var(--hover);padding:2px 6px;border-radius:6px;font-size:11px}
+ .planner .unscheduled .view-task,.planner .unscheduled .text-link{min-height:44px}
+ .planner .backlog-filter input{min-height:44px;font-size:16px}
+ .planner .work-budget{padding:10px 12px;margin-bottom:10px}
+ .planner .planner-overview{margin-bottom:10px}
+}
