@@ -342,3 +342,8 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - PR #4 6c9cf15 浏览器CI 45595296988通过，已合并22dfe4a、本地main同步；Pages 45595732620成功。独立worktree v12-reminder-workspace，未触发安装包。
 - 实施DateTimeControl（独立/附加提醒、显式应用、取消、清除、外部冲突保护、既有TimeControl），NumberField加减、桌面工作台选中态/详情字段、批量操作栏。提醒引擎、存储格式、签名、权限及业务计算不变。
 - 本机预算门禁下Web构建及11项专项Edge浏览器测试（ui-reminder、advanced、points、v114）全部通过，人工审阅真实提醒、数字步进、工作台截图；日志artifacts/TODO/reminder-ui.log。此后补充提醒可展开月历、批量日期复用、选中栏布局及同日拖动预览断言；最新构建因内存压力2门禁拒绝，未绕过，最后改动仅完成脚本语法及diff检查。新PR完整浏览器CI、最新截图、真实原生运行待验收，原生按敏捷发布门禁延期。无新增依赖、不生成安装包。
+
+### V1.2 第六轮业务页面体验
+- PR #5 8f410a4 全量浏览器CI 45596104356成功，合并377a814，正式本地main同步；Pages 45599730788成功。独立worktree v12-workspace-views，未构建安装包。
+- 实施手机详情六分区导航、看板/四象限列筛选与非拖拽移动、日历视觉、规划密度加减、专注周期数字控件与手机主操作、习惯打卡布局。现有数据模型、提醒/计时引擎、同步、签名保持不变，无新依赖。
+- 预算门禁下 npm ci、Web生产构建及15项专项Edge测试（ui-business、alpha、v118、ui-reminder）全部通过，包含上轮提醒和同日拖动预览、跨午夜触摸、八模块双主题。审阅真实手机详情/习惯/专注和桌面四象限截图；随后补充吸顶导航顶部遮盖、习惯下拉样式、单列阅读宽度、窄屏打卡尺寸、拖离边界保护。最后的重测被内存压力2门禁拒绝，未绕过；最终版本待PR轻量CI与截图复验。日志artifacts/TODO/business-views.log、business-polish.log；真实设备帧率、安装包验收延期。
