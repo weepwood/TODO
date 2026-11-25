@@ -1,0 +1,32 @@
+import {test,expect} from '@playwright/test';
+test('设置分区胶囊与下拉选中态沿用统一规范',async({page})=>{
+ await page.setViewportSize({width:1440,height:900});await page.goto('/');
+ const sort=page.getByRole('combobox',{name:'排序',exact:true});
+ await sort.click();
+ const option=page.locator('.smart-select-option[data-state=checked]');
+ await expect(option).toBeVisible();
+ expect(await option.evaluate(el=>getComputedStyle(el).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)');
+ await page.keyboard.press('Escape');
+ await page.locator('.rail').getByRole('button',{name:'设置',exact:true}).click();
+ const nav=page.getByRole('navigation',{name:'设置分类'});
+ const active=nav.locator('[aria-current=location]');
+ await expect.poll(()=>active.evaluate(el=>parseFloat(getComputedStyle(el,'::before').height))).toBe(19);
+ await nav.getByRole('button',{name:'外观与布局'}).click();
+ await expect(nav.getByRole('button',{name:'外观与布局'})).toHaveAttribute('aria-current','location');
+ await expect.poll(()=>active.evaluate(el=>parseFloat(getComputedStyle(el,'::before').height))).toBe(19);
+ await page.screenshot({path:'test-results/control-language-settings.png',animations:'disabled'});
+});
+test('窄工作区排序分组与详情控制不溢出',async({page})=>{
+ await page.setViewportSize({width:1180,height:900});await page.goto('/');
+ await page.getByRole('textbox',{name:'新任务名称'}).fill('控件布局验收');
+ await page.getByRole('button',{name:'添加',exact:true}).click();
+ const toolbar=page.locator('.heading .view-toolbar');
+ await expect(toolbar).toBeVisible();
+ expect(await toolbar.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+ await page.getByRole('textbox',{name:'计划时间',exact:true}).fill('10:30');
+ await expect(page.getByRole('textbox',{name:'计划时间',exact:true})).toHaveValue('10:30');
+ await page.screenshot({path:'test-results/control-language-narrow.png',animations:'disabled'});
+ await page.setViewportSize({width:390,height:844});
+ await expect(page.getByRole('textbox',{name:'计划时间',exact:true})).toHaveValue('10:30');
+ expect(await page.locator('.detail-content').evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+});
