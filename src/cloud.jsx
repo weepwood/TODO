@@ -3,10 +3,10 @@ import {createClient} from '@supabase/supabase-js';
 import {isTauri} from '@tauri-apps/api/core';
 import {CLOUD_URL,CLOUD_KEY} from './cloud-config.js';
 import {initialState,migrateState,readState,saveState,STORAGE_KEY} from './domain.js';
-import {mergeTasks,saveBaseline,loadBaseline} from './sync-merge.js';
+import {mergeTasks,resolveTaskFields,saveBaseline,loadBaseline} from './sync-merge.js';
 import {buildTaskDelta} from './task-delta.js';
 import {appendSyncLog,readSyncLog,SYNC_LOG_KEY} from './sync-diagnostics.js';
-import {SyncDiagnostics,ConflictPreview} from './sync-ui.jsx';
+import {SyncDiagnostics,ConflictPreview,FieldMerge} from './sync-ui.jsx';
 import {scopedStorage,canonical,digest,readMeta,META_KEY,decideSync,readRemote,preserveConflict} from './cloud-core.js';
 export const cloud=createClient(CLOUD_URL,CLOUD_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const TABLE='todo_workspaces';
@@ -65,6 +65,15 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked,logStorage}){
    if(resolution){
     // Recheck the exact cloud revision presented to the user.
     if((remote?.revision??null)!==conflictRef.current?.revision){decision='conflict'}
+    else if(resolution?.kind==='fields'&&remote){
+     if(hash!==conflictRef.current?.localHash){decision='conflict'}else{
+      const merged=resolveTaskFields(base,snapshot,remote.state,resolution.choices);
+      if(!merged){decision='conflict'}else{
+       storage.setItem('todo-field-merge-backup',JSON.stringify({local:snapshot,remote:remote.state,revision:remote.revision}));
+       saveState(storage,merged);writeMeta(remote.revision,remoteHash,remote.state);latest.current={...latest.current,data:merged};setData(merged);conflictRef.current=null;setConflict(null);setStatus('已安全合并，等待上传');record('merge',remote.revision);return;
+      }
+     }
+    }
     else if(resolution==='cloud'&&remote){preserveConflict(storage,snapshot);decision='pull'}
     else if(resolution==='local'){if(remote)preserveConflict(storage,remote.state);decision=remote?'push':'insert'}
    }
@@ -78,7 +87,7 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked,logStorage}){
      latest.current={...latest.current,data:merged};setData(merged);setStatus('已安全合并，等待上传');record('merge',remote.revision);return;
     }
    }
-   if(decision==='conflict'){const c={revision:remote?.revision??null,remote:remote?.state??null};conflictRef.current=c;setConflict(c);setStatus('存在同步冲突');record('conflict',remote?.revision);return}
+   if(decision==='conflict'){const c={revision:remote?.revision??null,remote:remote?.state??null,base,localHash:hash};conflictRef.current=c;setConflict(c);setStatus('存在同步冲突');record('conflict',remote?.revision);return}
    if(decision==='pull'){
     // Save the downloaded snapshot before replacing the UI; never discard a local edit made during the request.
     if(latest.current.data!==snapshot)return;
@@ -108,5 +117,5 @@ export function AccountPanel({session,sync,importGuest,exportConflict,storageErr
  const [email,setEmail]=useState(''),[password,setPassword]=useState(''),[register,setRegister]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
  async function authenticate(e){e.preventDefault();setBusy(true);setMessage('');try{const result=register?await cloud.auth.signUp({email,password,options:{emailRedirectTo:!isTauri()&&['http:','https:'].includes(window.location.protocol)?window.location.origin+window.location.pathname:'https://weepwood.github.io/TODO/'}}):await cloud.auth.signInWithPassword({email,password});if(result.error)throw result.error;if(register&&!result.data.session)setMessage('注册请求已提交，请检查确认邮件，然后返回登录。');setPassword('')}catch(err){setMessage(err.message||'认证失败')}finally{setBusy(false)}}
  async function signOut(){if(!confirm('退出后将返回本机访客空间，当前账号缓存保留在此浏览器。确认退出？'))return;setBusy(true);try{if(beforeSignOut&&!await beforeSignOut())throw Error('本地保存失败，已取消退出。请重试保存或导出数据。');const {error}=await cloud.auth.signOut({scope:'local'});if(error)throw error}catch(e){setMessage(e.message)}finally{setBusy(false)}}
- return <section className="account-panel"><h3>账号与云同步</h3>{session?<><p className="account-email">{session.user.email||session.user.id}</p><p className="muted" role="status">{sync.status}{sync.lastSync?' · '+new Date(sync.lastSync).toLocaleString():''}</p>{sync.error&&<p className="sync-error">{sync.error}</p>}{storageError&&<p className="sync-error">本地存储异常，暂停同步。</p>}{sync.conflict&&<div className="sync-conflict"><strong>本地和云端均有不同修改</strong><p>同步已暂停。请选择保留哪一份；被替换的数据会尝试保存在本机冲突备份中。</p><ConflictPreview local={localData} remote={sync.conflict.remote}/><div className="button-grid">{sync.conflict.remote&&<button className="secondary" onClick={()=>{if(confirm('使用云端版本？当前本地修改将保留为冲突备份。'))sync.sync('cloud')}}>使用云端版本</button>}<button className="secondary" onClick={()=>{if(confirm('以当前本地工作空间替换云端版本？云端原始数据将备份到本机。'))sync.sync('local')}}>保留本地并上传</button></div></div>}<div className="button-grid"><button className="secondary" onClick={()=>sync.sync()} disabled={!!sync.conflict}>立即同步</button><button className="secondary" onClick={importGuest}>导入访客数据</button><button className="secondary" onClick={exportConflict}>导出冲突备份</button><button className="secondary" onClick={signOut} disabled={busy}>退出登录</button></div><SyncDiagnostics entries={sync.entries} clear={sync.clearLog}/></>:<><p className="muted">本地访客空间与每个账号独立。登录后可同步任务，也可以手动导入访客数据。独立普通任务的无冲突修改会自动合并。</p><form className="auth-form" onSubmit={authenticate}><label>邮箱<input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@example.com"/></label><label>密码<input type="password" autoComplete={register?'new-password':'current-password'} minLength={6} required value={password} onChange={e=>setPassword(e.target.value)}/></label><div className="button-grid"><button className="primary" disabled={busy}>{busy?'处理中…':register?'注册账号':'登录'}</button><button className="secondary" type="button" onClick={()=>{setRegister(v=>!v);setMessage('')}}>{register?'返回登录':'注册新账号'}</button></div></form></>}{message&&<p className="sync-error" role="status">{message}</p>}</section>
+ return <section className="account-panel"><h3>账号与云同步</h3>{session?<><p className="account-email">{session.user.email||session.user.id}</p><p className="muted" role="status">{sync.status}{sync.lastSync?' · '+new Date(sync.lastSync).toLocaleString():''}</p>{sync.error&&<p className="sync-error">{sync.error}</p>}{storageError&&<p className="sync-error">本地存储异常，暂停同步。</p>}{sync.conflict&&<div className="sync-conflict"><strong>本地和云端均有不同修改</strong><p>同步已暂停。请选择保留哪一份；被替换的数据会尝试保存在本机冲突备份中。</p><ConflictPreview local={localData} remote={sync.conflict.remote}/>{sync.conflict.remote&&<FieldMerge key={sync.conflict.revision+":"+sync.conflict.localHash} conflict={sync.conflict} local={localData} onApply={choices=>sync.sync({kind:"fields",choices})}/>}<div className="button-grid">{sync.conflict.remote&&<button className="secondary" onClick={()=>{if(confirm('使用云端版本？当前本地修改将保留为冲突备份。'))sync.sync('cloud')}}>使用云端版本</button>}<button className="secondary" onClick={()=>{if(confirm('以当前本地工作空间替换云端版本？云端原始数据将备份到本机。'))sync.sync('local')}}>保留本地并上传</button></div></div>}<div className="button-grid"><button className="secondary" onClick={()=>sync.sync()} disabled={!!sync.conflict}>立即同步</button><button className="secondary" onClick={importGuest}>导入访客数据</button><button className="secondary" onClick={exportConflict}>导出冲突备份</button><button className="secondary" onClick={signOut} disabled={busy}>退出登录</button></div><SyncDiagnostics entries={sync.entries} clear={sync.clearLog}/></>:<><p className="muted">本地访客空间与每个账号独立。登录后可同步任务，也可以手动导入访客数据。独立普通任务的无冲突修改会自动合并。</p><form className="auth-form" onSubmit={authenticate}><label>邮箱<input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@example.com"/></label><label>密码<input type="password" autoComplete={register?'new-password':'current-password'} minLength={6} required value={password} onChange={e=>setPassword(e.target.value)}/></label><div className="button-grid"><button className="primary" disabled={busy}>{busy?'处理中…':register?'注册账号':'登录'}</button><button className="secondary" type="button" onClick={()=>{setRegister(v=>!v);setMessage('')}}>{register?'返回登录':'注册新账号'}</button></div></form></>}{message&&<p className="sync-error" role="status">{message}</p>}</section>
 }

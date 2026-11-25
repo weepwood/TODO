@@ -91,7 +91,7 @@ fn persist_store(c:&mut Connection,scope:&str,store:&str)->Result<(),String>{
  if !valid_scope(scope)||store.len()>64_000_000{return Err("工作空间存储过大或标识无效".into())}
  let value:serde_json::Value=serde_json::from_str(store).map_err(|e|e.to_string())?;
  let map=value.as_object().ok_or("无效工作空间存储")?;
- let keys=["todo-workbench-v1","todo-workbench-backup","todo-workbench-backup-at","todo-workbench-backup-corrupt","todo-cloud-meta","todo-cloud-base","todo-conflict-backup","todo-native-migration-backup"];
+ let keys=["todo-workbench-v1","todo-workbench-backup","todo-workbench-backup-at","todo-workbench-backup-corrupt","todo-cloud-meta","todo-cloud-base","todo-conflict-backup","todo-field-merge-backup","todo-native-migration-backup"];
  if map.iter().any(|(k,v)|!keys.contains(&k.as_str())||!v.is_string()){return Err("工作空间存储键无效".into())}
  let body=map.get("todo-workbench-v1").and_then(|x|x.as_str()).ok_or("缺少工作空间数据")?;
  save_with_store(c,scope,body,Some(store))

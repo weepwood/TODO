@@ -1,0 +1,11 @@
+import React,{useEffect,useState,useRef} from 'react';
+import {Paperclip,Download,Trash2} from 'lucide-react';
+import {addAttachment,listAttachments,removeAttachment,downloadAttachment} from './attachments.js';
+export function Attachments({scope,taskId,tasks=[],locked=false}){
+ const [items,setItems]=useState([]),[error,setError]=useState(''),[busy,setBusy]=useState(false);const input=useRef(null),generation=useRef(0);
+ async function refresh(){const g=++generation.current;try{const list=await listAttachments(scope,taskId);if(g===generation.current)setItems(list)}catch(e){if(g===generation.current)setError(String(e.message||e))}}
+ useEffect(()=>{refresh();return()=>{generation.current++}},[scope,taskId]);
+ async function add(e){const file=e.target.files?.[0];e.target.value='';if(!file)return;setBusy(true);setError('');try{await addAttachment(scope,taskId,file);await refresh()}catch(e){setError(e.message||String(e))}finally{setBusy(false)}}
+ async function action(item,remove){setBusy(true);setError('');try{if(remove){if(!confirm('删除此本机附件？文件不进入任务回收站。'))return;await removeAttachment(scope,item.id);await refresh()}else await downloadAttachment(scope,item.id)}catch(e){setError(e.message||String(e))}finally{setBusy(false)}}
+ return <section className="detail-extra"><h3><Paperclip size={14}/> {taskId?'本机附件':'本机附件管理'}</h3><p className="muted small">文件仅保存在当前设备，不进入云端同步或 JSON 备份。请另行下载重要附件。每个文件最多 10 MB。</p>{items.map(item=><div className="record-row" key={item.id}><div className="attachment-name"><span title={item.name}>{item.name}</span><small>{(item.size/1024).toFixed(1)} KB{!taskId?' · '+(tasks.find(t=>t.id===item.taskId)?.title||'已删除任务'):''}</small></div><button className="icon-button" aria-label={'下载附件 '+item.name} disabled={busy} onClick={()=>action(item,false)}><Download size={14}/></button>{!locked&&<button className="icon-button" aria-label={'删除附件 '+item.name} disabled={busy} onClick={()=>action(item,true)}><Trash2 size={14}/></button>}</div>)}{!items.length&&<p className="muted small">暂无附件</p>}{taskId&&!locked&&<><input type="file" ref={input} hidden onChange={add}/><button type="button" className="secondary compact" disabled={busy} onClick={()=>input.current?.click()}>添加本机附件</button></>}{error&&<p className="sync-error" role="alert">{error}</p>}</section>
+}

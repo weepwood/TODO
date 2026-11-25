@@ -6,7 +6,7 @@ const SAFE_FIELDS=new Set(['title','notes','priority']);
 const changed=(a,b)=>[...new Set([...Object.keys(a||{}),...Object.keys(b||{})])].filter(k=>!eq(a?.[k],b?.[k]));
 // Only task-only, nonstructural concurrent edits are eligible. No guessing on deletion,
 // order, generated instances, timer state, or cross-entity dependencies.
-export function mergeTasks(base,local,remote){
+export function mergeTasks(base,local,remote,resolveField){
  const other=s=>Object.fromEntries(Object.entries(s).filter(([k])=>k!=='tasks'));
  if(!eq(other(base),other(local))||!eq(other(base),other(remote)))return null;
  const maps=[base,local,remote].map(s=>new Map(s.tasks.map(t=>[t.id,t])));
@@ -33,11 +33,24 @@ export function mergeTasks(base,local,remote){
   if(eq(c,before)){result.push(a);continue}
   if(!before||!a||!c)return null;
   const aKeys=changed(before,a),cKeys=changed(before,c);
-  if(aKeys.some(k=>cKeys.includes(k)&&!eq(a[k],c[k])))return null;
-  result.push({...before,...Object.fromEntries(aKeys.map(k=>[k,a[k]])),...Object.fromEntries(cKeys.map(k=>[k,c[k]]))});
+  const clash=aKeys.filter(k=>cKeys.includes(k)&&!eq(a[k],c[k]));
+  if(clash.length&&!resolveField)return null;
+  const task={...before,...Object.fromEntries(aKeys.map(k=>[k,a[k]])),...Object.fromEntries(cKeys.map(k=>[k,c[k]]))};
+  for(const k of clash){const side=resolveField({key:JSON.stringify([id,k]),id,title:before.title,field:k,local:a[k],remote:c[k]});if(!['local','remote'].includes(side))return null;task[k]=side==='local'?a[k]:c[k]}
+  result.push(task);
  }
  const merged={...base,tasks:result};
  try{const valid=migrateState(merged);return eq(valid,merged)?valid:null}catch{return null}
+}
+export function manualMergePlan(base,local,remote){
+ if(!base||!local||!remote)return null;const conflicts=[];
+ const preview=mergeTasks(base,local,remote,item=>{conflicts.push(item);return 'local'});
+ return preview&&conflicts.length?conflicts:null;
+}
+export function resolveTaskFields(base,local,remote,choices){
+ const plan=manualMergePlan(base,local,remote);
+ if(!plan||!choices||plan.some(c=>!['local','remote'].includes(choices[c.key])))return null;
+ return mergeTasks(base,local,remote,c=>choices[c.key]);
 }
 const BASE_KEY='todo-cloud-base';
 function openDb(){return new Promise((resolve,reject)=>{const q=indexedDB.open('todo-sync-baseline-v1',1);q.onupgradeneeded=()=>q.result.createObjectStore('baselines');q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);q.onblocked=()=>reject(Error('baseline store blocked'))})}

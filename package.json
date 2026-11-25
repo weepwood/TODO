@@ -1,6 +1,6 @@
 {
   "name": "todo-workbench",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -30,6 +30,8 @@
     "react": "^19.0.0",
     "react-day-picker": "10.0.2",
     "react-dom": "^19.0.0",
+    "react-markdown": "10.1.0",
+    "remark-gfm": "4.0.1",
     "temporal-polyfill": "1.0.8"
   },
   "devDependencies": {

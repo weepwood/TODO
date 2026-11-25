@@ -8,7 +8,7 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
  const token=encode({alg:'HS256',typ:'JWT'})+'.'+encode({sub:uid,exp:expires,role:'authenticated'})+'.mock';
  const session={access_token:token,refresh_token:'mock-refresh',token_type:'bearer',expires_in:3600,expires_at:expires,user:{id:uid,email:'test@example.invalid',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{},created_at:new Date().toISOString()}};
  let row=null,deltaWrites=0,metadataReads=0;
- const contexts=[];
+ test.setTimeout(90000);const contexts=[];
  async function device(){
   const ctx=await browser.newContext();contexts.push(ctx);
   await ctx.routeWebSocket("**/realtime/v1/websocket**",ws=>ws.close());
@@ -66,5 +66,30 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
   b.page.once('dialog',d=>d.accept());await b.page.getByRole('button',{name:'使用云端版本'}).click();
   await expect(b.page.locator('.sync-footer')).toContainText('已同步',{timeout:12000});
   expect(await b.page.evaluate(uid=>JSON.parse(localStorage.getItem('todo-account:'+uid+':todo-conflict-backup')).tasks.some(t=>t.title==='设备 B 冲突内容'),uid)).toBe(true);
+  await b.page.keyboard.press('Escape');
+  // A new conflict is resolved field by field rather than by whole-workspace replacement.
+  await b.ctx.setOffline(true);
+  await b.page.locator('.task-body').filter({hasText:'设备 A 冲突内容'}).click();
+  await b.page.getByRole('textbox',{name:'任务标题'}).fill('本地字段选择');
+  await b.page.getByRole('textbox',{name:'任务备注'}).fill('保留本地备注');
+  await expect(b.page.locator('.sync-footer')).toContainText('离线');
+  await a.page.getByRole('textbox',{name:'任务标题'}).fill('云端字段选择');
+  await expect.poll(()=>row.state.tasks.some(t=>t.title==='云端字段选择')).toBe(true);
+  await b.ctx.setOffline(false);await expect(b.page.locator('.sync-footer')).toContainText('存在同步冲突',{timeout:12000});
+  await b.page.getByRole('button',{name:'设置',exact:true}).click();
+  await b.page.getByText('按字段合并普通任务',{exact:true}).click();
+  await b.page.locator('.field-conflict').getByRole('radio',{name:/云端/}).check();
+  await b.page.getByRole('button',{name:'确认字段合并'}).click();
+  await expect.poll(()=>row.state.tasks.some(t=>t.title==='云端字段选择'&&t.notes==='保留本地备注'),{timeout:20000}).toBe(true);
+  expect(await b.page.evaluate(uid=>{const v=JSON.parse(localStorage.getItem('todo-account:'+uid+':todo-field-merge-backup'));return v.local.tasks.some(t=>t.title==='本地字段选择')&&v.remote.tasks.some(t=>t.title==='云端字段选择')},uid)).toBe(true);
+  await b.page.keyboard.press('Escape');
+  await b.page.getByRole('button',{name:'新建智能清单'}).click();
+  await b.page.getByRole('textbox',{name:'智能清单名称'}).fill('同步智能清单');
+  await b.page.getByRole('combobox',{name:'匹配方式'}).selectOption('any');
+  await b.page.getByRole('button',{name:'保存智能清单'}).click();
+  await expect.poll(()=>row.state.smartLists?.some(f=>f.name==='同步智能清单'&&f.mode==='any')).toBe(true);
+  await a.page.getByRole('button',{name:'设置',exact:true}).click();await a.page.getByRole('button',{name:'立即同步'}).click();await a.page.keyboard.press('Escape');
+  await expect(a.page.locator('.nav-row').filter({hasText:'同步智能清单'})).toBeVisible({timeout:15000});
+
  }finally{await Promise.all(contexts.map(c=>c.close()))}
 });

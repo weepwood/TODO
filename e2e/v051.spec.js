@@ -1,0 +1,24 @@
+import {test,expect} from '@playwright/test';
+test('面板键盘与指针调整、GFM 预览及本机附件',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');
+ const side=page.getByRole('separator',{name:'调整清单栏宽度'});
+ const before=await page.locator('aside.sidebar').evaluate(e=>e.getBoundingClientRect().width);
+ await side.focus();await page.keyboard.press('ArrowRight');
+ await expect.poll(()=>page.locator('aside.sidebar').evaluate(e=>e.getBoundingClientRect().width)).toBeGreaterThan(before);
+ const keyboardWidth=await page.locator('aside.sidebar').evaluate(e=>e.getBoundingClientRect().width);
+ const box=await side.boundingBox();await page.mouse.move(box.x+2,box.y+30);await page.mouse.down();await page.mouse.move(box.x+26,box.y+30,{steps:4});await page.mouse.up();
+ await expect.poll(()=>page.locator('aside.sidebar').evaluate(e=>e.getBoundingClientRect().width)).toBeGreaterThan(keyboardWidth);
+ const width=await page.locator('aside.sidebar').evaluate(e=>e.getBoundingClientRect().width);
+ await page.reload();await expect.poll(()=>page.locator('aside.sidebar').evaluate(e=>e.getBoundingClientRect().width)).toBe(width);
+ await page.getByRole('textbox',{name:'新任务名称'}).fill('附件任务');await page.getByRole('button',{name:'添加',exact:true}).click();
+ const detail=page.getByRole('separator',{name:'调整详情栏宽度'});const start=await page.locator('aside.details').evaluate(e=>e.getBoundingClientRect().width);
+ await detail.focus();await page.keyboard.press('ArrowLeft');await expect.poll(()=>page.locator('aside.details').evaluate(e=>e.getBoundingClientRect().width)).toBeGreaterThan(start);
+ await page.getByRole('textbox',{name:'任务备注'}).fill('| A | B |\n|---|---|\n| 1 | 2 |\n\n- [x] 已完成\n\n![外部图片](https://example.com/test.png)\n\n<script>alert(1)</script>');
+ await page.getByRole('button',{name:'预览',exact:true}).click();await expect(page.locator('.markdown-preview table')).toBeVisible();await expect(page.locator('.markdown-preview input[type=checkbox]')).toBeChecked();await expect(page.locator('.markdown-preview img')).toHaveCount(0);
+ await page.locator('.detail-extra input[type=file]').setInputFiles({name:'note.txt',mimeType:'text/plain',buffer:Buffer.from('附件内容')});
+ await expect(page.getByText('note.txt',{exact:true})).toBeVisible();
+ const downloaded=page.waitForEvent('download');await page.getByRole('button',{name:'下载附件 note.txt'}).click();expect((await downloaded).suggestedFilename()).toBe('note.txt');
+ await page.reload();await page.locator('.task-body').filter({hasText:'附件任务'}).click();await expect(page.getByText('note.txt',{exact:true})).toBeVisible();
+ page.once('dialog',d=>d.accept());await page.getByRole('button',{name:'删除附件 note.txt'}).click();await expect(page.getByText('note.txt',{exact:true})).toHaveCount(0);
+ await page.screenshot({path:'test-results/v051-workbench.png'});expect(errors).toEqual([]);
+});

@@ -1,3 +1,4 @@
+import {validSmartLists} from './smart-lists.js';
 import {nextWeekday,offsetDate,blockers,canLink} from './advanced.js';
 export const STORAGE_KEY='todo-workbench-v1';
 export const BACKUP_KEY='todo-workbench-backup';
@@ -83,6 +84,7 @@ function records(a,name){check(Array.isArray(a)&&a.length<=100000&&a.every(x=>ob
 export function migrateState(input){
  check(obj(input)&&[1,2].includes(input.version),'不支持的数据版本');
  const base=initialState(),v={...base,...input,version:2};
+ if(v.smartLists!==undefined)check(validSmartLists(v.smartLists),'智能清单数据无效');
  v.folders=records(v.folders,'文件夹');v.tags=records(v.tags,'标签');v.lists=records(v.lists,'清单');
  for(const item of [...v.folders,...v.tags,...v.lists])check(str(item.name)&&item.name.trim(),'分类名称无效');
  check(v.lists.some(l=>l.id==='inbox'),'缺少收集箱');

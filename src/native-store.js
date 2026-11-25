@@ -1,6 +1,6 @@
 import {STORAGE_KEY,BACKUP_KEY,migrateState} from './domain.js';
 import {canonical} from './cloud-core.js';
-export const STORE_KEYS=[STORAGE_KEY,BACKUP_KEY,BACKUP_KEY+'-at',BACKUP_KEY+'-corrupt','todo-cloud-meta','todo-cloud-base','todo-conflict-backup','todo-native-migration-backup'];
+export const STORE_KEYS=[STORAGE_KEY,BACKUP_KEY,BACKUP_KEY+'-at',BACKUP_KEY+'-corrupt','todo-cloud-meta','todo-cloud-base','todo-conflict-backup','todo-field-merge-backup','todo-native-migration-backup'];
 export function migrationStore(saved,mirror,legacy){
  if(saved){if(!saved[STORAGE_KEY])throw Error('SQLite 主存储缺少工作空间');migrateState(JSON.parse(saved[STORAGE_KEY]));return saved}
  const output={...legacy};
