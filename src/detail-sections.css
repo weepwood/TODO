@@ -1,0 +1,46 @@
+/* Seven quiet inspector surfaces, with one shared header and edit contract. */
+.v2 .detail-content{--detail-card-bg:color-mix(in srgb,var(--panel) 77%,var(--bg));--detail-input-bg:var(--bg);padding:16px clamp(12px,1.5vw,22px) 24px}
+.v2 .detail-content .detail-mode-bar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 0 12px;color:var(--muted);font-size:12px}
+.detail-mode-bar .secondary{display:flex;align-items:center;gap:5px}
+.v2 .detail-content .detail-section-stack{display:grid;gap:10px;min-width:0;padding:0;border:0;margin:0 0 10px}
+.v2 .detail-content .detail-section-card,.v2 .detail-content .detail-section-card+.detail-section-card{background:var(--detail-card-bg);border:1px solid color-mix(in srgb,var(--line) 50%,transparent);border-radius:12px;padding:12px;margin:0;min-width:0;overflow-wrap:anywhere}
+.v2 .detail-content>.detail-section-card{margin-bottom:10px}
+.v2 .detail-content .detail-section-card[data-editing=true]{border-color:color-mix(in srgb,var(--accent) 25%,var(--line))}
+.detail-section-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.v2 .detail-content .detail-section-heading h3{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:650;margin:0;line-height:1.4}
+.detail-section-heading h3 svg{color:var(--muted);flex:none}
+.detail-section-toggle{display:flex;align-items:center;justify-content:center;gap:5px;color:var(--muted);font-size:12px;padding:4px 8px;min-height:28px;border-radius:7px;flex:none}
+.detail-section-toggle:hover,.detail-section-toggle[aria-expanded=true]{background:var(--active);color:var(--accent-text)}
+.detail-section-summary[hidden],.detail-section-editor[hidden],.detail-section-card [hidden]{display:none!important}
+.detail-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px;margin:0}
+.detail-facts>div{min-width:0;display:grid;gap:3px}
+.detail-facts dt{font-size:11px;color:var(--muted)}
+.detail-facts dd{margin:0;font-size:13px;color:var(--text);font-weight:500;line-height:1.5;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.detail-summary-stack{display:grid;gap:8px}
+.detail-summary-stack p{margin:0}
+.detail-reminder-summary{display:flex;flex-wrap:wrap;gap:5px;font-size:12px;font-variant-numeric:tabular-nums}
+.detail-reminder-summary>span{background:var(--bg);border-radius:6px;padding:4px 7px}
+.detail-note-summary{font-size:13px;white-space:pre-wrap;line-height:1.6;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden}
+.detail-check-summary,.detail-history-summary{display:flex;align-items:baseline;gap:8px;font-size:12px}
+.detail-history-summary{justify-content:space-between;flex-wrap:wrap}
+.detail-history-summary small{color:var(--muted)}
+.detail-history-toggle{margin-top:8px}
+.v2 .detail-content .detail-section-card .detail-extra{border:0;margin:0;padding:4px 0;background:transparent}
+.v2 .detail-content .detail-section-card .detail-extra+.detail-extra{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.v2 .detail-content .detail-section-card .detail-extra h3{font-size:12px;color:var(--muted);margin:0 0 6px}
+.v2 .detail-content .detail-section-card :is(.smart-select-trigger,.date-trigger,.datetime-trigger,.time-control,.number-control,.notes,.check-add,.link-add input){background:var(--detail-input-bg);border-color:color-mix(in srgb,var(--line) 65%,transparent)}
+.v2 .detail-content .detail-section-card :is(.time-picker-trigger,.number-step){background:var(--panel)}
+.v2 .detail-content .detail-section-card .rule-fields{background:var(--detail-input-bg);border-color:transparent;padding:10px;border-radius:8px}
+.v2 .detail-content .detail-section-card .detail-tags{margin:0;gap:5px}
+.v2 .detail-content .detail-section-card .notes-section{margin-top:12px}
+.v2 .detail-content .detail-section-card .record-row{border-bottom:0;padding:6px 0;min-width:0}
+.v2 .detail-content .detail-section-card .record-row>span{min-width:0;overflow-wrap:anywhere}
+.v2 .detail-content .detail-actions{padding:6px 0 0;margin:0}
+@container(max-width:320px){.detail-facts{gap:8px}.detail-section-heading h3{font-size:12px}}
+@media(max-width:860px){
+ .v2.compact-mobile .detail-content{padding:12px}
+ .v2.compact-mobile .detail-content .detail-section-card{padding:10px 12px}
+ .detail-section-toggle{min-height:44px;padding:4px 9px}
+ .detail-section-heading{margin-bottom:6px}
+ .detail-mode-bar .secondary{min-height:44px}
+}
