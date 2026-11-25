@@ -50,11 +50,11 @@ test('回顾趋势与快照对照，旧版原文仍可读取',async({page})=>{
  await seed(page);await page.getByRole('button',{name:'统计',exact:true}).click();await page.getByRole('button',{name:'任务回顾'}).click();
  const dialog=page.getByRole('dialog',{name:'任务回顾'});await dialog.getByRole('button',{name:'每周',exact:true}).click();
  await expect(dialog.getByRole('group',{name:'完成任务每日趋势'})).toBeVisible();
- await expect(dialog.locator('.review-comparison')).toContainText('实际专注');
+ await expect(dialog.getByRole('group',{name:'指标比较'})).toContainText('实际专注');
  await dialog.getByRole('button',{name:'保存快照'}).click();await expect(dialog.locator('.markdown-preview')).toContainText('已完成任务');
  await chooseOption(dialog.getByRole('combobox',{name:'回顾记录'}),'');
  await dialog.getByRole('button',{name:'保存快照'}).click();const select=dialog.getByRole('combobox',{name:'比较快照'});
  await select.click();await page.getByRole('listbox').getByRole('option').last().click();
- await expect(dialog.locator('.review-comparison')).toContainText('完成任务');
+ await expect(dialog.getByRole('group',{name:'指标比较'})).toContainText('完成任务');
  await dialog.locator('.review-scroll').evaluate(el=>el.scrollTop=0);await page.screenshot({path:'test-results/review-visual-comparison.png',animations:'disabled'});
 });

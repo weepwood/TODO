@@ -1,3 +1,4 @@
+import {unsafeSeriesPull} from './core/series-control.js';
 import {subscribeSyncWake} from './platform/web/sync-wake.js';
 import {mobileNative,androidNative} from './platform/runtime.js';
 import {invoke} from '@tauri-apps/api/core';
@@ -75,6 +76,7 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked,logStorage}){
    if(!active.current)return;
    if(latest.current.data!==snapshot){setStatus('等待本地保存');return}
    let decision=decideSync({localHash:hash,remoteHash,remoteRevision:remote?.revision??null,meta,emptyHash});
+   if(!resolution&&decision==='pull'&&remote&&unsafeSeriesPull(base,remote.state))decision='conflict';
    if(resolution){
     // Recheck the exact cloud revision presented to the user.
     if((remote?.revision??null)!==conflictRef.current?.revision){decision='conflict'}

@@ -19,7 +19,7 @@ export function filterHistory(tasks,{since='',until='',list='all',tag='all'}={})
 export const SNAPSHOT_KEY='todo-review-snapshots-v1';
 export const SNAPSHOT_LIMIT=30;
 const MAX_BYTES=2*1024*1024;
-function validSnapshot(s){return s&&typeof s.id==='string'&&validDate(s.since)&&validDate(s.until)&&s.since<=s.until&&['day','week'].includes(s.mode)&&Number.isFinite(Date.parse(s.savedAt))&&typeof s.markdown==='string'&&(s.visual===undefined||validVisual(s.visual))}
+function validSnapshot(s){return s&&typeof s.id==='string'&&validDate(s.since)&&validDate(s.until)&&s.since<=s.until&&['day','week','month'].includes(s.mode)&&Number.isFinite(Date.parse(s.savedAt))&&typeof s.markdown==='string'&&(s.visual===undefined||validVisual(s.visual))}
 export function readSnapshots(storage){
  const raw=storage.getItem(SNAPSHOT_KEY);
  if(raw===null||raw===undefined)return [];

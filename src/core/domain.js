@@ -1,4 +1,5 @@
-import {validHold} from './series-control.js';
+import {validRun} from './workflow-rules.js';
+import {validHold,seriesSafetyKeys} from './series-control.js';
 import {validPoints} from './points.js';
 import {validPointsProgram} from './points-program.js';
 import {validSmartLists} from './smart-lists.js';
@@ -47,7 +48,7 @@ export function advanceOccurrence(task,next,index,boundary){
 }
 export function completeTask(tasks,taskId,today=dayKey()){
  const task=tasks.find(t=>t.id===taskId);
- if(!task||task.status!=='pending'||task.deletedAt||task.seriesHold||blockers(tasks,task).length)return tasks;
+ if(!task||task.status!=='pending'||task.deletedAt||seriesSafetyKeys(tasks).has(series(task))||blockers(tasks,task).length)return tasks;
  let result=tasks.map(t=>t.id===taskId?{...t,status:'completed',completedAt:new Date().toISOString(),stage:'done'}:t);
  if(task.repeat==='none'||!task.date)return result;
  let next=nextOccurrence(task,task.repeat==='completion'?today:task.date),index=(task.occurrenceIndex||1)+1;
@@ -55,9 +56,9 @@ export function completeTask(tasks,taskId,today=dayKey()){
  return addOccurrence(result,task,next,index)
 }
 export function reconcile(tasks,today=dayKey(),now=null){
- let result=tasks;
+ let result=tasks;const held=seriesSafetyKeys(tasks);
  for(const task of tasks){
-  if(task.deletedAt||task.status!=='pending'||task.seriesHold||!['daily','weekly','monthly','workdays','weekdays'].includes(task.repeat)||task.miss!=='skip'||!validDate(task.date))continue;
+  if(task.deletedAt||task.status!=='pending'||held.has(series(task))||!['daily','weekly','monthly','workdays','weekdays'].includes(task.repeat)||task.miss!=='skip'||!validDate(task.date))continue;
   const boundary=now?effectiveDay(now,task.reset||'00:00'):today;if(task.date>=boundary)continue;
   const {next,index}=advanceOccurrence(task,task.date,task.occurrenceIndex||1,boundary);
   result=result.map(t=>t.id===task.id?{...t,status:'skipped'}:t);
@@ -65,7 +66,7 @@ export function reconcile(tasks,today=dayKey(),now=null){
  }
  return result
 }
-export function seriesPatch(tasks,taskId,fields){const task=tasks.find(t=>t.id===taskId);if(!task)return tasks;const allowed=['repeat','seriesStart','interval','weekdays','repeatUntil','repeatCount','miss','reset'];const rules=Object.fromEntries(Object.entries(fields).filter(([k])=>allowed.includes(k)));return tasks.map(t=>series(t)===series(task)&&t.status==='pending'&&!t.deletedAt&&!t.seriesHold?{...t,...rules}:t)}
+export function seriesPatch(tasks,taskId,fields){const task=tasks.find(t=>t.id===taskId);if(!task||seriesSafetyKeys(tasks).has(series(task)))return tasks;const allowed=['repeat','seriesStart','interval','weekdays','repeatUntil','repeatCount','miss','reset'];const rules=Object.fromEntries(Object.entries(fields).filter(([k])=>allowed.includes(k)));return tasks.map(t=>series(t)===series(task)&&t.status==='pending'&&!t.deletedAt&&!t.seriesHold?{...t,...rules}:t)}
 export function dueReminderEvents(tasks,now=new Date()){
  const events=[];for(const t of tasks){if(t.deletedAt||t.status!=='pending')continue;if(t.reminderAt&&!t.remindedAt&&new Date(t.reminderAt)<=now)events.push({taskId:t.id,id:'primary',at:t.reminderAt,title:t.title});for(const r of t.extraReminders||[])if(!r.sentAt&&new Date(r.at)<=now)events.push({taskId:t.id,id:r.id,at:r.at,title:t.title})}return events
 }
@@ -101,6 +102,7 @@ export function migrateState(input){
  check(obj(input)&&[1,2].includes(input.version),'不支持的数据版本');
  const base=initialState(),v={...base,...input,version:2};
  if(v.pointsProgram!==undefined)check(validPointsProgram(v.pointsProgram),'积分目标或兑换数据无效');
+ if(v.workflowRuns!==undefined)check(Array.isArray(v.workflowRuns)&&v.workflowRuns.length<=30&&v.workflowRuns.every(validRun)&&unique(v.workflowRuns),'自动化执行记录无效');
  if(v.smartLists!==undefined)check(validSmartLists(v.smartLists),'智能清单数据无效');
  v.folders=records(v.folders,'文件夹');v.tags=records(v.tags,'标签');v.lists=records(v.lists,'清单');
  for(const item of [...v.folders,...v.tags,...v.lists])check(str(item.name)&&item.name.trim(),'分类名称无效');
