@@ -44,10 +44,14 @@ export function recordRun(data,rows,rules,today,meta){
  const run={...meta,changes};if(!validRun(run))return data;
  return {...next,workflowRuns:[run,...(data.workflowRuns||[])].slice(0,30)};
 }
-export function undoRun(data,runId){
- const run=(data.workflowRuns||[]).find(r=>r.id===runId);if(!validRun(run)||run.undone)return data;
+export function canUndoRun(data,runId){
+ const run=(data.workflowRuns||[]).find(r=>r.id===runId);if(!validRun(run)||run.undone)return false;
  const byId=new Map(data.tasks.map(t=>[t.id,t]));
- if(run.changes.some(c=>{const t=byId.get(c.id);return !t||!ordinary(t)||Object.entries(c.after).some(([k,v])=>t[k]!==v)}))return data;
+ return !run.changes.some(c=>{const t=byId.get(c.id);return !t||!ordinary(t)||Object.entries(c.after).some(([k,v])=>t[k]!==v)});
+}
+export function undoRun(data,runId){
+ if(!canUndoRun(data,runId))return data;
+ const run=data.workflowRuns.find(r=>r.id===runId);
  const map=new Map(run.changes.map(c=>[c.id,c.before]));
  return {...data,tasks:data.tasks.map(t=>map.has(t.id)?{...t,...map.get(t.id)}:t),workflowRuns:data.workflowRuns.map(r=>r.id===runId?{...r,undone:true}:r)};
 }

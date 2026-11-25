@@ -15,7 +15,7 @@
 @media(max-width:860px){.shared-search{min-height:var(--control-touch-height)}.shared-search>input{font-size:16px}.shared-search .search-clear{width:44px;height:44px}}
 @media(forced-colors:active){.shared-switch{border:1px solid ButtonText}.shared-switch>span{background:ButtonText}.shared-switch[aria-checked=true]{background:Highlight}.shared-switch[aria-checked=true]>span{background:HighlightText}}
 .component-gallery{display:grid;gap:var(--space-3);min-width:0}
-.component-gallery>section{display:grid;gap:var(--space-2);padding:var(--space-3);background:var(--panel);border-radius:var(--radius-surface)}
+.component-gallery>section{display:grid;gap:var(--space-2);padding:var(--space-3);background:var(--surface-subtle);border:var(--surface-border);border-radius:var(--surface-radius)}
 .component-gallery h3{font-size:var(--font-heading)}
 .gallery-row{display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-2)}
 .gallery-row label{display:flex;gap:5px;align-items:center}
@@ -108,3 +108,5 @@ html[data-focus-mode=enhanced] .shared-search:focus-within{box-shadow:0 0 0 2px 
 .detail-fact-value[data-list-color] svg{color:var(--list-icon-color)}
 .detail-fact-value[data-status=doing] svg{color:var(--accent)}
 .detail-fact-value[data-status=completed] svg{color:var(--success,#26866e)}
+
+@media(prefers-reduced-motion:no-preference){.shared-search,.number-control,.time-control{transition:border-color var(--motion-fast),background-color var(--motion-fast)}.shared-segment>button,.number-step,.time-picker-trigger{transition:background-color var(--motion-fast),color var(--motion-fast)}}
