@@ -9,7 +9,7 @@ struct Database(Mutex<Connection>);
 struct ActiveScope(Mutex<Option<String>>);
 fn valid_scope(s:&str)->bool { s=="guest" || (s.len()==36 && s.chars().all(|c|c.is_ascii_hexdigit()||c=='-')) }
 fn schema(c:&Connection)->rusqlite::Result<()> {
- c.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; CREATE TABLE IF NOT EXISTS snapshots(scope TEXT PRIMARY KEY, body TEXT NOT NULL, updated_at INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS backups(scope TEXT NOT NULL, body TEXT NOT NULL, saved_at INTEGER NOT NULL, PRIMARY KEY(scope,saved_at)); CREATE TABLE IF NOT EXISTS delivered(scope TEXT NOT NULL, reminder TEXT NOT NULL, PRIMARY KEY(scope,reminder)); CREATE TABLE IF NOT EXISTS workspace_store(scope TEXT PRIMARY KEY, body TEXT NOT NULL); CREATE VIRTUAL TABLE IF NOT EXISTS task_search USING fts5(scope UNINDEXED, task_id UNINDEXED, title, notes, tokenize='trigram');")
+ c.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; CREATE TABLE IF NOT EXISTS snapshots(scope TEXT PRIMARY KEY, body TEXT NOT NULL, updated_at INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS backups(scope TEXT NOT NULL, body TEXT NOT NULL, saved_at INTEGER NOT NULL, PRIMARY KEY(scope,saved_at)); CREATE TABLE IF NOT EXISTS delivered(scope TEXT NOT NULL, reminder TEXT NOT NULL, PRIMARY KEY(scope,reminder)); CREATE TABLE IF NOT EXISTS reminder_retry(scope TEXT NOT NULL, reminder TEXT NOT NULL, attempts INTEGER NOT NULL, next_at INTEGER NOT NULL, PRIMARY KEY(scope,reminder)); CREATE TABLE IF NOT EXISTS workspace_store(scope TEXT PRIMARY KEY, body TEXT NOT NULL); CREATE VIRTUAL TABLE IF NOT EXISTS task_search USING fts5(scope UNINDEXED, task_id UNINDEXED, title, notes, tokenize='trigram');")
 }
 fn save(c:&mut Connection,scope:&str,body:&str)->Result<(),String>{save_with_store(c,scope,body,None)}
 fn save_with_store(c:&mut Connection,scope:&str,body:&str,store:Option<&str>)->Result<(),String>{
@@ -123,10 +123,8 @@ fn native_notify(scope:String,task_id:String,at:String,title:String,db:tauri::St
  if guard.as_deref()!=Some(scope.as_str()){return Err("workspace is no longer active".into())}
  let c=db.0.lock().map_err(|e|e.to_string())?;
  let key=format!("{}:{}",task_id,at);
- if c.execute("INSERT OR IGNORE INTO delivered VALUES(?1,?2)",params![scope,key]).map_err(|e|e.to_string())?==1{
-  if let Err(e)=app.notification().builder().title("TODO").body(&title).show(){let _=c.execute("DELETE FROM delivered WHERE scope=?1 AND reminder=?2",params![scope,key]);return Err(e.to_string())}
- }
- Ok(())
+ match deliver_reminder(&c,&scope,&key,Local::now().timestamp(),||app.notification().builder().title("TODO").body(&title).show().map_err(|e|e.to_string()))?{true=>Ok(()),false=>Err("notification retry scheduled".into())}
+
 }
 #[tauri::command]
 fn native_exit(app:tauri::AppHandle){if let Some(w)=app.get_webview_window("main"){save_window(&w);}app.exit(0)}
@@ -159,6 +157,22 @@ fn restore_window(w:&tauri::WebviewWindow){
  let _=w.set_size(tauri::LogicalSize::new(width,height));let _=w.center();if g.maximized{let _=w.maximize();}
 }
 fn show(app:&tauri::AppHandle){if let Some(w)=app.get_webview_window("main"){let _=w.show();let _=w.set_focus();}}
+// Persist a bounded retry schedule before invoking the OS. Delivery is marked only
+// after show() returns success. A crash between show and the SQLite commit may
+// duplicate a reminder; it must not silently suppress the only attempt.
+fn deliver_reminder(c:&Connection,scope:&str,key:&str,now:i64,send:impl FnOnce()->Result<(),String>)->Result<bool,String>{
+ let already:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM delivered WHERE scope=?1 AND reminder=?2)",params![scope,key],|r|r.get(0)).map_err(|e|e.to_string())?;
+ if already{return Ok(true)}
+ let retry:Option<(i64,i64)>=c.query_row("SELECT attempts,next_at FROM reminder_retry WHERE scope=?1 AND reminder=?2",params![scope,key],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|e|e.to_string())?;
+ let (attempts,next)=retry.unwrap_or((0,0));if next>now{return Ok(false)}
+ let delay=30_i64.saturating_mul(1_i64 << attempts.clamp(0,7) as u32).min(3600);
+ c.execute("INSERT INTO reminder_retry VALUES(?1,?2,?3,?4) ON CONFLICT(scope,reminder) DO UPDATE SET attempts=excluded.attempts,next_at=excluded.next_at",params![scope,key,(attempts+1).min(8),now+delay]).map_err(|e|e.to_string())?;
+ send()?;
+ // Keep the delivered marker even if retry-row deletion later fails.
+ c.execute("INSERT OR IGNORE INTO delivered VALUES(?1,?2)",params![scope,key]).map_err(|e|e.to_string())?;
+ c.execute("DELETE FROM reminder_retry WHERE scope=?1 AND reminder=?2",params![scope,key]).map_err(|e|e.to_string())?;
+ Ok(true)
+}
 // Recover a recently recorded reminder whose system delivery failed before shutdown.
 fn reminder_candidates(state:&serde_json::Value,now:chrono::DateTime<Local>)->Vec<(String,String,String)>{
  let mut out=Vec::new();let Some(tasks)=state["tasks"].as_array() else{return out};
@@ -183,9 +197,11 @@ fn schedule(app:tauri::AppHandle){
   let db=app.state::<Database>();let Ok(c)=db.0.lock() else{continue};
   let body:Option<String>=c.query_row("SELECT body FROM snapshots WHERE scope=?1",[&scope],|r|r.get(0)).optional().ok().flatten();
   let Some(body)=body else{continue};let Ok(state)=serde_json::from_str::<serde_json::Value>(&body) else{continue};
-  for (id,at,title) in reminder_candidates(&state,Local::now()){
+  let now=Local::now();
+  let _=c.execute("DELETE FROM reminder_retry WHERE scope=?1 AND next_at<?2",params![scope,now.timestamp()-7*86400]);
+  for (id,at,title) in reminder_candidates(&state,now){
    let key=format!("{}:{}",id,at);
-   if c.execute("INSERT OR IGNORE INTO delivered VALUES(?1,?2)",params![scope,key]).unwrap_or(0)==1{if app.notification().builder().title("TODO").body(&title).show().is_err(){let _=c.execute("DELETE FROM delivered WHERE scope=?1 AND reminder=?2",params![scope,key]);}}
+   let _=deliver_reminder(&c,&scope,&key,Local::now().timestamp(),||app.notification().builder().title("TODO").body(&title).show().map_err(|e|e.to_string()));
   }
  });
 }
@@ -211,6 +227,17 @@ pub fn run(){
 }
 #[cfg(test)]mod tests{
  use super::*;
+ #[test]fn reminder_retry_persists_backoff_and_deduplicates(){
+  let c=Connection::open_in_memory().unwrap();schema(&c).unwrap();
+  assert!(deliver_reminder(&c,"guest","task:at",100,||Err("test failure".into())).is_err());
+  assert!(!deliver_reminder(&c,"guest","task:at",129,||panic!("must wait")).unwrap());
+  assert!(deliver_reminder(&c,"guest","task:at",130,||Err("test failure".into())).is_err());
+  assert!(!deliver_reminder(&c,"guest","task:at",189,||panic!("must wait")).unwrap());
+  assert!(deliver_reminder(&c,"guest","task:at",190,||Ok(())).unwrap());
+  assert!(deliver_reminder(&c,"guest","task:at",191,||panic!("already delivered")).unwrap());
+  assert_eq!(c.query_row("SELECT count(*) FROM reminder_retry",[],|r|r.get::<_,i64>(0)).unwrap(),0);
+  assert!(deliver_reminder(&c,"00000000-0000-4000-8000-000000000001","task:at",191,||Ok(())).unwrap());
+ }
  #[test]fn recent_reminder_recovery_is_bounded_and_scoped_to_pending_tasks(){
   let now=Local::now();let at=(now-chrono::Duration::minutes(5)).format("%Y-%m-%dT%H:%M").to_string();
   let mut state=serde_json::json!({"tasks":[{"id":"t","title":"QA","status":"pending","deletedAt":null,"reminderAt":at,"remindedAt":now.to_rfc3339()}],"notifications":[{"taskId":"t","reminderAt":at,"at":now.to_rfc3339()}]});

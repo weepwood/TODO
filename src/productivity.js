@@ -35,3 +35,10 @@ export function workBudget(segments,start,end){
  const occupied=merged.reduce((n,[a,b])=>n+b-a,0),free=[];let cursor=lo;for(const [a,b] of merged){if(a>cursor)free.push([cursor,a]);cursor=b}if(cursor<hi)free.push([cursor,hi]);
  return {capacity:hi-lo,occupied,remaining:hi-lo-occupied,free};
 }
+
+export const PLANNER_PREFS_KEY='todo-planner-preferences-v1';
+export function normalizePlannerPreferences(value){
+ const start=value?.workStart,end=value?.workEnd;
+ return {workStart:validWorkHours(start,end)?start:'09:00',workEnd:validWorkHours(start,end)?end:'18:00',allHours:value?.allHours===true,visual:value?.visual!==false,hourHeight:[56,80,112].includes(value?.hourHeight)?value.hourHeight:56};
+}
+export function readPlannerPreferences(storage){try{return normalizePlannerPreferences(JSON.parse(storage?.getItem(PLANNER_PREFS_KEY)||'{}'))}catch{return normalizePlannerPreferences({})}}

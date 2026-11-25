@@ -7,7 +7,7 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
  const expires=Math.floor(Date.now()/1000)+3600;
  const token=encode({alg:'HS256',typ:'JWT'})+'.'+encode({sub:uid,exp:expires,role:'authenticated'})+'.mock';
  const session={access_token:token,refresh_token:'mock-refresh',token_type:'bearer',expires_in:3600,expires_at:expires,user:{id:uid,email:'test@example.invalid',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{},created_at:new Date().toISOString()}};
- let row=null,deltaWrites=0,metadataReads=0,deltaReads=0,deltaMisses=0,patches=[];
+ let row=null,deltaWrites=0,metadataReads=0,deltaReads=0,deltaMisses=0,patches=[],forceRace=false;
  test.setTimeout(90000);const contexts=[];
  async function device(){
   const ctx=await browser.newContext();contexts.push(ctx);
@@ -23,6 +23,7 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
    }
    if(url.pathname.endsWith('/rpc/todo_apply_task_delta')){
     const {p_revision,p_tasks}=req.postDataJSON();
+    if(forceRace){forceRace=false;row={...row,revision:row.revision+1,state:{...row.state,tasks:row.state.tasks.map(t=>t.title==='设备 A 冲突内容'?{...t,title:'并发更新后的云端版本'}:t)},updated_at:new Date().toISOString()};patches=[];return route.fulfill({json:null})}
     if(!row||row.revision!==p_revision)return route.fulfill({json:null});
     const changes=new Map(p_tasks.map(t=>[t.id,t])),existing=new Set(row.state.tasks.map(t=>t.id));
     row={...row,revision:row.revision+1,state:{...row.state,tasks:[...row.state.tasks.map(t=>changes.get(t.id)||t),...p_tasks.filter(t=>!existing.has(t.id))]},updated_at:new Date().toISOString()};deltaWrites++;patches=[...patches,{from:p_revision,to:row.revision,tasks:p_tasks}].slice(-8);
@@ -32,7 +33,7 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
    if(req.method()==='GET'){if(url.searchParams.get('select')==='revision,updated_at'){metadataReads++;return route.fulfill({json:row?[{revision:row.revision,updated_at:row.updated_at}]:[]})}return route.fulfill({json:row?[row]:[]})}
    const body=req.postDataJSON();
    if(req.method()==='POST'){if(row)return route.fulfill({status:409,json:{code:'23505',message:'duplicate'}});row={...body,updated_at:new Date().toISOString()}}
-   else if(req.method()==='PATCH'){if(!row||url.searchParams.get('revision')!=='eq.'+row.revision)return route.fulfill({status:406,json:{code:'PGRST116',details:'The result contains 0 rows',message:'Cannot coerce the result to a single JSON object'}});row={...row,...body,updated_at:new Date().toISOString()};patches=[]}
+   else if(req.method()==='PATCH'){if(forceRace){forceRace=false;row={...row,revision:row.revision+1,state:{...row.state,tasks:row.state.tasks.map(t=>t.title==='设备 A 冲突内容'?{...t,title:'并发更新后的云端版本'}:t)},updated_at:new Date().toISOString()};patches=[];return route.fulfill({status:406,json:{code:'PGRST116',details:'The result contains 0 rows',message:'Cannot coerce the result to a single JSON object'}})}if(!row||url.searchParams.get('revision')!=='eq.'+row.revision)return route.fulfill({status:406,json:{code:'PGRST116',details:'The result contains 0 rows',message:'Cannot coerce the result to a single JSON object'}});row={...row,...body,updated_at:new Date().toISOString()};patches=[]}
    return route.fulfill({json:{revision:row.revision,updated_at:row.updated_at}});
   });
   const page=await ctx.newPage();await page.goto('/');await expect(page.getByRole('textbox',{name:'新任务名称'})).toBeVisible();return {ctx,page}
@@ -68,13 +69,22 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
   await expect(b.page.locator('.conflict-preview')).toContainText('设备 A 冲突内容');
   await b.page.getByText('同步日志（本机）',{exact:true}).click();
   await expect(b.page.locator('.sync-diagnostics').filter({hasText:'同步日志（本机）'})).toContainText('检测到冲突');
+  forceRace=true;
+  b.page.once('dialog',d=>d.accept());await b.page.getByRole('button',{name:'保留本地并上传'}).click();
+  await expect(b.page.locator('.sync-footer')).toContainText('云端版本已变化，请重新确认',{timeout:12000});
+  await expect(b.page.locator('.conflict-preview')).toContainText('并发更新后的云端版本');
+  await expect(b.page.locator('.task-body').filter({hasText:'设备 B 冲突内容'})).toBeVisible();
+  expect(row.state.tasks.some(t=>t.title==='设备 B 冲突内容')).toBe(false);
   b.page.once('dialog',d=>d.accept());await b.page.getByRole('button',{name:'使用云端版本'}).click();
   await expect(b.page.locator('.sync-footer')).toContainText('已同步',{timeout:12000});
   expect(await b.page.evaluate(uid=>JSON.parse(localStorage.getItem('todo-account:'+uid+':todo-conflict-backup')).tasks.some(t=>t.title==='设备 B 冲突内容'),uid)).toBe(true);
   await b.page.keyboard.press('Escape');
+  await a.page.getByRole('button',{name:'设置',exact:true}).click();
+  await a.page.getByRole('button',{name:'立即同步'}).click();await a.page.keyboard.press('Escape');
+  await expect(a.page.locator('.task-body').filter({hasText:'并发更新后的云端版本'})).toBeVisible({timeout:15000});
   // A new conflict is resolved field by field rather than by whole-workspace replacement.
   await b.ctx.setOffline(true);
-  await b.page.locator('.task-body').filter({hasText:'设备 A 冲突内容'}).click();
+  await b.page.locator('.task-body').filter({hasText:'并发更新后的云端版本'}).click();
   await b.page.getByRole('textbox',{name:'任务标题'}).fill('本地字段选择');
   await b.page.getByRole('textbox',{name:'任务备注'}).fill('保留本地备注');
   await expect(b.page.locator('.sync-footer')).toContainText('离线');

@@ -170,3 +170,10 @@
 .work-budget progress::-webkit-progress-bar{background:var(--line);border-radius:999px}
 .work-budget progress::-webkit-progress-value{background:var(--accent);border-radius:999px}
 .work-budget progress::-moz-progress-bar{background:var(--accent);border-radius:999px}
+
+/* V1.1 task capture and planner continuity */
+.v2 .agenda-drag{display:grid;place-items:center;width:22px;min-height:28px;flex:none;cursor:grab;touch-action:none;color:var(--muted);border-radius:5px;font-size:18px}
+.v2 .agenda-drag:is(:hover,:focus-visible){background:var(--active);color:var(--accent-text)}
+.v2 .agenda-drag:active{cursor:grabbing}
+.v2 .dialog-actions{flex-wrap:wrap}
+@media(pointer:coarse){.v2 .agenda-drag{width:30px;min-height:36px}}

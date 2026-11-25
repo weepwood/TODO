@@ -6,3 +6,10 @@ test('工作时间预算裁剪、重叠合并及空闲窗口',()=>{
  assert.deepEqual(workBudget([],'09:00','18:00'),{capacity:540,occupied:0,remaining:540,free:[[540,1080]]});
  assert.equal(workBudget([],'18:00','09:00'),null);
 });
+
+import {normalizePlannerPreferences,readPlannerPreferences} from '../src/productivity.js';
+test('规划偏好校验与存储异常回退',()=>{
+ assert.deepEqual(normalizePlannerPreferences({workStart:'08:30',workEnd:'17:30',visual:false,allHours:true,hourHeight:112}),{workStart:'08:30',workEnd:'17:30',visual:false,allHours:true,hourHeight:112});
+ assert.deepEqual(readPlannerPreferences({getItem:()=>'{bad'}),{workStart:'09:00',workEnd:'18:00',visual:true,allHours:false,hourHeight:56});
+ assert.equal(normalizePlannerPreferences({workStart:'18:00',workEnd:'09:00',hourHeight:100}).hourHeight,56);
+});

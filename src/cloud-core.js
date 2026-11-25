@@ -16,3 +16,13 @@ export function decideSync({localHash,remoteHash,remoteRevision,meta,emptyHash})
 }
 export function readRemote(row){if(!row)return null;if(!Number.isSafeInteger(row.revision)||row.revision<1)throw Error('云端版本无效');return {...row,state:migrateState(row.state)}}
 export function preserveConflict(storage,data){storage.setItem('todo-conflict-backup',JSON.stringify(data))}
+
+export function authErrorMessage(error){
+ const code=error?.code,message=String(error?.message||'');
+ if(code==='over_email_send_rate_limit'||/email rate limit exceeded/i.test(message))return '确认邮件发送额度已用完。请稍后重试，或联系管理员创建已确认账号；不要连续提交注册请求。';
+ if(code==='email_address_not_authorized')return '当前邮件服务不允许向此地址投递。请联系管理员配置邮件服务。';
+ if(code==='email_not_confirmed')return '邮箱尚未确认，请检查确认邮件或联系管理员。';
+ if(code==='invalid_credentials')return '邮箱或密码不正确。';
+ if(error?.status===429)return '请求过于频繁，请稍后重试。';
+ return message||'认证失败';
+}
