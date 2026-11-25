@@ -56,3 +56,12 @@
 .detail-group-actions .text-link{display:inline-flex;align-items:center;gap:5px}
 @media(prefers-reduced-motion:no-preference){.detail-section-toggle{transition:opacity var(--motion-fast),background-color var(--motion-fast)}}
 @media(max-width:860px){.detail-group-actions .text-link{min-height:44px}}
+
+/* Summary values expose the original editor, without duplicating write paths. */
+.detail-facts dd .detail-fact-edit{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0;text-align:left;padding:4px 6px;margin:-4px -6px;width:calc(100% + 12px);border-radius:var(--radius-small);color:inherit;font:inherit}
+.detail-fact-edit>span{min-width:0;overflow-wrap:anywhere}
+.detail-fact-edit>svg{flex:none;color:var(--muted);opacity:0}
+.detail-fact-edit:hover,.detail-fact-edit:focus-visible{background:var(--hover)}
+.detail-fact-edit:hover>svg,.detail-fact-edit:focus-visible>svg{opacity:1}
+@media(pointer:coarse),(max-width:860px){.detail-fact-edit>svg{opacity:.65}.detail-facts dd .detail-fact-edit{min-height:44px}}
+@media(prefers-reduced-motion:no-preference){.detail-fact-edit{transition:background-color var(--motion-fast)}.detail-fact-edit>svg{transition:opacity var(--motion-fast)}}

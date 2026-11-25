@@ -452,3 +452,8 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - 3a678cc CI 45631397324通过，下载至artifacts/TODO/ui-pr22-45631397324；实际复核展厅舒展尺寸、看板、专注、统计、日历、规划和390px习惯。发现旧专注分钟输入被挤窄、看板全宽状态条及指标层次差异，属于新工作区专项。PR #22合并6027ab1，正式main同步；Pages 45632318003成功，线上HTML可读取。
 - 独立worktree v13-workspace-design，feat/v13-workspace-design基于6027ab1。共享WorkspaceMetrics，规划/统计指标与看板/习惯概要；日历/规划/专注/统计操作区统一；看板状态图标、紧凑选择器、邻近卡片重排；修复专注输入空间，习惯真实近七天目标进度；属性样式由详情移至公共组件所有权。保持数据模型、计时/任务/积分/同步和发布配置。
 - 104项单测及156+源码/测试解析、相对导入、CSS、diff检查；新增工作区指标、状态切换、专注数值宽度与编辑、习惯进度和手机触控专项。首次本地重型验收因内存压力2被门禁拒绝，日志artifacts/TODO/workspace-design-verify.log；最终Web构建和浏览器证据待CI。未新增依赖、未构建安装包。当前不宣称所有业务页面视觉重构完成。
+
+### PR #23 收口与 V1.3 详情/时间轴深化
+- 0ceeafa CI 45632765599成功，实际审阅artifacts/TODO/ui-pr23-45632765599内专注、看板、习惯、深色规划截图，确认数值完整、状态控件紧凑、指标及进度正常。PR #23合并d894dc0，正式main同步；Pages 45634066837成功。
+- 独立worktree v13-detail-timeline，feat/v13-detail-timeline基于d894dc0；展示态8项快捷属性进入现有区块并定位控件，桌面悬浮图标、触屏入口、只读保护；当前值与可访问描述关联。时间轴同日重叠预览、拉伸分钟提示、短块实色预览，保留时间算法、指针取消和写入时机。习惯卡片去除重复目标计数。未修改业务模型、同步、计时和发布配置。
+- 本机105/105单测、159源码/E2E解析、CSS及相对导入检查、Web构建2.73s、首轮16/16专项浏览器通过；审查detail-quick-edit.png、timeline-overlap-preview.png（保存至artifacts/TODO/detail-timeline-first）。最后增加不透明短块单行预览及ARIA当前值描述、新增真实拉伸取消专项，最终重型复验因内存压力2被资源门禁拒绝（detail-timeline-final.log），需PR CI验证最终提交，不把首轮截图视为最终证据。跨日预览不计算其他日期冲突；未构建安装包、未新增依赖。

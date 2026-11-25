@@ -49,7 +49,7 @@ input[type=checkbox]:disabled{opacity:.5;cursor:default}
 .planner .planner-overview{padding:14px 6px;margin-bottom:12px}
 .planner .work-budget{padding:14px;background:var(--bg)}
 .planner .timeline{min-width:0}
-.time-block{border-radius:6px}
+
 .time-drop-guide{z-index:9}
 .stats-section-title{font-size:16px;margin:10px 0 14px;font-weight:650}
 .stats-toolbar .stats-jump{display:flex;gap:6px;margin-left:auto;order:3}

@@ -34,3 +34,10 @@ export function timelineMove(date,start,delta,from=0,to=1440){
  if(!validDate(nextDate))return null;
  return {date:nextDate,time:minuteClock((bounded%1440+1440)%1440),anchor:Number(nextDate.slice(-2)),dayOffset:day,guide:Math.max(from,Math.min(to,bounded))};
 }
+
+// Same-day preview only: half-open intervals, excluding the moving task.
+// Does not modify the persisted conflict model or block intentional overlaps.
+export function previewOverlaps(segments,id,start,end){
+ if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start)return false;
+ return segments.some(t=>{if(t.id===id||typeof t.time!=='string'||typeof t.endTime!=='string')return false;const a=clockMinutes(t.time),b=clockMinutes(t.endTime);return Number.isFinite(a)&&Number.isFinite(b)&&a<end&&start<b});
+}

@@ -34,3 +34,15 @@ test('全天跨午夜移动保留日期边界，工作时段只在视口内吸�
  assert.equal(timelineMove('2026-12-31',540,1440).time,'09:00');
  assert.equal(timelineMove('9998-12-31',1425,15),null);
 });
+
+import {previewOverlaps} from '../src/core/timeline-layout.js';
+test('时间块拖动预览使用半开区间、排除自身并包含外部日程',()=>{
+ const segments=[{id:'self',time:'09:00',endTime:'10:00'},{id:'meeting',time:'10:15',endTime:'11:00',external:true},{id:'other',time:'12:00',endTime:'13:00'}];
+ assert.equal(previewOverlaps(segments,'self',540,600),false);
+ assert.equal(previewOverlaps(segments,'self',600,615),false);
+ assert.equal(previewOverlaps(segments,'self',600,630),true);
+ assert.equal(previewOverlaps(segments,'self',660,720),false);
+ assert.equal(previewOverlaps(segments,'self',720,750),true);
+ assert.equal(previewOverlaps(segments,'self',720,720),false);
+ assert.equal(previewOverlaps(segments,'self',NaN,750),false);
+});
