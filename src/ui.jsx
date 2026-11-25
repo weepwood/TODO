@@ -1,3 +1,4 @@
+import {useTouchGesture} from './components/useTouchGesture.js';
 import {FeedbackField,FieldMessage} from './design-system/FieldFeedback.jsx';
 import {NumberControl} from "./design-system/Controls.jsx";
 import {useTransientPopover,popoverGeometry} from "./design-system/popover.js";
@@ -6,7 +7,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import * as Dropdown from '@radix-ui/react-dropdown-menu';
 import * as Context from '@radix-ui/react-context-menu';
 import {X,MoreHorizontal} from "lucide-react";
-export function Modal({open,onClose,title,children,description,className=''}){return <Dialog.Root open={open} onOpenChange={v=>!v&&onClose()}><Dialog.Portal><Dialog.Overlay className="overlay"/><Dialog.Content className={'dialog '+className} {...(!description?{'aria-describedby':undefined}:{})}><div className="dialog-head"><Dialog.Title>{title}</Dialog.Title><Dialog.Close className="icon-button" aria-label="关闭"><X size={18}/></Dialog.Close></div>{description&&<Dialog.Description className="dialog-description">{description}</Dialog.Description>}{children}</Dialog.Content></Dialog.Portal></Dialog.Root>}
+export function Modal({open,onClose,title,children,description,className='',sheet=false}){const gesture=useTouchGesture({enabled:open&&sheet,kind:'sheet',onAction:onClose});return <Dialog.Root open={open} onOpenChange={v=>!v&&onClose()}><Dialog.Portal><Dialog.Overlay className="overlay"/><Dialog.Content className={'dialog '+className} style={sheet?{'--sheet-drag':gesture.offset+'px'}:undefined} data-sheet-dragging={sheet&&gesture.offset>0||undefined} {...(!description?{'aria-describedby':undefined}:{})}>{sheet&&<div className="sheet-grabber" aria-hidden="true" {...gesture.handlers}><span/></div>}<div className="dialog-head"><Dialog.Title>{title}</Dialog.Title><Dialog.Close className="icon-button" aria-label="关闭"><X size={18}/></Dialog.Close></div>{description&&<Dialog.Description className="dialog-description">{description}</Dialog.Description>}{children}</Dialog.Content></Dialog.Portal></Dialog.Root>}
 export function Menu({items,trigger,open,onOpenChange}){
  const [local,setLocal]=useState(false),shown=open??local,change=onOpenChange??setLocal;
  useTransientPopover(shown,()=>change(false));
@@ -14,7 +15,7 @@ export function Menu({items,trigger,open,onOpenChange}){
 export function Empty({title='暂无任务',hint='添加一项任务开始吧。',Icon}){return <div className="empty">{Icon&&<div className="empty-icon"><Icon size={28}/></div>}<h3>{title}</h3><p>{hint}</p></div>}
 export function Field({label,children,...feedback}){if(Object.keys(feedback).length)return <FeedbackField label={label} {...feedback}>{children}</FeedbackField>;return <label className="field"><span>{label}</span>{children}</label>}
 
-export function ContextMenu({items,children}){const [open,setOpen]=useState(false);useTransientPopover(open,()=>setOpen(false));return <Context.Root open={open} onOpenChange={setOpen}><Context.Trigger asChild>{children}</Context.Trigger><Context.Portal><Context.Content className="dropdown">{items.map((item,i)=>item.separator?<Context.Separator key={i} className="dropdown-separator"/>:<Context.Item key={i} className={'dropdown-item '+(item.danger?'danger':'')} disabled={item.disabled} onSelect={item.run}>{item.label}</Context.Item>)}</Context.Content></Context.Portal></Context.Root>}
+export function ContextMenu({items,children,disabled=false}){const [open,setOpen]=useState(false);useTransientPopover(open,()=>setOpen(false));return <Context.Root open={open} onOpenChange={setOpen}><Context.Trigger asChild disabled={disabled}>{children}</Context.Trigger><Context.Portal><Context.Content className="dropdown">{items.map((item,i)=>item.separator?<Context.Separator key={i} className="dropdown-separator"/>:<Context.Item key={i} className={'dropdown-item '+(item.danger?'danger':'')} disabled={item.disabled} onSelect={item.run}>{item.label}</Context.Item>)}</Context.Content></Context.Portal></Context.Root>}
 
 export function ActionButton({variant='secondary',compact=false,icon:Icon,children,className='',type='button',...props}){return <button type={type} className={[variant,compact?'compact':'',className].filter(Boolean).join(' ')} {...props}>{Icon&&<Icon size={16} aria-hidden="true"/>}{children}</button>}
 export function InlineTitle({value,onCommit,onClose}){

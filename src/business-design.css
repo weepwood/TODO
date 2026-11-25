@@ -380,3 +380,38 @@
 }
 
 .workspace-surface .workflow-rule-editor input:not([type=checkbox]){width:100%;min-width:0}.workspace-surface .review-footer,.workspace-surface .workflow-footer{box-shadow:0 -6px 10px -8px color-mix(in srgb,var(--text) 20%,transparent)}
+
+/* Review insights: semantic numbers, measured cohorts and quiet report hierarchy. */
+.insight-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2);margin:12px 0}
+.insight-metrics>div,.insight-goals>div,.insight-habits>div{min-width:0;display:grid;gap:8px;padding:var(--surface-padding);border:var(--surface-border);border-radius:var(--surface-radius);background:var(--bg)}
+.insight-metrics small{display:flex;gap:6px;align-items:center;color:var(--muted)}
+.insight-metrics strong{font-size:22px;letter-spacing:-.025em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.insight-metrics p{font-size:var(--font-caption);line-height:1.6;color:var(--muted);margin:0}
+.insight-duration{display:flex;gap:var(--space-4);flex-wrap:wrap;margin:12px 0;font-size:var(--font-body)}
+.insight-goals,.insight-habits{display:grid;gap:8px;margin:10px 0}
+.insight-goals progress{width:100%;height:8px;accent-color:var(--accent)}
+.insight-goals .record-row,.insight-habits .record-row{padding:0;border:0;gap:8px;flex-wrap:wrap}
+.insight-goal-editor{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+.insight-habit-groups{display:flex;gap:12px;flex-wrap:wrap;font-size:var(--font-caption);color:var(--muted)}
+.insight-habits strong{overflow-wrap:anywhere}
+.report-reading .review-insights{margin-top:24px;padding:0;border:0;background:transparent}
+.report-reading .review-insights h3{margin-top:22px;font-size:17px}
+.report-reading .insight-metrics>div{background:var(--surface-subtle)}
+@media(max-width:860px){.insight-metrics>div,.insight-goals>div,.insight-habits>div{padding:12px}.insight-metrics strong{font-size:19px}.insight-goal-editor button{min-height:44px}.insight-goal-editor{grid-template-columns:repeat(2,minmax(0,1fr))}.insight-goal-editor .number-control{min-width:0}}
+@media print{.todo-print-report .insight-metrics>div,.todo-print-report .insight-goals>div,.todo-print-report .insight-habits>div{break-inside:avoid}.todo-print-report .insight-metrics strong{font-size:16pt}}
+
+/* Compact report composition; distinguish navigation from analytical content. */
+.workspace-surface.task-review-dialog .report-page-tools{padding:var(--space-2) 0}
+.workspace-surface.task-review-dialog .report-reading{border-radius:var(--radius-large)}
+@media(max-width:860px){.workspace-surface.task-review-dialog .report-reading{padding:16px 12px;margin:4px 0;max-width:100%}.workspace-surface.task-review-dialog .report-reading h1{font-size:21px}.workspace-surface.task-review-dialog .review-footer>button{flex:1;min-height:44px}.stats .task-completion-chart .bars{height:132px}.insight-goal-editor .number-control{width:100%}}
+@media(prefers-reduced-motion:no-preference){.workspace-surface .report-page-tools button,.insight-goals>div{transition:background-color var(--motion-fast),border-color var(--motion-fast)}}
+
+@media(max-width:390px){.insight-goal-editor{grid-template-columns:minmax(0,1fr)}.insight-goal-editor>button{width:100%}}
+.insight-goals{grid-template-columns:repeat(2,minmax(0,1fr))}
+.insight-goals progress{appearance:none;border:0;border-radius:6px;background:var(--hover);overflow:hidden}
+.insight-goals progress::-webkit-progress-bar{background:var(--hover);border-radius:6px}
+.insight-goals progress::-webkit-progress-value{background:var(--accent);border-radius:6px}
+.insight-goals progress::-moz-progress-bar{background:var(--accent);border-radius:6px}
+.review-insights>h3:not(:first-child){margin-top:20px}
+.efficiency-overview .insight-metrics>div{background:var(--surface-subtle)}
+@media(max-width:860px){.insight-goals{grid-template-columns:1fr}.efficiency-overview .insight-metrics strong{font-size:20px}}
