@@ -347,3 +347,8 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - PR #5 8f410a4 全量浏览器CI 45596104356成功，合并377a814，正式本地main同步；Pages 45599730788成功。独立worktree v12-workspace-views，未构建安装包。
 - 实施手机详情六分区导航、看板/四象限列筛选与非拖拽移动、日历视觉、规划密度加减、专注周期数字控件与手机主操作、习惯打卡布局。现有数据模型、提醒/计时引擎、同步、签名保持不变，无新依赖。
 - 预算门禁下 npm ci、Web生产构建及15项专项Edge测试（ui-business、alpha、v118、ui-reminder）全部通过，包含上轮提醒和同日拖动预览、跨午夜触摸、八模块双主题。审阅真实手机详情/习惯/专注和桌面四象限截图；随后补充吸顶导航顶部遮盖、习惯下拉样式、单列阅读宽度、窄屏打卡尺寸、拖离边界保护。最后的重测被内存压力2门禁拒绝，未绕过；最终版本待PR轻量CI与截图复验。日志artifacts/TODO/business-views.log、business-polish.log；真实设备帧率、安装包验收延期。
+
+### V1.2 第七轮视觉体系与连续交互
+- PR #6 7c3786e 浏览器CI 45600104333成功，合并c859b1c，本地正式main同步；Pages 45601453265成功。独立worktree v12-visual-system。
+- 实施语义表面令牌、重复边框与局部CSS治理、看板按任务ID跨列位置动画、选中日期标记、日历规划工具栏分组、备注独立阅读及草稿反馈；无新增依赖，保留数据、计时、提醒、签名及Markdown安全机制。
+- 本机资源门禁下 npm ci、Web生产构建及17项专项Edge测试（ui-visual-system、ui-business、v07、v08、v118）全部通过，含跨列动画实际调用与减少动效、选中日期、草稿保持、真实触摸日周拖放/跨午夜、Markdown可视化回转、双主题八模块。人工审阅visual-board、visual-mobile-calendar、visual-mobile-planner、visual-note-reading截图。随后补强日期选中背景、阅读标题层级及手机规划摘要密度；内存压力2拒绝再构建，最终这些CSS细节待PR完整浏览器验收。日志artifacts/TODO/visual-system.log。未构建安装包，不声称完整历史CSS收敛、真实帧率或所有动画中断已验收。
