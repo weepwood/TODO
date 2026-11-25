@@ -25,6 +25,7 @@ test('日期浮层、快捷录入、依赖、撤销重做与范围选择',async(
  await expect(page.getByRole('button',{name:'完成 后置工作'})).toBeEnabled();
  await page.getByRole('button',{name:'重做',exact:true}).click();
  await expect(page.getByRole('button',{name:'完成 后置工作'})).toBeDisabled();
+ await page.getByRole('button',{name:'选择任务',exact:true}).click();
  await page.getByRole('button',{name:'选择 前置工作'}).click();
  await page.getByRole('button',{name:'选择 后置工作'}).click({modifiers:['Shift']});
  await expect(page.locator('.bulk-bar')).toContainText('已选 2 项');
