@@ -97,3 +97,14 @@ html[data-focus-mode=enhanced] .shared-search:focus-within{box-shadow:0 0 0 2px 
 @media(max-width:480px){.component-gallery .gallery-preview{grid-template-columns:1fr}}
 .field-control>:is(.smart-select-trigger,.date-trigger,.datetime-trigger,.color-picker-trigger,.time-control){width:100%;min-width:0}
 .field-control>:is(.smart-select-trigger,.date-trigger,.datetime-trigger,.color-picker-trigger)[aria-invalid=true]{border-color:var(--danger)}
+
+/* Shared task attributes: used by inspector, gallery and business cards. */
+.detail-fact-value{display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:100%;vertical-align:middle}
+.detail-fact-value svg{flex:none;color:var(--muted)}
+.detail-fact-value>span{min-width:0;overflow-wrap:anywhere}
+.detail-fact-value[data-priority="1"] svg{color:var(--priority-low)}
+.detail-fact-value[data-priority="2"] svg{color:var(--priority-medium)}
+.detail-fact-value[data-priority="3"] svg{color:var(--priority-high)}
+.detail-fact-value[data-list-color] svg{color:var(--list-icon-color)}
+.detail-fact-value[data-status=doing] svg{color:var(--accent)}
+.detail-fact-value[data-status=completed] svg{color:var(--success,#26866e)}

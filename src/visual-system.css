@@ -15,9 +15,6 @@
 .board-task-card .smart-select-trigger:hover,.board-task-card .smart-select-trigger[data-state=open]{background:var(--hover);border-color:var(--line)}
 .board-task-card:focus-within{z-index:2}
 .board-column[data-drag-over=true]{border-color:var(--accent)}
-.calendar-info,.planner-toolbar{align-items:flex-start;justify-content:space-between;gap:var(--surface-gap)}
-.calendar-date-group,.calendar-action-group,.planner-date-group,.planner-mode-group{display:flex;align-items:center;flex-wrap:wrap;gap:6px;min-width:0}
-.calendar-action-group,.planner-mode-group{justify-content:flex-end}
 .calendar-main .fc .todo-selected-day{box-shadow:inset 0 0 0 1px var(--accent)}
 .calendar-main .fc .fc-col-header-cell.todo-selected-day{background:var(--active);color:var(--accent-text)}
 .calendar-main .fc .fc-daygrid-day.todo-selected-day .fc-daygrid-day-number{color:var(--accent-text);font-weight:700}
@@ -31,10 +28,6 @@
 .note-workbench .w-md-editor-toolbar,.visual-note-toolbar{border-radius:8px 8px 0 0}
 .note-workbench .w-md-editor-toolbar button,.visual-note-toolbar button{min-height:30px;min-width:28px}
 @media(max-width:860px){
- .calendar-date-group,.calendar-action-group,.planner-date-group,.planner-mode-group{width:100%;justify-content:flex-start}
- .calendar-info,.planner-toolbar{gap:8px}
- .calendar-action-group,.planner-mode-group{padding-bottom:4px}
- .calendar-action-group button,.planner-mode-group button{flex:1;min-height:44px}
  .planner .planner-hours{padding:10px}
  .v2.compact-mobile .task-content>.heading{margin-bottom:10px}
  .v2.compact-mobile .detail-navigation{border-bottom:1px solid var(--line)}

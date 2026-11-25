@@ -29,7 +29,7 @@ export function useBoardMotion(ref,{scope,order,enabled}){
   for(const [id,p] of next.positions){
    const before=old.positions.get(id);if(!before)continue;
    const offset=offsets.get(id);
-   if(before.lane===p.lane&&!offset)continue;
+   // Neighbouring cards also shift when a card leaves or enters their lane.
    const x=before.x-p.x+(offset?.x||0),y=before.y-p.y+(offset?.y||0);
    if(Math.hypot(x,y)<2||Math.abs(x)>host.clientWidth||Math.abs(y)>480||typeof p.el.animate!=='function')continue;
    const animation=p.el.animate([{translate:x+'px '+y+'px'},{translate:'0px 0px'}],{duration:motion.reorder,easing:motion.ease});

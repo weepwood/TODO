@@ -88,15 +88,11 @@
 @media(prefers-reduced-motion:reduce){.v2 .task-row{transition:none!important}}
 
 /* Alpha module summaries, empty states and interruptible detail exit. */
-.module-summary{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:10px 12px;margin:0 0 12px;border:1px solid var(--line);border-radius:var(--control-radius,7px);background:var(--panel);color:var(--muted);font-size:12px}
-.module-summary strong{font-size:16px;color:var(--text);font-variant-numeric:tabular-nums;font-weight:600}
-.module-summary>small{margin-left:auto;font-size:11px}
 .column-empty{min-height:82px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;padding:12px;border:1px dashed var(--line);border-radius:7px;color:var(--muted);font-size:12px;text-align:center}
 .column-empty small{font-size:11px}
 .habits-view .empty,.focus-view .empty{padding:30px 16px;border:1px dashed var(--line);border-radius:9px;margin-top:12px}
 .stat-note{margin:6px 0 0}
 @media(prefers-reduced-motion:no-preference){.v2 .detail-exit{animation:detail-dismiss var(--motion-exit) ease-in both;pointer-events:none}@keyframes detail-dismiss{to{opacity:0;transform:translateX(8px)}}}
-@media(max-width:520px){.module-summary{gap:10px}.module-summary>small{margin-left:0;flex-basis:100%}}
 
 /* Signed task points: color is supplementary to the explicit numeric sign. */
 .points-positive{color:#177b52}.points-negative{color:#b84450}
