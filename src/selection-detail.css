@@ -6,11 +6,11 @@
 .v2 .sidebar .section-label{padding-top:14px;padding-bottom:3px}
 .v2 .sidebar .nav-row[data-view-key],.v2 .task-row,.v2:not(.compact-mobile) .rail>button,.settings-navigation button{position:relative}
 .v2 .sidebar .nav-row[data-view-key]{padding-inline-start:14px}
-.v2 .sidebar .nav-row[data-view-key]::before,.v2 .task-row::before,.v2:not(.compact-mobile) .rail>button::before,.settings-navigation button::before{
+.v2 .sidebar .nav-row[data-view-key]::before,.v2 .task-row::before,.settings-navigation button::before{
  content:"";position:absolute;pointer-events:none;inset-inline-start:4px;top:50%;transform:translateY(-50%);
  width:var(--marker-width);height:var(--marker-idle);border-radius:10px;background:var(--muted);opacity:.28;
 }
-.v2 .sidebar .nav-row[data-view-key].active::before,.v2 .task-row.selected::before,.v2:not(.compact-mobile) .rail>button.active::before,.settings-navigation button.active::before{
+.v2 .sidebar .nav-row[data-view-key].active::before,.v2 .task-row.selected::before,.settings-navigation button.active::before{
  height:var(--marker-active);background:var(--accent);opacity:1
 }
 .v2 .sidebar .nav-row[data-view-key]:hover::before,.v2 .task-row:hover::before{background:var(--accent);opacity:.8}
@@ -66,7 +66,7 @@
  .v2 .detail-content .detail-field-grid>.field{grid-template-columns:minmax(0,1fr);gap:6px}
 }
 @media(prefers-reduced-motion:no-preference){
- .v2 .sidebar .nav-row[data-view-key]::before,.v2 .task-row::before,.v2:not(.compact-mobile) .rail>button::before,.settings-navigation button::before{transition:height var(--marker-duration) var(--ui-ease),background-color var(--marker-duration) ease,opacity var(--marker-duration) ease}
+ .v2 .sidebar .nav-row[data-view-key]::before,.v2 .task-row::before,.settings-navigation button::before{transition:height var(--marker-duration) var(--ui-ease),background-color var(--marker-duration) ease,opacity var(--marker-duration) ease}
 }
 @media(max-width:860px){
  .v2.compact-mobile .task-row,.v2.compact-mobile .task-row:not(.selected):not(.checked){padding-inline-start:11px;border-radius:9px}
@@ -136,3 +136,12 @@
 @media(prefers-reduced-motion:no-preference){
  .settings-navigation button::before{transition:height var(--marker-duration) var(--ui-ease),width var(--marker-duration) var(--ui-ease),background-color var(--marker-duration) ease}
 }
+
+/* The module rail uses a background-only selection; task/list markers remain. */
+.v2 .rail>button{transition:background-color var(--motion-fast),color var(--motion-fast)}
+.v2 .detail-toggle[aria-expanded=true]{background:var(--active);color:var(--accent-text)}
+.detail-empty{display:flex;flex:1;min-height:0;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:10px;color:var(--muted);overflow:auto}
+.detail-empty-art{display:block;width:min(100%,220px);max-height:38vh;flex-shrink:0;margin-bottom:5px}
+.detail-empty h3{font-size:var(--font-body);font-weight:600;margin:0;color:var(--text)}
+.detail-empty p{font-size:var(--control-font);line-height:1.7;max-width:210px;margin:0}
+@media(prefers-reduced-motion:reduce){.v2 .rail>button{transition:none}}
