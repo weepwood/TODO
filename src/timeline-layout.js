@@ -1,3 +1,4 @@
+import {shiftDay,validDate} from './domain.js';
 export function clockMinutes(value){const [h,m]=value.split(':').map(Number);return h*60+m}
 export function minuteClock(n){return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')}
 export function snapTimelineMinute(y,height,start,end){
@@ -20,4 +21,16 @@ export function resizeTimelineDuration(duration,delta,start,end=1440){
  const max=Math.min(1440,Math.floor((end-start)/15)*15);
  if(max<15)return duration;
  return Math.max(15,Math.min(max,Math.round((duration+delta)/15)*15));
+}
+
+// Wall-clock 15-minute movement. Crossing a date boundary is only permitted
+// on a full-day axis, never when the visible work hours are clipped.
+export function timelineMove(date,start,delta,from=0,to=1440){
+ if(!validDate(date)||![start,delta,from,to].every(Number.isFinite)||from<0||to>1440||to-from<15)return null;
+ const minute=Math.round((start+delta)/15)*15;
+ const cross=from===0&&to===1440;
+ const bounded=cross?Math.max(-1440,Math.min(2865,minute)):Math.max(from,Math.min(to-15,minute));
+ const day=Math.floor(bounded/1440),nextDate=shiftDay(date,day);
+ if(!validDate(nextDate))return null;
+ return {date:nextDate,time:minuteClock((bounded%1440+1440)%1440),anchor:Number(nextDate.slice(-2)),dayOffset:day,guide:Math.max(from,Math.min(to,bounded))};
 }

@@ -225,3 +225,11 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - 真实磁盘 SQLite 测试：关闭重开恢复、重复请求、跨 scope 隔离、单 pending、故障注入导致快照与回执一起回滚、成功提交清除草稿、删除后不复活、取消后重复不复活；9/9 Rust，65/65 JS，10/10 关联 Edge 测试，生产构建通过。Rust 全局缓存权限警告不影响测试。
 - 真实 macOS 隔离调试包 TODO QA V117.app（com.weepwood.todo.qa.v117，假云端 URL/key，独立全新 guest SQLite），临时 Rust 调试探针驱动实际 WebView：capture is_visible=true，native_direct_pending/ack/cancel_pending 及 native_write_store 从 capture 调用均被 ACL 拒绝；同一合法直接录入请求提交两次，状态 saved，SQLite 实际 1 条匹配任务、1 条成功且清空文本回执，退出码0；日志 /tmp/todo-v117-native-run.log。非人工快捷键/托盘、非真实账号同步验收。探针已恢复，生产 dist 重新生成并核查隔离配置不进入产物；未发布调试包。
 - 本轮集中收口 P0 直接录入，不修改正式用户数据、Supabase 配置或费用。剩余 CSS 全量治理、周/日触摸拖放与跨日、出场/列表动效、全站视觉、真实认证 Realtime、Windows 和 Alpha 发布未完成。磁盘约5.3GiB，Desktop Commander 月用量87%，避免重复打包。
+
+### V1.1 第八轮：跨日时间轴、样式治理及视觉回归（基线 1767069）
+- 前次 Pages 45558124860 成功，main 保持 1.1.0-dev.1，RC1 Tag/Release 不变。
+- 新增 timelineMove 纯函数：全天轴允许跨午夜、最多相邻一天；普通裁剪时间轴仍限制在可见区间，保持原时长、更新 date/time/anchor；键盘上下15分钟、左右一天，跨日后联动规划日期；carryIn 不提供移动把手，carryOut 明确标记，日期导航增加前后一天。原任务 date/time/duration 在指针提交前检查，取消不提交。墙钟语义，DST 特殊日期仍待验证。
+- 沿用 FullCalendar 7 Draggable，实际 CDP touchStart/Move/End 验证周/日视图待安排任务落到 2026-12-10 06:00（1440×900 触摸浏览器）；Pixel 7 模拟触摸全天轴跨年 23:30→次日00:15，时长60分钟。非实体设备。未改动同步或原生数据架构。
+- CSS 局部合并时间轴网格、触摸把手、预算进度条、日期/时刻输入等重复规则；Radix 弹窗/遮罩增加130/110ms出场动画，reduced motion 禁用任务行拖拽过渡。未完成全部历史 CSS 结构拆分、详情面板出场或列表重排专项重构。
+- 验收：66/66 JS，生产构建通过；9项关联浏览器（跨日/键盘/触摸、弹窗、前轮面板及日历、双主题）通过，另周/日视图触摸2项及八模块双主题1项通过。视觉首次截图误截懒加载占位，补充真实内容就绪条件（习惯选择器首次定位失败后修正），最终16张1440×900实际截图全部生成、无横向溢出/页面运行错误，人工总览检查通过，非像素差异门禁、非完整极端数据视觉覆盖。截图 test-results/v118-*.png；总览 /tmp/todo-v118-{light,dark}-review.png，仅本机 QA。
+- 本轮未改 Rust 或重新构建原生包，不重复 Rust 专项；RC1、真实用户数据、Supabase 配置和费用不变。Alpha 发布准备、完整 CSS/空间动效、真实认证 Realtime/系统操作/Windows/实体手机验收仍待完成。Desktop Commander 月用量88%，磁盘空间有限。

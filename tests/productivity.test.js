@@ -25,3 +25,12 @@ import {recordRecovery,readRecoveryHistory,clearRecoveryHistory} from '../src/re
 test('恢复记录有界，仅保留操作类型、时间和数量',()=>{let value=null;const store={getItem:()=>value,setItem:(k,v)=>value=v,removeItem:()=>value=null};for(let i=0;i<35;i++)assert(recordRecovery(store,'restore-workspace',{tasks:i,title:'secret'}));const rows=readRecoveryHistory(store);assert.equal(rows.length,30);assert.equal(rows[0].tasks,34);assert.equal(rows[0].title,undefined);assert(!recordRecovery(store,'unknown'));assert(clearRecoveryHistory(store));assert.deepEqual(readRecoveryHistory(store),[])});
 import {advanceOccurrence,reconcile} from '../src/domain.js';
 test('固定重复任务长期休眠后直接跨周期并遵守终止次数',()=>{const t={...newTask('长期','inbox','2000-01-01'),repeat:'daily',miss:'skip',interval:3};const p=advanceOccurrence(t,t.date,1,'2026-11-25');assert(p.next>='2026-11-25');assert(p.index>3000);assert.equal(reconcile([{...t,repeatCount:5}],'2026-11-25').length,1);const r=reconcile([t],'2026-11-25');assert.equal(r[1].date,p.next);assert.equal(r[1].occurrenceIndex,p.index)});
+
+import {timelineMove} from '../src/timeline-layout.js';
+test('全天跨午夜移动保留日期边界，工作时段只在视口内吸附',()=>{
+ assert.deepEqual(timelineMove('2026-12-31',1425,15),{date:'2027-01-01',time:'00:00',anchor:1,dayOffset:1,guide:1440});
+ assert.deepEqual(timelineMove('2026-01-01',0,-15),{date:'2025-12-31',time:'23:45',anchor:31,dayOffset:-1,guide:0});
+ assert.equal(timelineMove('2026-12-31',1170,90,480,1200).time,'19:45');
+ assert.equal(timelineMove('2026-12-31',540,1440).time,'09:00');
+ assert.equal(timelineMove('9998-12-31',1425,15),null);
+});
