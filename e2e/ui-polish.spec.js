@@ -60,3 +60,32 @@ test('任务完成时剩余行重排且减少动效模式不启动动画',async(
  await expect(page.locator('.task-body').filter({hasText:'第二项'})).toHaveCount(0);
  expect(await page.evaluate(()=>window.__rowMotions)).toBe(count);
 });
+
+test('移动任务标题自适应与备注单列编辑',async({page})=>{
+ await page.setViewportSize({width:390,height:844});await page.goto('/');
+ await page.getByRole('textbox',{name:'新任务名称'}).fill('短标题');
+ await page.getByRole('button',{name:'添加',exact:true}).click();
+ const title=page.getByRole('textbox',{name:'任务标题'});
+ const short=(await title.boundingBox()).height;
+ await title.fill('这是需要自动换行的较长任务标题，'.repeat(9));
+ await expect.poll(async()=>(await title.boundingBox()).height).toBeGreaterThan(short);
+ expect((await title.boundingBox()).height).toBeLessThanOrEqual(181);
+ await title.fill('短标题');
+ await expect.poll(async()=>(await title.boundingBox()).height).toBeLessThanOrEqual(short+1);
+ await page.getByRole('button',{name:'展开编辑'}).click();
+ const dialog=page.getByRole('dialog',{name:'备注编辑工作台'});
+ await expect(dialog.getByRole('button',{name:'并排预览',exact:true})).toBeVisible();
+ await expect(dialog.getByRole('textbox',{name:'工作台备注源码'})).toBeVisible();
+ await dialog.getByRole('textbox',{name:'工作台备注源码'}).fill('移动备注编辑');
+ await page.screenshot({path:'test-results/polish-mobile-editor.png',animations:'disabled'});
+ await dialog.getByRole('button',{name:'应用备注'}).click();
+ await expect(dialog).toHaveCount(0);
+});
+test('每日规划仅在当天显示当前时间指示线',async({page})=>{
+ await page.clock.setFixedTime(new Date(2026,10,25,10,30));
+ await page.goto('/');await page.getByRole('button',{name:'每日规划',exact:true}).click();
+ await expect(page.getByRole('img',{name:'当前时间 10:30'})).toBeVisible();
+ await page.screenshot({path:'test-results/polish-timeline-now.png',animations:'disabled'});
+ await page.getByRole('button',{name:'后一天'}).click();
+ await expect(page.locator('.timeline-now')).toHaveCount(0);
+});
