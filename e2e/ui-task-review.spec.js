@@ -71,6 +71,8 @@ test('长回顾独立滚动，标题、周期与导出操作保持可见',async(
  await expect(body).toBeVisible();
  expect(await body.evaluate(el=>el.scrollHeight>el.clientHeight)).toBe(true);
  const title=dialog.getByRole('heading',{name:'任务回顾',exact:true}),toolbar=dialog.locator('.review-toolbar'),footer=dialog.getByRole('button',{name:'导出 Markdown'});
+ // Wait for the dialog entrance transform, then measure actual scroll stability.
+ await dialog.evaluate(async el=>{await Promise.all(el.getAnimations().map(a=>a.finished.catch(()=>{})))});
  const before=await title.boundingBox();
  await body.evaluate(el=>el.scrollTop=el.scrollHeight);
  expect((await title.boundingBox()).y).toBe(before.y);
