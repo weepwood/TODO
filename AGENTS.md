@@ -36,3 +36,16 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - 离线缓存仍基于 LocalStorage；账号工作空间由 Web Locks 避免同浏览器多标签覆盖。编辑后防抖同步、15 秒轮询、恢复联网/聚焦后尝试同步。版本冲突时停止自动覆盖，用户可选择云端或本地，并先保存另一份冲突备份。不是字段级自动合并，不保证多设备重复任务调度或通知恰好一次。
 - 当前最大客户端上传快照 3.5 MB，受浏览器存储与备份容量约束。后续迁移 IndexedDB/SQLite、逐实体增量同步、Realtime 与后台调度。尚未部署 Pages；生产域名确定后应配置 Supabase Auth Site URL、Redirect URLs、SMTP 邮件确认。
 - 验证：真实数据库使用临时事务验证 RLS 与版本竞争，回滚无残留；安全/性能顾问均无告警；浏览器双设备使用模拟 API（非真实账号登录）。npm test、npm run build、npm run test:e2e。未创建用户真实账号，需用户自行注册并确认邮件。
+
+## V0.4.0 桌面化与交互深化
+
+- 基于 5e6a2b0 开发；保留 Supabase 在线工作空间 schema version 2，新增字段向后兼容；没有修改远程数据库/RLS。
+- Tauri 2 + Rust + rusqlite：单实例、系统托盘、关闭隐藏、Cmd/Ctrl+Shift+A 唤起录入；应用驻留时 Rust 每 5 秒检查当前账号快照的提醒，并与前端共用本机投递去重。完全退出、关机或系统拒绝通知时无法保证投递。未实现跨设备恰好一次。
+- SQLite WAL 事务保存每账号 JSON 工作空间快照、每小时变更触发的最近 24 份备份、FTS5 trigram 标题/备注索引；浏览器仍以 LocalStorage 为主，桌面 SQLite 为持久镜像，缺少本地缓存时恢复。不自动覆盖已有缓存；尚未完成全量 SQLite 主存储切换/逐实体索引更新及原生备份管理 UI。
+- 新增 React DayPicker/Radix Popover 日期选择、指定星期/隔周/工作日、截止和次数、系列待办规则、多提醒相对日期；旧历史不重写。支持多级父子任务关系、依赖循环校验、前置未完成时阻塞完成、Shift 范围多选、30 步撤销重做、空分组放置、简单中文快捷录入（例如“阅读 明天 09:00 !2”）。云端拉取/后台状态变更会清除撤销栈，避免跨版本覆盖。
+- FullCalendar 时间块拉伸、跨日时长、重叠标记、每日空闲时段建议；ICS 导入及 HTTPS 手动刷新（受 CORS/CSP 限制，URL 不同步），最多 1MB/1000 个展开事件。未实现 CalDAV 或持久订阅自动刷新。
+- 专注周期配置、短/长休息建议、专注记录删除、滚动七天习惯目标/连续天数、统计区间/清单过滤。尚未自动串联整个番茄周期。
+- TanStack Virtual：大于 300 条的工作区使用分组虚拟列表（单组超过 150 条），大型清单暂不支持全列表拖拽。原生全文索引已具备查询接口，Web 搜索仍为内存过滤。单次本机 10,000 条 E2E 渲染 24 行，约 102ms 可见；不作为跨平台 SLA。
+- Web 仍使用原访客数据及独立账号缓存。真实云端 Auth 邮箱验证仍需生产域名的 Site URL/Redirect URLs 及邮件配置。原生注册确认回调使用 Pages 地址，确认后回应用登录。
+- Pages 工作流只做构建与部署；桌面安装包工作流手动触发 Windows x64 NSIS、macOS arm64 DMG。未要求复杂 CI 或正式签名、公证、Release。
+- 开发命令：npm ci；npm test；npm run build；npm run test:e2e；cargo test --manifest-path src-tauri/Cargo.toml --lib；npm run desktop:dev / desktop:build（Rust 1.90+）。本机未设置 rustup 默认工具链时前置 RUSTUP_TOOLCHAIN=stable。

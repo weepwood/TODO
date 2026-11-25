@@ -1,0 +1,11 @@
+{
+  "identifier": "default",
+  "description": "Main window and local notification access",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "notification:default"
+  ]
+}

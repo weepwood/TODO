@@ -1,6 +1,6 @@
 # TODO
 
-参考滴答清单的个人任务与时间管理工作台。当前版本 V0.3.0，桌面优先 Web 应用，浏览器本地存储。
+参考滴答清单的个人任务与时间管理工作台。当前版本 V0.4.0，桌面优先 Web 应用，浏览器本地存储。
 
 ## 本地运行
 
@@ -40,3 +40,18 @@ Web 原型尚无 SQLite、原生安装包、后台系统提醒、云同步。页
 云端保存版本化完整工作空间，非逐任务实时同步。编辑后自动同步、联网恢复及定期轮询；检测到双方修改后停止同步并提示选择，保留冲突备份。暂不支持跨设备字段级自动合并。浏览器清除数据会删除离线缓存和本地备份；请定期导出。原生桌面后台提醒仍未实现。
 
 数据库迁移见 supabase/migrations。新建实例时需应用迁移，并配置 Auth 的 Site URL、Redirect URLs 与确认邮件设置。当前线上项目已应用该迁移；不要重复执行。浏览器本地测试使用模拟 API，数据库 RLS 使用真实 PostgreSQL 测试。
+
+## V0.4.0 桌面应用与演示站
+
+演示站：https://weepwood.github.io/TODO/（由 Pages 工作流部署）。
+
+```sh
+npm ci
+npm run dev
+npm run desktop:dev
+npm run desktop:build
+```
+
+桌面需要 Rust 1.90+ 和对应系统编译工具。Windows x64 NSIS 与 macOS Apple Silicon DMG 可通过 Actions 的「桌面安装包（手动）」获取构建产物；预览包不保证商业签名或 Apple 公证。关闭原生窗口隐藏到托盘，托盘菜单可退出。Cmd/Ctrl+Shift+A 唤起快速录入（系统占用时可能注册失败）。SQLite 作为按账号隔离的快照镜像，Web 缓存和现有 Supabase 同步保留。
+
+新版支持指定星期/工作日、重复次数与截止、多提醒、父子任务、依赖、范围多选、撤销重做、快捷录入、ICS、时间冲突、统计筛选及虚拟列表。具体边界见 AGENTS.md。Pages 登录确认邮件需在 Supabase Auth 中配置生产 Site URL 与 Redirect URLs。
