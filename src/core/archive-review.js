@@ -1,3 +1,4 @@
+import {insightsMarkdown} from './review-insights.js';
 import {validVisual} from './review-visual.js';
 import {dayKey,validDate,id} from './domain.js';
 import {reviewMarkdown} from './task-review.js';
@@ -30,7 +31,7 @@ export function readSnapshots(storage){
 export function saveSnapshot(storage,review,mode,now=new Date(),visual){
  const rows=readSnapshots(storage);
  if(rows.length>=SNAPSHOT_LIMIT)throw Error('已达到30份快照上限，请先导出并删除不需要的记录');
- const savedAt=now.toISOString(),snapshot={id:id(),since:review.since,until:review.until,mode,savedAt,...(visual?{visual}:{}),markdown:reviewMarkdown(review).replace('基于导出时的当前数据；计划、积压和冲突并非历史快照。','冻结于 '+savedAt+' 的数据重算结果；不是原计划的事件历史。')};
+ const savedAt=now.toISOString(),snapshot={id:id(),since:review.since,until:review.until,mode,savedAt,...(visual?{visual}:{}),markdown:reviewMarkdown(review).replace('基于导出时的当前数据；计划、积压和冲突并非历史快照。','冻结于 '+savedAt+' 的数据重算结果；不是原计划的事件历史。')+insightsMarkdown(visual?.insights)};
  if(!validSnapshot(snapshot))throw Error('回顾快照无效');
  const next=[snapshot,...rows],raw=JSON.stringify(next);
  if(new TextEncoder().encode(raw).length>MAX_BYTES)throw Error('快照存储达到2 MiB上限，请先导出或删除旧快照');

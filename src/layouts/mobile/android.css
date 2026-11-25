@@ -30,3 +30,20 @@
 }
 
 @media(max-width:860px){.compact-mobile .detail-header{touch-action:pan-y}}
+
+/* Single-hand detail actions, safe-area and deliberate sheet gestures. */
+.sheet-grabber{display:none}
+@media(max-width:860px){
+ .sheet-grabber{display:grid;place-items:center;height:24px;margin:-8px 0 2px;flex:none;touch-action:none;cursor:grab}
+ .sheet-grabber span{width:36px;height:4px;border-radius:4px;background:var(--muted);opacity:.45}
+ .dialog[data-sheet-dragging=true]{translate:0 var(--sheet-drag);animation:none!important}
+ .mobile-detail-actions{display:flex;align-items:stretch;flex:none;gap:4px;padding:8px 12px max(8px,env(safe-area-inset-bottom,0px));background:var(--bg);border-top:var(--surface-border)}
+ .mobile-detail-actions>button{min-height:48px;min-width:0;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-radius:var(--radius-control);color:var(--muted);font-size:11px}
+ .mobile-detail-actions>button.mobile-detail-primary{background:var(--active);color:var(--accent-text);font-weight:600}
+ .mobile-detail-actions>button:active{background:var(--hover)}
+ :root[data-mobile-keyboard] .mobile-detail-actions{display:none}
+ .compact-mobile .details:has(.mobile-detail-actions) .detail-content{flex:1;min-height:0;overflow-y:auto}
+ .compact-mobile .detail-navigation button{min-height:40px;flex:none}
+ .compact-mobile .task-body{user-select:none;-webkit-touch-callout:none}
+ .compact-mobile .task-swipe-hint{position:absolute;right:8px;top:50%;translate:0 -50%;display:flex;align-items:center;gap:4px;color:var(--accent-text);font-size:11px;pointer-events:none;background:var(--active);padding:6px;border-radius:var(--radius-control)}
+}

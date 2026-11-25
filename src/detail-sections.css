@@ -73,3 +73,7 @@
 .task-preference-row{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3);background:var(--panel);border-radius:var(--radius-surface)}
 .task-preference-row>div{flex:1;min-width:0}
 .task-preference-row p{margin:5px 0 0;line-height:1.5}
+
+/* Keep edit affordances touch-visible, desktop hover quiet. */
+@media(max-width:860px){.v2.compact-mobile .detail-section-toggle{opacity:1;min-height:44px;min-width:44px}.v2.compact-mobile .detail-fact-edit{min-height:40px}.v2.compact-mobile .detail-section-heading{min-height:44px}}
+@media(prefers-reduced-motion:no-preference){.v2 .detail-section-card{transition:background-color var(--motion-fast),border-color var(--motion-fast)}.v2 .detail-section-toggle,.v2 .detail-fact-edit{transition:background-color var(--motion-fast),color var(--motion-fast),opacity var(--motion-fast)}}

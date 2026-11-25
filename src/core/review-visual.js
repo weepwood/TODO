@@ -1,3 +1,4 @@
+import {reviewInsights,validInsights} from './review-insights.js';
 import {dayKey,shiftDay,validDate} from './domain.js';
 import {taskPoints} from './points.js';
 export const reviewMetricValues=r=>({completed:r.completed.length,plannedMinutes:r.plannedMinutes,focusMinutes:r.focusMinutes,habitCount:r.habitCount,points:r.points,conflicts:r.conflictCount});
@@ -16,7 +17,7 @@ export function previousComparablePeriod({since,until},weekly){
 }
 export function validVisual(v){
  const metrics=['completed','plannedMinutes','focusMinutes','habitCount','points','conflicts'];
- return v&&metrics.every(k=>Number.isFinite(v.metrics?.[k])&&(k==='points'||v.metrics[k]>=0))&&Array.isArray(v.trend)&&v.trend.length>=1&&v.trend.length<=31&&(v.lists===undefined||Array.isArray(v.lists)&&v.lists.length<=100001&&v.lists.every(r=>typeof r.id==='string'&&typeof r.name==='string'&&Number.isFinite(r.planned)&&r.planned>=0&&Number.isFinite(r.actual)&&r.actual>=0))&&(v.months===undefined||Array.isArray(v.months)&&v.months.length===6&&v.months.every(r=>/^\d{4}-\d{2}$/.test(r.month)&&Number.isFinite(r.completed)&&r.completed>=0&&Number.isFinite(r.focusMinutes)&&r.focusMinutes>=0&&Number.isFinite(r.points)))&&v.trend.every(r=>validDate(r.date)&&['completed','focusMinutes','points'].every(k=>Number.isFinite(r[k])&&(k==='points'||r[k]>=0)));
+ return v&&(v.insights===undefined||validInsights(v.insights))&&metrics.every(k=>Number.isFinite(v.metrics?.[k])&&(k==='points'||v.metrics[k]>=0))&&Array.isArray(v.trend)&&v.trend.length>=1&&v.trend.length<=31&&(v.lists===undefined||Array.isArray(v.lists)&&v.lists.length<=100001&&v.lists.every(r=>typeof r.id==='string'&&typeof r.name==='string'&&Number.isFinite(r.planned)&&r.planned>=0&&Number.isFinite(r.actual)&&r.actual>=0))&&(v.months===undefined||Array.isArray(v.months)&&v.months.length===6&&v.months.every(r=>/^\d{4}-\d{2}$/.test(r.month)&&Number.isFinite(r.completed)&&r.completed>=0&&Number.isFinite(r.focusMinutes)&&r.focusMinutes>=0&&Number.isFinite(r.points)))&&v.trend.every(r=>validDate(r.date)&&['completed','focusMinutes','points'].every(k=>Number.isFinite(r[k])&&(k==='points'||r[k]>=0)));
 }
 
 export function listTime(data,{since,until}){
@@ -35,4 +36,4 @@ export function longTrend(data,today){
  for(const s of data.sessions)if(s.mode!=='break'){const r=get(s.startedAt);if(r)r.seconds+=s.seconds}
  return [...rows.values()].map(({seconds,...r})=>({...r,focusMinutes:Math.round(seconds/60)}));
 }
-export function makeVisual(data,r){return {metrics:reviewMetricValues(r),trend:reviewTrend(data,r),lists:listTime(data,r),months:longTrend(data,r.until)}}
+export function makeVisual(data,r){return {metrics:reviewMetricValues(r),trend:reviewTrend(data,r),lists:listTime(data,r),months:longTrend(data,r.until),insights:reviewInsights(data,r)}}
