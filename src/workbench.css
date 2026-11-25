@@ -209,3 +209,15 @@
 .date-direct{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:4px 2px 8px}.date-direct input{flex:1;min-width:0;border:1px solid var(--line);border-radius:6px;padding:5px 6px;background:var(--bg);color:var(--text)}.date-direct small{flex-basis:100%;color:var(--danger)}
 .agenda-time{display:grid;gap:4px;padding:7px 0 9px;color:var(--muted);font-size:11px}
 .agenda-time label{display:flex;align-items:center;justify-content:space-between;gap:6px}.agenda-time input{min-width:0;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text);padding:4px 6px}.agenda-time small{font-size:10px;line-height:1.5}
+
+/* Motion is intentionally limited to composited entry and control feedback.
+   Width changes during pointer resizing must follow the pointer immediately. */
+@media(prefers-reduced-motion:no-preference){
+ .v2 .detail-enter{animation:detail-reveal 170ms cubic-bezier(.2,.75,.25,1)}
+ @keyframes detail-reveal{from{opacity:.6;transform:translateX(8px)}to{opacity:1;transform:translateX(0)}}
+ .v2 .panel-handle{transition:background-color 120ms,opacity 120ms}
+ .v2 .task-row,.v2 .agenda-task{transition:background-color 120ms,box-shadow 120ms}
+}
+.resizing-panels .detail-enter{animation:none}
+.resizing-panels .panel-handle{transition:none}
+@media(prefers-reduced-motion:reduce){.v2 .detail-enter,.v2 .task-row,.v2 .agenda-task,.v2 .panel-handle{animation:none;transition:none}}

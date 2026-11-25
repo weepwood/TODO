@@ -10,15 +10,19 @@ export function usePanelLayout(storage){
  const [viewport,setViewport]=useState(()=>window.innerWidth);
  useEffect(()=>{const update=()=>setViewport(window.innerWidth);window.addEventListener('resize',update);return()=>window.removeEventListener('resize',update)},[]);
  const change=(kind,value)=>setSize(s=>({...s,[kind]:clampPanel(kind,value,viewport,kind==='sidebar'?s.detail:s.sidebar)}));
- useEffect(()=>{try{storage.setItem(KEY,JSON.stringify(size))}catch{}},[size,storage]);
- return {size,change,reset:()=>setSize(DEFAULT),style:{'--user-sidebar':clampPanel('sidebar',size.sidebar,viewport,size.detail)+'px','--user-detail':clampPanel('detail',size.detail,viewport,size.sidebar)+'px'}};
+ const latest=useRef(size);latest.current=size;
+ useEffect(()=>{const persist=()=>{try{storage.setItem(KEY,JSON.stringify(latest.current))}catch{}};window.addEventListener('pagehide',persist);return()=>{window.removeEventListener('pagehide',persist);persist()}},[storage]);
+ useEffect(()=>{const timer=setTimeout(()=>{try{storage.setItem(KEY,JSON.stringify(size))}catch{}},180);return()=>clearTimeout(timer)},[size,storage]);
+ const effective={sidebar:clampPanel('sidebar',size.sidebar,viewport,size.detail),detail:clampPanel('detail',size.detail,viewport,size.sidebar)};return {size:effective,change,reset:()=>setSize(DEFAULT),style:{'--user-sidebar':effective.sidebar+'px','--user-detail':effective.detail+'px'}};
 }
 export function PanelHandle({kind,value,onChange}){
- const drag=useRef(null),sign=kind==='sidebar'?1:-1;
+ const drag=useRef(null),frame=useRef(0),sign=kind==='sidebar'?1:-1;const latest=useRef(onChange);latest.current=onChange;
+ useEffect(()=>()=>{cancelAnimationFrame(frame.current);if(drag.current)document.body.classList.remove('resizing-panels')},[]);
+ const finish=()=>{cancelAnimationFrame(frame.current);frame.current=0;if(drag.current?.next!==undefined)latest.current(drag.current.next);drag.current=null;document.body.classList.remove('resizing-panels')};
  return <div className={'panel-handle handle-'+kind} role="separator" aria-orientation="vertical" aria-label={kind==='sidebar'?'调整清单栏宽度':'调整详情栏宽度'} aria-valuemin={kind==='sidebar'?176:280} aria-valuemax={kind==='sidebar'?340:540} aria-valuenow={value} tabIndex={0}
  onPointerDown={e=>{if(e.button!==0)return;e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId);drag.current={x:e.clientX,value};document.body.classList.add('resizing-panels')}}
- onPointerMove={e=>{if(drag.current)onChange(drag.current.value+(e.clientX-drag.current.x)*sign)}}
- onLostPointerCapture={()=>{drag.current=null;document.body.classList.remove('resizing-panels')}}
+ onPointerMove={e=>{if(drag.current){drag.current.next=drag.current.value+(e.clientX-drag.current.x)*sign;if(!frame.current)frame.current=requestAnimationFrame(()=>{frame.current=0;if(drag.current)latest.current(drag.current.next)})}}}
+ onLostPointerCapture={finish} onPointerCancel={finish}
  onKeyDown={e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();onChange(value+(e.key==='ArrowRight'?16:-16)*sign)}else if(e.key==='Home'||e.key==='End'){e.preventDefault();onChange(e.key==='Home'?0:9999)}}}
  onDoubleClick={()=>onChange(DEFAULT[kind])}/>;
 }

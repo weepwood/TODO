@@ -13,7 +13,7 @@ struct ActiveScope(Mutex<Option<String>>);
 struct CaptureState{generation:u64,scope:Option<String>,pending:Option<(String,String)>,open_main:bool}
 impl CaptureState{
  fn begin(&mut self,scope:&str)->u64{self.generation=self.generation.wrapping_add(1);self.scope=Some(scope.into());self.generation}
- fn invalidate(&mut self){self.generation=self.generation.wrapping_add(1);self.scope=None;self.pending=None}
+ fn invalidate(&mut self){self.generation=self.generation.wrapping_add(1);self.scope=None;self.pending=None;self.open_main=false}
  fn handoff(&mut self,scope:&str,generation:u64,text:&str)->Result<(),String>{
   let text=text.trim();
   if self.scope.as_deref()!=Some(scope)||self.generation!=generation{return Err("录入会话已失效，请重新打开".into())}
@@ -39,13 +39,12 @@ fn native_shortcut_status(status:tauri::State<ShortcutStatus>)->String{status.0.
 fn reset_capture_window(app:&tauri::AppHandle){if let Some(w)=app.get_webview_window("capture"){let _=w.hide();let _=app.emit_to("capture","todo-capture-reset",());}}
 fn request_quick_capture(app:&tauri::AppHandle){
  let active=app.state::<ActiveScope>();let capture=app.state::<QuickCapture>();
- let opened=if let (Ok(current),Ok(mut state))=(active.0.lock(),capture.0.lock()){
-  if let (Some(scope),Some(w))=(current.as_deref(),app.get_webview_window("capture")){
-   if state.pending.is_none(){
-    if state.scope.as_deref()!=Some(scope){state.begin(scope);let _=app.emit_to("capture","todo-capture-reset",());}
-    w.show().and_then(|_|w.unminimize()).and_then(|_|w.set_focus()).is_ok()
-   }else{false}
-  }else{false}
+ let decision=if let (Ok(current),Ok(mut state))=(active.0.lock(),capture.0.lock()){
+  if let Some(scope)=current.as_deref(){if state.pending.is_none(){let reset=state.scope.as_deref()!=Some(scope);if reset{state.begin(scope);}Some(reset)}else{None}}else{None}
+ }else{None};
+ let opened=if let (Some(reset),Some(w))=(decision,app.get_webview_window("capture")){
+  if reset{let _=app.emit_to("capture","todo-capture-reset",());}
+  w.show().and_then(|_|w.unminimize()).and_then(|_|w.set_focus()).is_ok()
  }else{false};
  if !opened{if let Ok(mut state)=capture.0.lock(){state.open_main=true;}show(app);let _=app.emit_to("main","todo-quick-add",());}
 }
@@ -164,7 +163,7 @@ fn native_write_store(scope:String,store:String,db:tauri::State<Database>)->Resu
 #[tauri::command]
 fn native_activate(scope:Option<String>,active:tauri::State<ActiveScope>,pending:tauri::State<QuickCapture>,app:tauri::AppHandle)->Result<(),String>{
  if scope.as_deref().is_some_and(|s|!valid_scope(s)){return Err("invalid scope".into())}
- let changed={let mut current=active.0.lock().map_err(|e|e.to_string())?;let changed=*current!=scope;if changed{pending.0.lock().map_err(|e|e.to_string())?.invalidate();}*current=scope;changed};if changed{reset_capture_window(&app)}Ok(())
+ let changed={let mut current=active.0.lock().map_err(|e|e.to_string())?;let changed=*current!=scope;if changed{let mut capture=pending.0.lock().map_err(|e|e.to_string())?;let startup=current.is_none()&&capture.open_main;capture.invalidate();capture.open_main=startup;}*current=scope;changed};if changed{reset_capture_window(&app)}Ok(())
 }
 #[tauri::command]
 fn native_search(scope:String,query:String,db:tauri::State<Database>)->Result<Vec<String>,String>{

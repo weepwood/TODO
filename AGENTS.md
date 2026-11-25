@@ -203,3 +203,10 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - 原生独立 capture 窗口（520×315、默认隐藏、incognito、独立 Vite 入口）只解析和交接草稿。托盘/全局快捷键唤起；主窗口设置可打开，失败回落原录入弹窗。Rust CaptureState 按当前 scope 和 generation 校验、500 字限制、单次领取、账号切换作废；主窗口仍是唯一工作空间写入者，已有草稿保留并明确选择待确认新草稿。用户必须在主窗口再次确认创建，不是后台直接写入/持久草稿，退出或切换账号可能丢弃会话草稿。
 - 按 Tauri 官方 AppManifest::commands 明确注册所有自定义命令，main/capture 独立 capabilities；capture 仅有三项录入 IPC 和事件订阅权限，不授予 SQLite/账号操作/通用 core:default。生成权限文件由 build.rs 重新生成，gitignore 排除。静态 ACL 专项及 Rust 状态机回归通过；尚未执行真实 WebView 权限拒绝、全局快捷键、托盘和独立窗口端到端实机验收，不将静态/模拟结果称为实机通过。
 - 64/64 JS、6/6 Rust；最终 v114 前五项与 v09 两项/PWA 一项 8/8，额外主窗口确认写入模拟 1/1；初次关联浏览器测试命令面板入口同名导致定位失败，修正为侧栏入口后通过，其他 8 项通过（含 native-storage 模拟、advanced、万级虚拟列表与双主题/触摸）。构建通过；人工检查 520×315 录入截图无溢出。Rust 全局缓存清理权限警告不影响测试。未修改 Supabase、真实任务、RC1 资产或新增费用；本轮未生成桌面安装包。
+
+### V1.1 第五轮集中开发（基线 7ad91ed）
+- 前次 Pages 45555633631 成功。保持 RC1 标签/安装包，main 仍为 1.1.0-dev.1。
+- 真实 macOS 隔离调试应用 TODO QA V115.app（com.weepwood.todo.qa.v115，假云端 URL/key，独立新 SQLite）通过临时 Rust 调试探针驱动真实 WebView：capture 实际 is_visible=true；capture 调用 native_load/native_write_store/native_activate/native_exit 均被 ACL 拒绝；合法草稿交接、重复交接拒绝、主窗口收到“原生IPC验收 明天 10:00”，确认前 guest 任务数 0，程序化点击主窗口创建按钮后 SQLite 中匹配任务数 1，进程退出码 0。不是人工全局快捷键/托盘操作或通知可见性验收。日志 /tmp/todo-v115-native-run.log；仅隔离测试账号/guest 数据，不访问正式数据。临时探针已恢复源码、生产 dist 重新构建并检查无 QA placeholder；隔离调试包未发布。
+- 原生唤起不再持有状态锁调用窗口 show/focus 或 emit；账号切换清除旧 fallback 标记，首次激活保留无内容的启动唤起请求（后者在实际 QA 后补充，最终 Rust/浏览器回归通过，未重新打包实机）。前端同时收到多个录入草稿时更新 draft ref，防止同一渲染批次覆盖。
+- 面板拖动采用 requestAnimationFrame 合并更新、结束时提交最后宽度，使用实际受限宽度作为起点，取消/卸载清理拖动状态；本机偏好 180ms 合并写入并在 pagehide/卸载时保存。详情 170ms 合成入场动画及行背景/边线反馈，减少动效和拖动中禁用对应动画；不是所有面板出场动画或完整 CSS 重构。
+- 验收：64/64 JS、10/10 Edge（新增面板拖动/键盘/刷新/减少动效及重复打开关闭、前轮录入/命令/日历与双主题/触摸）、6/6 Rust、生产构建通过。Rust 全局缓存权限警告不影响测试。未实现独立窗口无二次确认直接创建、周/日触摸拖放专项、完整公共组件治理；真实账号 Realtime、Windows、托盘及全局快捷键仍待验收。无 Supabase 修改或新增费用，磁盘约 6 GiB，避免重复 native build。
