@@ -25,3 +25,13 @@ export function daySegments(tasks,date){
  }).sort((a,b)=>a.time.localeCompare(b.time));
 }
 export function validWorkHours(start,end){return /^([01]\d|2[0-3]):[0-5]\d$/.test(start)&&/^([01]\d|2[0-3]):[0-5]\d$/.test(end)&&start<end}
+
+// Wall-clock planning budget: merge overlaps before calculating occupied time.
+export function workBudget(segments,start,end){
+ if(!validWorkHours(start,end))return null;
+ const minute=s=>s.split(':').reduce((n,v)=>n*60+Number(v),0);
+ const lo=minute(start),hi=minute(end),ranges=segments.filter(t=>/^\d{2}:\d{2}$/.test(t.time)&&/^\d{2}:\d{2}$/.test(t.endTime)).map(t=>[Math.max(lo,minute(t.time)),Math.min(hi,minute(t.endTime))]).filter(([a,b])=>b>a).sort((a,b)=>a[0]-b[0]);
+ const merged=[];for(const [a,b] of ranges){const last=merged.at(-1);if(last&&a<=last[1])last[1]=Math.max(last[1],b);else merged.push([a,b])}
+ const occupied=merged.reduce((n,[a,b])=>n+b-a,0),free=[];let cursor=lo;for(const [a,b] of merged){if(a>cursor)free.push([cursor,a]);cursor=b}if(cursor<hi)free.push([cursor,hi]);
+ return {capacity:hi-lo,occupied,remaining:hi-lo-occupied,free};
+}

@@ -159,20 +159,33 @@ fn restore_window(w:&tauri::WebviewWindow){
  let _=w.set_size(tauri::LogicalSize::new(width,height));let _=w.center();if g.maximized{let _=w.maximize();}
 }
 fn show(app:&tauri::AppHandle){if let Some(w)=app.get_webview_window("main"){let _=w.show();let _=w.set_focus();}}
+// Recover a recently recorded reminder whose system delivery failed before shutdown.
+fn reminder_candidates(state:&serde_json::Value,now:chrono::DateTime<Local>)->Vec<(String,String,String)>{
+ let mut out=Vec::new();let Some(tasks)=state["tasks"].as_array() else{return out};
+ let now_key=now.format("%Y-%m-%dT%H:%M").to_string();
+ let recent=|id:&str,at:&str|state["notifications"].as_array().is_some_and(|ns|ns.iter().any(|n|{
+  n["taskId"].as_str()==Some(id)&&n["reminderAt"].as_str()==Some(at)&&
+  n["at"].as_str().and_then(|v|chrono::DateTime::parse_from_rfc3339(v).ok()).is_some_and(|v|{let age=now.signed_duration_since(v);age>=chrono::Duration::zero()&&age<=chrono::Duration::hours(24)})
+ }));
+ for t in tasks{if t["status"]!="pending"||!t["deletedAt"].is_null(){continue}
+  let Some(id)=t["id"].as_str() else{continue};if id.is_empty(){continue}
+  let title=t["title"].as_str().unwrap_or("任务提醒");
+  let mut add=|at:&str,sent:bool|{if !at.is_empty()&&at<=now_key.as_str()&&(!sent||recent(id,at)){out.push((id.to_owned(),at.to_owned(),title.to_owned()))}};
+  if let Some(at)=t["reminderAt"].as_str(){add(at,!t["remindedAt"].is_null())}
+  if let Some(extra)=t["extraReminders"].as_array(){for r in extra{if let Some(at)=r["at"].as_str(){add(at,!r["sentAt"].is_null())}}}
+ }
+ out
+}
 fn schedule(app:tauri::AppHandle){
  std::thread::spawn(move||loop{
   std::thread::sleep(Duration::from_secs(5));
   let active=app.state::<ActiveScope>();let Ok(active_guard)=active.0.lock() else{continue};let Some(scope)=active_guard.clone() else{continue};
   let db=app.state::<Database>();let Ok(c)=db.0.lock() else{continue};
   let body:Option<String>=c.query_row("SELECT body FROM snapshots WHERE scope=?1",[&scope],|r|r.get(0)).optional().ok().flatten();
-  let Some(body)=body else{continue};let Ok(state)=serde_json::from_str::<serde_json::Value>(&body) else{continue};let Some(tasks)=state["tasks"].as_array() else{continue};
-  let now=Local::now().format("%Y-%m-%dT%H:%M").to_string();
-  for t in tasks {if t["status"]!="pending"||!t["deletedAt"].is_null(){continue}
-   let mut dates=vec![];if let Some(at)=t["reminderAt"].as_str(){if t["remindedAt"].is_null(){dates.push(at)}}
-   if let Some(extra)=t["extraReminders"].as_array(){for r in extra{if r["sentAt"].is_null(){if let Some(at)=r["at"].as_str(){dates.push(at)}}}}
-   for at in dates {if at.is_empty()||at>now.as_str(){continue}let key=format!("{}:{}",t["id"].as_str().unwrap_or(""),at);
-    if c.execute("INSERT OR IGNORE INTO delivered VALUES(?1,?2)",params![scope,key]).unwrap_or(0)==1{if app.notification().builder().title("TODO").body(t["title"].as_str().unwrap_or("任务提醒")).show().is_err(){let _=c.execute("DELETE FROM delivered WHERE scope=?1 AND reminder=?2",params![scope,key]);}}
-   }
+  let Some(body)=body else{continue};let Ok(state)=serde_json::from_str::<serde_json::Value>(&body) else{continue};
+  for (id,at,title) in reminder_candidates(&state,Local::now()){
+   let key=format!("{}:{}",id,at);
+   if c.execute("INSERT OR IGNORE INTO delivered VALUES(?1,?2)",params![scope,key]).unwrap_or(0)==1{if app.notification().builder().title("TODO").body(&title).show().is_err(){let _=c.execute("DELETE FROM delivered WHERE scope=?1 AND reminder=?2",params![scope,key]);}}
   }
  });
 }
@@ -198,6 +211,17 @@ pub fn run(){
 }
 #[cfg(test)]mod tests{
  use super::*;
+ #[test]fn recent_reminder_recovery_is_bounded_and_scoped_to_pending_tasks(){
+  let now=Local::now();let at=(now-chrono::Duration::minutes(5)).format("%Y-%m-%dT%H:%M").to_string();
+  let mut state=serde_json::json!({"tasks":[{"id":"t","title":"QA","status":"pending","deletedAt":null,"reminderAt":at,"remindedAt":now.to_rfc3339()}],"notifications":[{"taskId":"t","reminderAt":at,"at":now.to_rfc3339()}]});
+  assert_eq!(reminder_candidates(&state,now).len(),1);
+  state["notifications"][0]["at"]=serde_json::json!((now-chrono::Duration::hours(25)).to_rfc3339());
+  assert!(reminder_candidates(&state,now).is_empty());
+  state["tasks"][0]["remindedAt"]=serde_json::Value::Null;
+  assert_eq!(reminder_candidates(&state,now).len(),1);
+  state["tasks"][0]["status"]=serde_json::json!("completed");assert!(reminder_candidates(&state,now).is_empty());
+ }
+
  #[test]fn sqlite_transaction_and_search(){let mut c=Connection::open_in_memory().unwrap();schema(&c).unwrap();save(&mut c,"guest",r#"{"version":2,"tasks":[{"id":"t","title":"测试任务","notes":"sqlite"}]}"#).unwrap();assert_eq!(c.query_row("SELECT count(*) FROM task_search WHERE task_search MATCH 'sqlite'",[],|r|r.get::<_,i32>(0)).unwrap(),1);assert!(save(&mut c,"guest","bad").is_err());assert_eq!(c.query_row("SELECT count(*) FROM snapshots",[],|r|r.get::<_,i32>(0)).unwrap(),1);}
  #[test]fn store_atomicity_and_scope(){
   let mut c=Connection::open_in_memory().unwrap();schema(&c).unwrap();

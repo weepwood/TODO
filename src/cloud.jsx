@@ -103,7 +103,7 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked,logStorage}){
    }else if(decision==='push'||decision==='insert'){
     const row=await writeRow(uid,snapshot,decision==='insert'?null:remote.revision,remote?.state);
     if(!active.current)return;
-    if(!row){setStatus('检测到并发更新，等待重试');record('retry',remote?.revision);return}
+    if(!row){record('retry',remote?.revision);if(resolution){const fresh=await getRow(uid,null,null);if(!active.current)return;const current=latest.current.data;const c={revision:fresh?.revision??null,remote:fresh?.state??null,base:null,localHash:await digest(current)};if(!active.current)return;conflictRef.current=c;setConflict(c);setStatus('云端版本已变化，请重新确认');record('conflict',c.revision)}else setStatus('检测到并发更新，等待重试');return}
     writeMeta(row.revision,hash,snapshot);record(row.mode==='delta'?'delta':decision,row.revision)
    }else if(decision==='ack'){writeMeta(remote.revision,remoteHash,remote.state)}
    conflictRef.current=null;setConflict(null);setLastSync(new Date().toISOString());
