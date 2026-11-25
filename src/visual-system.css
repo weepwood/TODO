@@ -48,3 +48,20 @@
  .planner .planner-overview>div{padding:4px 8px}
  .planner .planner-hours{margin-bottom:10px}
 }
+
+/* Eight core workspace surfaces: hierarchy and density, not new component copies. */
+[data-workspace-module]>.heading{gap:var(--space-3)}
+[data-workspace-module=tasks] .list-caption{padding-block:var(--space-2);color:var(--muted)}
+[data-workspace-module=tasks] .quick-add{border:var(--surface-border)}
+[data-workspace-module=calendar] .calendar-agenda{background:var(--surface-subtle);border:var(--surface-border)}
+[data-workspace-module=calendar] .calendar-main .fc .fc-toolbar-title{font-weight:var(--surface-heading-weight);letter-spacing:-.02em}
+[data-workspace-module=board] .board-column,[data-workspace-module=matrix] .board-column{background:var(--surface-subtle);border:var(--surface-border)}
+[data-workspace-module=board] .board-task-card,[data-workspace-module=matrix] .board-task-card{background:var(--bg);border:var(--surface-border)}
+[data-workspace-module=matrix] .board-column h3{padding-bottom:8px;border-bottom:1px solid var(--line)}
+[data-workspace-module=planner] .planner-hours,[data-workspace-module=planner] .work-budget,[data-workspace-module=planner] .unscheduled{background:var(--surface-subtle);border:var(--surface-border);border-radius:var(--surface-radius)}
+[data-workspace-module=focus] .focus-card{background:var(--surface-subtle);border:var(--surface-border)}
+[data-workspace-module=focus] .focus-history-day{border:var(--surface-border);border-radius:var(--surface-radius);background:var(--bg)}
+[data-workspace-module=habits] .habit-row{background:var(--surface-subtle);border:var(--surface-border)}
+[data-workspace-module=habits] .habit-days button{border-radius:var(--radius-control)}
+[data-workspace-module=stats] .stat-card{background:var(--bg);border:var(--surface-border);box-shadow:var(--surface-shadow)}
+@media(prefers-reduced-motion:no-preference){[data-workspace-module] .board-task-card,[data-workspace-module] .habit-days button{transition:background-color var(--motion-fast),border-color var(--motion-fast),box-shadow var(--motion-fast)}}

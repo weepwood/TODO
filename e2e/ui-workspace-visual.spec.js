@@ -24,9 +24,13 @@ test('看板语义元数据、日历事件色、专注分组及真实星期热�
  await page.screenshot({path:'test-results/workspace-focus-history.png',animations:'disabled'});
  await page.getByRole('button',{name:'统计',exact:true}).click();
  const heatmap=page.locator('.heatmap');
- await expect(heatmap.locator('i')).toHaveCount(364);
+ await expect(heatmap.getByRole('button')).toHaveCount(364);
+ await expect(heatmap.locator('button[tabindex="0"]')).toHaveCount(1);
  const today=dayKey(),cell=heatmap.locator('[data-day="'+today+'"]');
  await expect(cell).toHaveAttribute('data-level','1');
  await expect(cell).toHaveCSS('grid-row-start',String(new Date(today+'T12:00:00').getDay()+1));
+ await expect(cell).toHaveAttribute('aria-pressed','true');await cell.focus();await cell.press('ArrowLeft');
+ const previous=heatmap.locator('[data-day="'+shiftDay(today,-7)+'"]');await expect(previous).toBeFocused();await expect(previous).toHaveAttribute('aria-pressed','true');await expect(cell).toHaveAttribute('aria-pressed','false');
+ await previous.press('ArrowRight');await expect(cell).toBeFocused();await expect(cell).toHaveAttribute('aria-pressed','true');
  await heatmap.scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/workspace-heatmap.png',animations:'disabled'});
 });
