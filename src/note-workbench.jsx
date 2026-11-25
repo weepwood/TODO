@@ -6,12 +6,12 @@ import MarkdownPreview from './markdown-preview.jsx';
 import {Modal} from './ui.jsx';
 const VisualNotes=lazy(()=>import('./visual-notes.jsx'));
 export default function NoteWorkbench({value,onApply,onClose,locked}){
- const [original]=useState(value),[draft,setDraft]=useState(value),[split,setSplit]=useState(true),[visual,setVisual]=useState(false),[visualInitial,setVisualInitial]=useState("");
+ const [original]=useState(value),[draft,setDraft]=useState(value),[split,setSplit]=useState(()=>!matchMedia('(max-width: 700px)').matches),[visual,setVisual]=useState(false),[visualInitial,setVisualInitial]=useState("");
  const [dark,setDark]=useState(()=>document.documentElement.dataset.theme==='dark'||document.documentElement.dataset.theme==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);
  useEffect(()=>{const query=matchMedia('(prefers-color-scheme: dark)'),update=()=>setDark(document.documentElement.dataset.theme==='dark'||document.documentElement.dataset.theme==='system'&&query.matches);const observer=new MutationObserver(update);observer.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});query.addEventListener('change',update);return()=>{observer.disconnect();query.removeEventListener('change',update)}},[]);
  const stale=value!==original,changed=draft!==original;
  function close(){if(!changed||confirm('放弃未应用的备注草稿？'))onClose()}
- return <Modal open onClose={close} title="备注编辑工作台"><div className="note-workbench" data-color-mode={dark?'dark':'light'}>
+ return <Modal open onClose={close} title="备注编辑工作台" className="note-editor-dialog"><div className="note-workbench" data-color-mode={dark?'dark':'light'}>
  <div className="note-workbench-top"><span>{draft.length} 字符 · {draft.split('\n').length} 行</span><div className="note-mode"><button className="secondary compact" aria-pressed={visual} onClick={()=>{if(!visual)setVisualInitial(draft);setVisual(v=>!v)}}>{visual?"返回源码":"可视化编辑"}</button>{!visual&&<button className="secondary compact" aria-pressed={split} onClick={()=>setSplit(v=>!v)}>{split?'仅编辑':'并排预览'}</button>}</div></div>
  {stale&&<p className="sync-error" role="alert">任务备注已在其他操作中变化。为防止覆盖，请复制当前草稿并重新打开编辑器。</p>}
  {visual?<Suspense fallback={<p className="muted">加载可视化编辑器…</p>}><VisualNotes initial={visualInitial} onChange={setDraft} locked={locked}/></Suspense>:<div className={'note-workbench-grid '+(split?'split':'')}>

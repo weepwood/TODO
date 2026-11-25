@@ -1,0 +1,55 @@
+/* Product polish: less repeated information, bounded feedback, one date field. */
+.date-control{gap:0;border:1px solid var(--line);border-radius:8px;background:var(--bg);overflow:hidden}
+.date-control:focus-within{border-color:var(--accent)}
+.date-control[data-invalid=true]{border-color:var(--danger,#c65a5a)}
+.date-control>input{border:0;border-radius:0;width:115px;box-shadow:none;background:transparent;outline-offset:-2px;font-variant-numeric:tabular-nums;font-size:13px;padding:0 10px}
+.date-control>.date-trigger{border:0;border-left:1px solid var(--line);border-radius:0;min-height:0;background:transparent;padding:0;justify-content:center;gap:0;font-size:0;width:36px;min-width:36px}
+.date-control>.date-trigger:hover{background:var(--hover)}
+.date-control>.date-trigger svg:first-child{flex:none}
+.date-direct input[type=text]{min-width:0;flex:1;font-variant-numeric:tabular-nums}
+.chart-empty{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:8px;min-height:108px;padding:16px 12px;color:var(--muted);font-size:12px}
+.chart-empty>svg{opacity:.65}
+.chart-empty>small{font-size:11px;line-height:1.5}
+.chart-empty.compact{min-height:56px}
+.points-chart-grid .chart-empty{min-height:110px}
+.v2 .task-row:focus-within{position:relative;z-index:1}
+@media(max-width:860px){
+ .v2.compact-mobile .workspace-title h1{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+ .v2.compact-mobile .workspace-title .muted{margin:0;font-size:13px}
+ .v2.compact-mobile .heading{padding-bottom:12px;gap:10px}
+ .v2.compact-mobile .task-content{padding-top:14px}
+ .v2.compact-mobile .task-more{touch-action:manipulation}
+ .v2.compact-mobile .bulk-bar{min-height:40px;margin-bottom:4px}
+ .v2.compact-mobile .quick-add{margin-bottom:2px}
+ .v2.compact-mobile .task-group{margin-top:3px}
+ .v2.compact-mobile .task-content>.empty{min-height:180px}
+ .date-control>input{width:120px;font-size:15px}
+ .date-control>.date-trigger{width:44px;min-width:44px;padding:0}
+ .date-direct input[type=text]{min-height:44px;font-size:16px}
+ .chart-empty{min-height:88px}
+ .points-chart-grid .chart-empty{min-height:90px}
+}
+@media(prefers-reduced-motion:reduce){.v2 .task-row{animation:none!important;transition:none!important}}
+
+/* Editor and time-axis polish; state/commit logic stays in existing components. */
+.v2 .detail-title{align-items:flex-start;gap:10px}
+.v2 .detail-title .task-title-editor{box-sizing:border-box;min-height:32px;max-height:180px;resize:none;overflow-wrap:anywhere;padding-block:2px}
+.v2 .detail-title .task-check{flex:none;margin-top:5px}
+.timeline-now{position:absolute;inset-inline:0;height:1px;background:var(--accent);z-index:5;pointer-events:none}
+.timeline-now::before{content:"";position:absolute;left:-3px;top:-3px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.timeline-now span{position:absolute;right:0;top:-10px;padding:2px 5px;font-size:10px;font-variant-numeric:tabular-nums;border-radius:4px;background:var(--accent);color:white}
+.note-editor-dialog .dialog-actions{position:sticky;bottom:0;background:var(--bg);z-index:2;padding-block:12px 4px}
+.note-editor-dialog .note-workbench-top{flex-wrap:wrap}
+@media(max-width:700px){
+ .note-editor-dialog.dialog{top:env(safe-area-inset-top,0px);right:env(safe-area-inset-right,0px);bottom:env(safe-area-inset-bottom,0px);left:env(safe-area-inset-left,0px);width:auto;max-width:none;max-height:none;border:0;border-radius:0;transform:none;padding:14px}
+ .note-editor-dialog .dialog-head{position:sticky;top:-14px;background:var(--bg);z-index:3;padding-block:12px}
+ .note-editor-dialog .note-mode{flex-wrap:wrap}
+ .note-editor-dialog .note-mode button{min-height:44px;font-size:13px}
+ .note-editor-dialog .w-md-editor-toolbar button{min-width:36px;min-height:36px}
+ .note-editor-dialog .w-md-editor-text-input,.note-editor-dialog .w-md-editor-text-pre{font-size:16px!important;line-height:1.6!important}
+ .note-editor-dialog .dialog-actions{bottom:-14px;padding-bottom:max(14px,env(safe-area-inset-bottom,0px))}
+ .calendar-agenda .segmented button,.calendar-agenda .agenda-title,.calendar-agenda .agenda-task>.text-link{min-height:44px}
+ .calendar-agenda>input{min-height:44px;font-size:16px}
+ .calendar-main .fc .fc-toolbar{gap:8px}
+ .calendar-main .fc .fc-toolbar-title{font-size:16px}
+}
