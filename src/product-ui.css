@@ -1,13 +1,13 @@
 /* Product UI: shared visual controls, workspace hierarchy and compact navigation.
    Semantic theme tokens stay owned by the existing appearance system. */
-:root{--ui-radius:10px;--ui-fast:120ms;--ui-normal:180ms;--ui-ease:cubic-bezier(.2,.75,.25,1)}
-.smart-select-trigger{display:inline-flex;align-items:center;justify-content:space-between;gap:9px;min-width:0;max-width:100%;min-height:34px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);text-align:left;font-size:12px;line-height:1.4;vertical-align:middle}
+:root{--ui-radius:10px;--ui-fast:var(--motion-fast);--ui-normal:var(--motion-popup);--ui-ease:var(--motion-ease)}
+.smart-select-trigger{display:inline-flex;align-items:center;justify-content:space-between;gap:9px;min-width:0;max-width:100%;min-height:var(--control-height);padding:6px 10px;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--bg);color:var(--text);text-align:left;font-size:var(--control-font);line-height:1.4;vertical-align:middle}
 .smart-select-trigger>span{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .smart-select-trigger[data-placeholder],.smart-select-trigger[data-placeholder]>span{color:var(--muted)}
 .smart-select-trigger[data-state=open],.smart-select-trigger:focus-visible{border-color:var(--accent)}
 .smart-select-chevron{color:var(--muted);flex:none;transition:transform var(--ui-normal) var(--ui-ease)}
 .smart-select-trigger[data-state=open] .smart-select-chevron{transform:rotate(180deg)}
-.smart-select-content{z-index:1200;width:max-content;max-width:min(420px,calc(100vw - 24px));min-width:min(max(160px,var(--radix-select-trigger-width)),calc(100vw - 24px));max-height:min(340px,var(--radix-select-content-available-height));overflow:hidden;padding:4px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--text);box-shadow:var(--shadow);transform-origin:var(--radix-select-content-transform-origin)}
+.smart-select-content{z-index:var(--popup-z-control);width:max-content;max-width:min(420px,calc(100vw - 24px));min-width:min(max(160px,var(--radix-select-trigger-width)),calc(100vw - 24px));max-height:min(340px,var(--radix-select-content-available-height));overflow:hidden;padding:4px;transform-origin:var(--radix-select-content-transform-origin)}
 .smart-select-viewport{padding:2px;max-height:inherit;overflow:auto}
 .smart-select-option{position:relative;display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:34px;padding:7px 11px;border-radius:7px;font-size:13px;line-height:1.45;outline:none;cursor:default;user-select:none;overflow-wrap:anywhere}
 .smart-select-option[data-highlighted]{background:var(--hover)}
@@ -46,15 +46,9 @@
 .settings-section .appearance-settings .field>span{white-space:nowrap}
 .settings-section .appearance-settings .smart-select-trigger{width:100%}
 @media(prefers-reduced-motion:no-preference){
- .smart-select-content[data-state=open]{animation:ui-pop-in var(--ui-normal) var(--ui-ease) both}
- .smart-select-content[data-state=closed]{animation:ui-pop-out var(--ui-fast) ease both}
  .v2 :is(.nav-row,.task-row,.rail button,.icon-button,.primary,.secondary,.tag-chip),.smart-select-trigger,.settings-navigation button{transition:background-color var(--ui-fast),border-color var(--ui-fast),color var(--ui-fast),box-shadow var(--ui-fast),transform var(--ui-fast)}
  .v2 :is(.primary,.secondary,.rail button,.icon-button):active:not(:disabled),.smart-select-trigger:active:not(:disabled){transform:scale(.97)}
  .v2 .task-content{animation:ui-workspace-in var(--ui-normal) var(--ui-ease) both}
- .dropdown[data-state=open],.date-popover[data-state=open]{animation:ui-pop-in var(--ui-normal) var(--ui-ease) both;transform-origin:var(--radix-dropdown-menu-content-transform-origin,top)}
- .dropdown[data-state=closed],.date-popover[data-state=closed]{animation:ui-pop-out var(--ui-fast) ease both}
- @keyframes ui-pop-in{from{opacity:0;transform:translateY(-3px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
- @keyframes ui-pop-out{to{opacity:0;transform:translateY(-2px) scale(.985)}}
  @keyframes ui-workspace-in{from{opacity:.6;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 }
 @media(hover:hover) and (pointer:fine){.smart-select-trigger:hover{background:var(--hover)}.settings-navigation button:hover:not(.active){background:var(--hover)}}
@@ -124,12 +118,12 @@
  .mobile-more-sheet.dialog{padding:16px 16px max(16px,env(safe-area-inset-bottom,0px))}
  @media(prefers-reduced-motion:no-preference){
   .v2.compact-mobile .detail-enter{animation:ui-mobile-enter var(--ui-normal) var(--ui-ease) both}
-  .v2.compact-mobile .detail-exit{animation:ui-mobile-exit 140ms ease both}
+  .v2.compact-mobile .detail-exit{animation:ui-mobile-exit var(--motion-exit) ease both}
   .v2.compact-mobile .sidebar.mobile-open{animation:ui-sidebar-enter var(--ui-normal) var(--ui-ease) both}
   .settings-dialog.dialog[data-state=open]{animation:ui-mobile-enter var(--ui-normal) var(--ui-ease) both}
-  .settings-dialog.dialog[data-state=closed]{animation:ui-mobile-exit 140ms ease both}
+  .settings-dialog.dialog[data-state=closed]{animation:ui-mobile-exit var(--motion-exit) ease both}
   .mobile-more-sheet.dialog[data-state=open]{animation:ui-sheet-in var(--ui-normal) var(--ui-ease) both}
-  .mobile-more-sheet.dialog[data-state=closed]{animation:ui-sheet-out 140ms ease both}
+  .mobile-more-sheet.dialog[data-state=closed]{animation:ui-sheet-out var(--motion-exit) ease both}
   @keyframes ui-mobile-enter{from{opacity:.7;transform:translateX(24px)}to{opacity:1;transform:translateX(0)}}
   @keyframes ui-mobile-exit{to{opacity:0;transform:translateX(24px)}}
   @keyframes ui-sidebar-enter{from{opacity:.8;transform:translateX(-18px)}to{opacity:1;transform:translateX(0)}}

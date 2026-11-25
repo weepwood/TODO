@@ -1,8 +1,8 @@
 /* Reminder editing and workspace refinements reuse the current semantic tokens. */
-.datetime-trigger{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%;min-height:36px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-size:12px;text-align:left;font-variant-numeric:tabular-nums}
+.datetime-trigger{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%;min-height:var(--control-height);padding:6px 9px;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--bg);font-size:var(--control-font);text-align:left;font-variant-numeric:tabular-nums}
 .datetime-trigger svg{flex:none;color:var(--muted)}.datetime-trigger span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .datetime-trigger[data-state=open],.datetime-trigger:focus-visible{border-color:var(--accent)}
-.datetime-popover{z-index:1200;width:min(320px,calc(100vw - 24px));max-height:var(--radix-popover-content-available-height);overflow:auto;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--text);box-shadow:var(--shadow)}
+.datetime-popover{z-index:var(--popup-z-control);width:min(320px,calc(100vw - 24px));max-height:var(--radix-popover-content-available-height);overflow:auto;padding:14px;transform-origin:var(--radix-popover-content-transform-origin)}
 .datetime-popover header{display:grid;gap:4px;margin-bottom:14px}.datetime-popover header small{font-size:11px;color:var(--muted)}
 .datetime-date-label,.datetime-time-label{display:grid;grid-template-columns:48px minmax(0,1fr);align-items:center;gap:10px;margin:10px 0;font-size:13px}
 .datetime-time-label .time-control{width:100%}.datetime-time-label .time-control input{flex:1}
@@ -19,10 +19,6 @@
 .v2 .detail-group .detail-kicker{color:var(--text);font-size:13px}
 .v2 .task-row .task-more{opacity:.6}
 .v2 .task-row:hover .task-more,.v2 .task-row:focus-within .task-more{opacity:1}
-@media(prefers-reduced-motion:no-preference){
- .datetime-popover[data-state=open]{animation:ui-pop-in 180ms var(--ui-ease) both}
- .datetime-popover[data-state=closed]{animation:ui-pop-out 120ms ease both}
-}
 @media(max-width:860px){
  .datetime-trigger{min-height:44px;font-size:13px}
  .datetime-date-label .date-trigger,.datetime-actions button{min-height:44px}

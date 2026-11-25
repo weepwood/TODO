@@ -1,6 +1,6 @@
 import {FeedbackField,FieldMessage} from './design-system/FieldFeedback.jsx';
 import {NumberControl} from "./design-system/Controls.jsx";
-import {useTransientPopover} from "./design-system/popover.js";
+import {useTransientPopover,popoverGeometry} from "./design-system/popover.js";
 import React,{useEffect,useRef,useState,useId} from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Dropdown from '@radix-ui/react-dropdown-menu';
@@ -10,7 +10,7 @@ export function Modal({open,onClose,title,children,description,className=''}){re
 export function Menu({items,trigger,open,onOpenChange}){
  const [local,setLocal]=useState(false),shown=open??local,change=onOpenChange??setLocal;
  useTransientPopover(shown,()=>change(false));
- return <Dropdown.Root open={shown} onOpenChange={change}><Dropdown.Trigger asChild>{trigger||<button className="icon-button" aria-label="更多操作"><MoreHorizontal size={18}/></button>}</Dropdown.Trigger><Dropdown.Portal><Dropdown.Content className="dropdown" sideOffset={5} align="end">{items.map((item,i)=>item.separator?<Dropdown.Separator key={i} className="dropdown-separator"/>:<Dropdown.Item key={i} className={'dropdown-item '+(item.danger?'danger':'')} disabled={item.disabled} onSelect={item.run}>{item.label}</Dropdown.Item>)}</Dropdown.Content></Dropdown.Portal></Dropdown.Root>}
+ return <Dropdown.Root open={shown} onOpenChange={change}><Dropdown.Trigger asChild>{trigger||<button className="icon-button" aria-label="更多操作"><MoreHorizontal size={18}/></button>}</Dropdown.Trigger><Dropdown.Portal><Dropdown.Content className="dropdown" {...popoverGeometry}>{items.map((item,i)=>item.separator?<Dropdown.Separator key={i} className="dropdown-separator"/>:<Dropdown.Item key={i} className={'dropdown-item '+(item.danger?'danger':'')} disabled={item.disabled} onSelect={item.run}>{item.label}</Dropdown.Item>)}</Dropdown.Content></Dropdown.Portal></Dropdown.Root>}
 export function Empty({title='暂无任务',hint='添加一项任务开始吧。',Icon}){return <div className="empty">{Icon&&<div className="empty-icon"><Icon size={28}/></div>}<h3>{title}</h3><p>{hint}</p></div>}
 export function Field({label,children,...feedback}){if(Object.keys(feedback).length)return <FeedbackField label={label} {...feedback}>{children}</FeedbackField>;return <label className="field"><span>{label}</span>{children}</label>}
 
