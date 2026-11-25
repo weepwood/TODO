@@ -58,6 +58,11 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
   expect(row.state.tasks.some(t=>t.title==='设备 B 冲突内容')).toBe(false);
   await expect(b.page.locator('.task-body').filter({hasText:'设备 B 冲突内容'})).toBeVisible();
   await b.page.getByRole('button',{name:'设置',exact:true}).click();
+  await b.page.getByText('比较本地与云端版本',{exact:true}).click();
+  await expect(b.page.locator('.conflict-preview')).toContainText('设备 B 冲突内容');
+  await expect(b.page.locator('.conflict-preview')).toContainText('设备 A 冲突内容');
+  await b.page.getByText('同步日志（本机）',{exact:true}).click();
+  await expect(b.page.locator('.sync-diagnostics').filter({hasText:'同步日志（本机）'})).toContainText('检测到冲突');
   b.page.once('dialog',d=>d.accept());await b.page.getByRole('button',{name:'使用云端版本'}).click();
   await expect(b.page.locator('.sync-footer')).toContainText('已同步',{timeout:12000});
   expect(await b.page.evaluate(uid=>JSON.parse(localStorage.getItem('todo-account:'+uid+':todo-conflict-backup')).tasks.some(t=>t.title==='设备 B 冲突内容'),uid)).toBe(true);

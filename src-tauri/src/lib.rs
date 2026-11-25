@@ -127,7 +127,35 @@ fn native_notify(scope:String,task_id:String,at:String,title:String,db:tauri::St
  Ok(())
 }
 #[tauri::command]
-fn native_exit(app:tauri::AppHandle){app.exit(0)}
+fn native_exit(app:tauri::AppHandle){if let Some(w)=app.get_webview_window("main"){save_window(&w);}app.exit(0)}
+#[tauri::command]
+fn native_test_notification(app:tauri::AppHandle)->Result<(),String>{
+ app.notification().builder().title("TODO").body("这是一条测试提醒。请在系统通知中心确认。").show().map_err(|e|e.to_string())
+}
+#[derive(serde::Serialize,serde::Deserialize)]
+struct WindowGeometry { width:u32,height:u32,maximized:bool }
+fn geometry_path(app:&tauri::AppHandle)->Option<std::path::PathBuf>{app.path().app_data_dir().ok().map(|p|p.join("window-state.json"))}
+fn save_window(w:&tauri::WebviewWindow){
+ let Some(path)=geometry_path(w.app_handle())else{return};
+ let Ok(maximized)=w.is_maximized()else{return};
+ if maximized{
+  if let Ok(raw)=std::fs::read(&path){if let Ok(mut g)=serde_json::from_slice::<WindowGeometry>(&raw){g.maximized=true;let _=write_geometry(&path,&g);return}}
+ }
+ let (Ok(size),Ok(scale))=(w.inner_size(),w.scale_factor())else{return};let logical=size.to_logical::<f64>(scale);
+ let g=WindowGeometry{width:logical.width.round().clamp(760.,3840.) as u32,height:logical.height.round().clamp(520.,2160.) as u32,maximized};
+ let _=write_geometry(&path,&g);
+}
+fn write_geometry(path:&std::path::Path,g:&WindowGeometry)->Result<(),String>{
+ let tmp=path.with_extension("tmp");std::fs::write(&tmp,serde_json::to_vec(g).map_err(|e|e.to_string())?).map_err(|e|e.to_string())?;
+ std::fs::rename(tmp,path).map_err(|e|e.to_string())
+}
+fn restore_window(w:&tauri::WebviewWindow){
+ let Some(path)=geometry_path(w.app_handle())else{return};let Ok(raw)=std::fs::read(path)else{return};
+ let Ok(g)=serde_json::from_slice::<WindowGeometry>(&raw)else{return};
+ let (mut width,mut height)=(g.width.clamp(760,3840),g.height.clamp(520,2160));
+ if let Ok(Some(m))=w.current_monitor(){let scale=m.scale_factor();let limit=m.size().to_logical::<f64>(scale);width=width.min((limit.width-40.).max(760.) as u32);height=height.min((limit.height-100.).max(520.) as u32);}
+ let _=w.set_size(tauri::LogicalSize::new(width,height));let _=w.center();if g.maximized{let _=w.maximize();}
+}
 fn show(app:&tauri::AppHandle){if let Some(w)=app.get_webview_window("main"){let _=w.show();let _=w.set_focus();}}
 fn schedule(app:tauri::AppHandle){
  std::thread::spawn(move||loop{
@@ -152,18 +180,18 @@ pub fn run(){
  .plugin(tauri_plugin_single_instance::init(|app,_,_|show(app)))
  .plugin(tauri_plugin_notification::init())
  .plugin(tauri_plugin_global_shortcut::Builder::new().with_handler(|app,_,event|{if event.state()==ShortcutState::Pressed{show(app);let _=app.emit("todo-quick-add",());}}).build())
- .invoke_handler(tauri::generate_handler![native_load,native_save,native_load_store,native_write_store,native_activate,native_search,native_list_backups,native_read_backup,native_create_backup,native_notify,native_exit])
+ .invoke_handler(tauri::generate_handler![native_load,native_save,native_load_store,native_write_store,native_activate,native_search,native_list_backups,native_read_backup,native_create_backup,native_notify,native_exit,native_test_notification])
  .setup(|app|{
   let path=app.path().app_data_dir()?;std::fs::create_dir_all(&path)?;let c=Connection::open(path.join("todo.sqlite3"))?;schema(&c)?;
   app.manage(Database(Mutex::new(c)));app.manage(ActiveScope(Mutex::new(None)));
   let open=MenuItem::with_id(app,"open","打开 TODO",true,None::<&str>)?;let quit=MenuItem::with_id(app,"quit","退出 TODO",true,None::<&str>)?;
-  let menu=Menu::with_items(app,&[&open,&quit])?;
-  let mut tray=TrayIconBuilder::new().menu(&menu).tooltip("TODO").on_menu_event(|app,event|match event.id.as_ref(){"open"=>show(app),"quit"=>{let active=app.state::<ActiveScope>();if active.0.lock().ok().and_then(|s|s.clone()).is_some(){let _=app.emit("todo-quit-request",());}else{app.exit(0)}},_=>{}});
+  let quick=MenuItem::with_id(app,"quick","快速新建任务",true,None::<&str>)?;let menu=Menu::with_items(app,&[&open,&quick,&quit])?;
+  let mut tray=TrayIconBuilder::new().menu(&menu).tooltip("TODO").on_menu_event(|app,event|match event.id.as_ref(){"open"=>show(app),"quick"=>{show(app);let _=app.emit("todo-quick-add",());},"quit"=>{let active=app.state::<ActiveScope>();if active.0.lock().ok().and_then(|s|s.clone()).is_some(){let _=app.emit("todo-quit-request",());}else{app.exit(0)}},_=>{}});
   if let Some(icon)=app.default_window_icon(){tray=tray.icon(icon.clone())}tray.build(app)?;
   if let Err(e)=app.global_shortcut().register("CommandOrControl+Shift+A"){eprintln!("global shortcut unavailable: {e}")}
-  schedule(app.handle().clone());Ok(())
+  if let Some(w)=app.get_webview_window("main"){restore_window(&w);}schedule(app.handle().clone());Ok(())
  })
- .on_window_event(|window,event|{if let WindowEvent::CloseRequested{api,..}=event{api.prevent_close();let _=window.hide();}})
+ .on_window_event(|window,event|{if let WindowEvent::CloseRequested{api,..}=event{api.prevent_close();if let Some(w)=window.app_handle().get_webview_window("main"){save_window(&w);}let _=window.hide();}})
  .run(tauri::generate_context!()).expect("TODO native application failed")
 }
 #[cfg(test)]mod tests{

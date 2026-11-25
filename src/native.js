@@ -36,3 +36,5 @@ export async function nativeRecoveryPayload(uid){
  const results=await Promise.allSettled([invoke('native_load_store',{scope}),invoke('native_load',{scope})]);
  return {scope,sqliteStore:results[0].status==='fulfilled'?results[0].value:null,sqliteMirror:results[1].status==='fulfilled'?results[1].value:null,legacy:legacy.getItem(STORAGE_KEY),errors:results.filter(r=>r.status==='rejected').map(r=>String(r.reason))};
 }
+
+export function nativeTestNotification(){return invoke("native_test_notification")}
