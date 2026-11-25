@@ -233,3 +233,9 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - CSS 局部合并时间轴网格、触摸把手、预算进度条、日期/时刻输入等重复规则；Radix 弹窗/遮罩增加130/110ms出场动画，reduced motion 禁用任务行拖拽过渡。未完成全部历史 CSS 结构拆分、详情面板出场或列表重排专项重构。
 - 验收：66/66 JS，生产构建通过；9项关联浏览器（跨日/键盘/触摸、弹窗、前轮面板及日历、双主题）通过，另周/日视图触摸2项及八模块双主题1项通过。视觉首次截图误截懒加载占位，补充真实内容就绪条件（习惯选择器首次定位失败后修正），最终16张1440×900实际截图全部生成、无横向溢出/页面运行错误，人工总览检查通过，非像素差异门禁、非完整极端数据视觉覆盖。截图 test-results/v118-*.png；总览 /tmp/todo-v118-{light,dark}-review.png，仅本机 QA。
 - 本轮未改 Rust 或重新构建原生包，不重复 Rust 专项；RC1、真实用户数据、Supabase 配置和费用不变。Alpha 发布准备、完整 CSS/空间动效、真实认证 Realtime/系统操作/Windows/实体手机验收仍待完成。Desktop Commander 月用量88%，磁盘空间有限。
+
+### V1.1 Alpha.1 候选收口（基线 7d88746）
+- 前次 Pages 45559453649 成功。package/lock、Cargo/lock、tauri.conf 统一 1.1.0-alpha.1；侧栏从 package.json 读取版本。仅候选，不声称 Release 已创建；RC1 保持原标签与资产。
+- 保守拆分 workbench-interactions.css（在 workbench.css 后加载，保留原层叠）；详情140ms可中断出场，退出中 inert，重新选中/切换模块取消关闭定时器，减少动效直接关闭。看板概览和明确空状态、习惯今日进度、专注空状态与 NumberField 复用；统计区间包含首尾且排除未来日期，习惯打卡按所选时间区间统计且明确全部清单口径。列表重排仍复用既有 dnd-kit，不额外重写动画引擎。
+- 完整验收：66/66 JS、51/51 Edge（56.4秒，全量含模拟同步/存储、归档、PWA、独立录入、跨日与触摸、16张双主题截图）、9/9 Rust、生产构建通过。万级虚拟列表单次24行/262ms，不视为正式性能基准。Cargo 全局缓存清理权限警告未影响测试；未执行完整依赖安全审计。新增版本候选未修改 Rust 业务代码和 SQLite schema。
+- 本机磁盘仅约2.2GiB，Desktop Commander 月用量90%，不再本地完整打包。公开仓库使用现有 GitHub-hosted Windows x64/macOS arm64 手动构建，必须校验 run head SHA、双平台产物和 SHA256，Pages 线上核验后再发布 prerelease；不能把构建成功视作实机运行通过。未修改真实账号、Supabase 配置、RC1 资产或增加费用。真实认证 Realtime/邮件送达/Windows 与实体手机/系统操作仍待，正式 V1.0 门禁不变。
