@@ -1,0 +1,43 @@
+name: UI 浏览器与视觉验收
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'e2e/**'
+      - 'tests/**'
+      - 'package*.json'
+      - 'playwright.config.js'
+      - '.github/workflows/ui-review.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ui-review-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      TODO_BROWSER_CHANNEL: chromium
+      VITE_SUPABASE_URL: https://example.invalid
+      VITE_SUPABASE_PUBLISHABLE_KEY: qa-isolated-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e -- --workers=2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-review-evidence
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: warn

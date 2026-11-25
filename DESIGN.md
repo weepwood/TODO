@@ -127,3 +127,12 @@ Android launcher 采用独立蓝色渐变背景、白色单对勾前景和单色
 - 设置按账号、软件更新、外观、本地数据、平台和提醒组织，桌面侧栏分类、移动横向分类及滚动定位，原有功能保持挂载。详情按时间与计划、组织与状态、提醒与重复组织。
 - 公共动效采用约120–180ms的短时透明度/位移/按压反馈，菜单、页面切换、详情、侧栏和底部面板遵循减少动效偏好；不以动画阻塞操作。Android Back 优先关闭选择器。保留既有任务拖动、详情关闭可中断及数据保存逻辑。
 - 验收覆盖320/390/430px、桌面双主题、键盘、实际截图、减少动效；不把浏览器模拟等同实体手机、系统WebView或真实帧率验收。后续深度重构仍需日历、规划、统计、编辑器等单页专项。
+
+### V1.2 第二轮：任务优先的工作台与交互精修（2026-11-25）
+
+- 原始资料核对：TickTick 功能介绍 https://ticktick.com/features 、录入 https://help.ticktick.com/articles/7055782422935240704 与详情 https://help.ticktick.com/articles/7055782408586526720 ；Anthropic frontend-design 原始 SKILL.md https://raw.githubusercontent.com/anthropics/skills/main/skills/frontend-design/SKILL.md （按其 LICENSE.txt 约束，仅提炼方法，不复制）；Vikunja https://vikunja.io/help/views/ （AGPL-3.0，借鉴视图组织，不引入源码）；FullCalendar v7 https://fullcalendar.io/docs/event-dragging-resizing ；WAI 日期选择 https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/examples/datepicker-dialog/ ；Apple 手势 https://developer.apple.com/design/human-interface-guidelines/gestures/ 。已有 Radix、DayPicker、dnd-kit、FullCalendar 保留，不新增依赖或动画框架。
+- 视觉决策：桌面保留密度与可调整三栏，低噪音背景/边框，统一 36px 工具栏、图标、任务行与详情分组；手机优先标题、搜索与新增，撤销/重做等次要命令归入菜单，批量选择采用独立模式，44px 任务操作按钮，左滑打开非破坏性菜单，垂直滚动不被截获，快捷新建使用底部面板；虚拟列表移动端估算行高 62px。
+- 共享日期输入和 DayPicker 浮层用于日历与规划，保持原生直接输入和双向日期联动。提醒日期时间输入仍原生；重复周期数字复用 NumberField，原生 checkbox 保留语义并自定义外观，更新偏好采用开关样式但不改变原有 checkbox 语义。Android Back 优先关闭下拉、日期、操作菜单。
+- 日历任务栏展示选定日期，时间规划预算、日程头、FullCalendar 拖动镜像及时间块采用一致视觉。复用引擎，不改变拖放提交语义；统计任务概览提前、积分区快捷跳转、趋势双列/窄屏单列，余额重点突出，积分业务口径不变。
+- 动效以用户操作驱动：底部导航滑动指示器、任务完成反馈、按压和底部录入进出场，拖动用 dnd-kit 原有过渡，所有新增动画遵守 reduced motion。非破坏性手势保留可见菜单替代。设置分类只滚动自己的容器，避免横向偏移；账号状态仍保留挂载以保护操作连续性。
+- 验收要求：真实浏览器 320/390/430、浅深主题、任务录入与完成、移动选择、菜单、日期联动、设置定位、统计跳转，原生 Android 继续独立门禁。避免为动效增加业务提交延迟，不宣称完整共享元素/列表退出动画或设备帧率已验收。
