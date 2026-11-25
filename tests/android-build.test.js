@@ -17,5 +17,7 @@ test('Tauri 生成的 Gradle Rust 构建任务可使用通用 npm CLI 入口',()
  const pkg=JSON.parse(read('package.json'));
  assert.equal(pkg.scripts.tauri,'tauri');
  assert.ok(pkg.devDependencies['@tauri-apps/cli']);
- assert.match(read('.github/workflows/android.yml'),/['"]package\.json['"]/);
+ const workflow=read('.github/workflows/android.yml');
+ assert.match(workflow,/^\s*- run: npm ci\s*$/m);
+ assert.match(workflow,/^\s*run: npm run android:build -- /m);
 });
