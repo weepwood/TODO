@@ -49,7 +49,7 @@ jobs:
       - name: Generate isolated Android QA project
         run: npm run android:init -- --ci --skip-targets-install --config '{"identifier":"com.weepwood.todo.qa.android","productName":"TODO Android QA"}'
       - name: Build test APK
-        run: npm run android:build -- --ci --debug --apk --target aarch64 --config '{"identifier":"com.weepwood.todo.qa.android","productName":"TODO Android QA"}'
+        run: npm run android:build -- --ci --debug --config '{"identifier":"com.weepwood.todo.qa.android","productName":"TODO Android QA"}'
       - name: Check APK signature and ABI
         shell: bash
         run: |

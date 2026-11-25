@@ -4,7 +4,7 @@
 
 ## 构建
 - GitHub Actions：Android ARM64 基础验收（测试 APK），手动触发或 Android 配置/工作流修改推入 main。Linux runner 安装 JDK17、Android SDK、NDK 28.2.13676358、aarch64-linux-android，使用锁定的 Tauri CLI 初始化 Gradle 工程并构建。
-- 有 SDK/NDK 的本机可运行 `npm run android:init -- --ci`，然后 `npm run android:build -- --debug --apk --target aarch64`。正式包名为 com.weepwood.todo；CI 调试包独立使用 com.weepwood.todo.qa.android，不能当作正式安装包或保证跨构建覆盖更新。
+- 有 SDK/NDK 的本机可运行 `npm run android:init -- --ci`，然后 `npm run android:build -- --debug`。正式包名为 com.weepwood.todo；CI 调试包独立使用 com.weepwood.todo.qa.android，不能当作正式安装包或保证跨构建覆盖更新。
 - CI 校验 APK 签名、包名、arm64-v8a 库和 SHA256，产物为 Actions artifact，不自动发布 Release。正式签名需持久化安全保管密钥，不提交密钥或密码。
 
 ## 验收边界
@@ -18,3 +18,5 @@
 - Android 会话：独立 todo-mobile Tauri 插件，AndroidKeyStore AES-256-GCM，每次加密随机 IV，包名/键名 AAD，AtomicFile 持久化于 noBackupFilesDir；仅允许三个固定 Supabase 会话键。无明文 WebView 存储回退，不迁移旧明文会话；失效可显式清除登录会话，不删除工作空间。原生加解密与升级恢复仍待真机验证，SQLite 任务库本身未加密。
 - WorkManager：可选实验性后台版本检查，已提交 SQLite 快照的 revision/dirty 意图加密保存，15分钟周期及暂停时单次联网任务。仅使用有效 access token 向绑定的 Supabase HTTPS 项目 GET 当前账号 revision；禁止重定向、后台刷新令牌、后台写入任务/云端。令牌过期等待前台恢复。现有 SQLite 快照为离线修改的权威队列，foreground CAS 继续唯一工作空间写入者。不是完整后台上传/下载引擎；后续需要原生单写入者、事务回执、会话刷新仲裁和真实多设备冲突验收。
 - CI 45565487067 实际失败在 setup-android 默认安装已废弃 tools 包，明确 packages: platform-tools；已版本化 Kotlin/Gradle 插件源码和 Android 专属 ACL，CI 按移动源码/配置触发。仅 debug QA APK，不创建正式 Release；正式长期签名另验收。
+
+- 构建参数约定：package.json 的 android:build 已固定 --target aarch64 --apk；CI 和本机调用仅附加 --debug、--ci、--config 等参数，不重复传入 APK 与目标架构。CI 45567472907 已通过 SDK/NDK、npm test 与 Android 工程生成，在 CLI 参数解析处因重复 --apk 失败，尚未编译原生代码。

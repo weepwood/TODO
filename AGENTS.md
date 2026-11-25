@@ -268,3 +268,6 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - 复用实际 tauri-plugin-notification 2.8.1 的 batch/get_pending/cancel、AlarmManager 和 Boot Receiver；默认关闭实验开关，未来30天最多200项、持久化后调度、取消改期/完成/删除/退出、保留ID及孤立恢复，通用通知文案，已接收系统请求避免前台重复。系统实际送达、Doze、重启和时区未验证。
 - 新增 Android-only tauri-plugin-todo-mobile（版本化 Kotlin/Gradle/ACL），Keystore AES-256-GCM + 随机IV/AAD + noBackupFilesDir AtomicFile；Supabase 固定会话键异步适配，无明文回退；未迁移旧明文会话，工作空间 SQLite 未加密。WorkManager 2.10.1 仅后台只读 revision 检查，联网约束、15分钟周期、暂停唤醒、已保存的 dirty/revision 意图、有效 access token、项目/UID绑定、禁止重定向、无后台刷新和云端写入。完整后台双向同步未实现。
 - 82/82 JS、5/5 关联 Edge、9/9 macOS Rust、生产构建通过。浏览器仅模拟 Android IPC/原生返回，非实机；Kotlin/Gradle 及真实 Android 安装待 CI。Keystore、WorkManager、闹钟均未验证真机，不虚报。未改真实数据、Supabase schema/费用、既有发布资产。Desktop Commander 月用量约94%。
+
+### Android APK 收口
+- 远端 main 9780c8d 已部署，Pages 45567472970 成功。Android 45567472907 已实际通过 SDK/NDK、npm ci、npm test、Android 工程初始化；构建失败是 npm script 与 CI 重复指定 --apk / --target aarch64，CLI 退出2，未进入 Rust/Kotlin 编译。保留 package.json 中固定的 ARM64 APK 参数，调用处不再重复，新增构建参数回归测试并同步 ANDROID.md。未修改业务、原生权限、云端或用户数据；实际 APK、签名与真机仍待验收。
