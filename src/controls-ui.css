@@ -1,10 +1,4 @@
 /* Shared time and palette controls: consistent across browser and native shells. */
-.time-control{display:inline-flex;align-items:center;width:132px;min-width:0;max-width:100%;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--bg);overflow:hidden}
-.time-control:focus-within{border-color:var(--accent)}
-.time-control[data-invalid=true]{border-color:#c65a5a}
-.time-control>input{width:0;flex:1 1 72px;max-width:none;min-width:0;height:100%;padding:0 9px;border:0;border-radius:0;background:transparent;font-size:13px;font-variant-numeric:tabular-nums;outline-offset:-2px}
-.time-control .time-picker-trigger{display:grid;place-items:center;flex:none;width:34px;height:100%;padding:0;border:0;border-left:1px solid var(--line);border-radius:0;color:var(--muted)}
-.time-control .time-picker-trigger:hover,.time-control .time-picker-trigger[data-state=open]{background:var(--hover);color:var(--accent-text)}
 .time-picker-popover,.color-picker-popover{z-index:1200;width:min(300px,calc(100vw - 24px));max-height:var(--radix-popover-content-available-height);overflow:auto;padding:14px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow);transform-origin:var(--radix-popover-content-transform-origin)}
 .time-picker-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .time-picker-head span{font-variant-numeric:tabular-nums;font-size:19px;font-weight:600;color:var(--accent-text)}
@@ -31,9 +25,6 @@
  .time-picker-popover[data-state=closed],.color-picker-popover[data-state=closed]{animation:ui-pop-out 120ms ease both}
 }
 @media(max-width:860px){
- .time-control{height:44px}
- .time-control>input{font-size:16px}
- .time-control .time-picker-trigger{width:44px}
  .time-picker-grid button{min-height:40px}
  .time-picker-actions button,.color-picker-input button{min-height:44px}
  .color-picker-trigger{min-height:44px}
@@ -47,6 +38,4 @@
 .entity-dialog .field{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;align-items:center}
 .entity-dialog .field>span{white-space:nowrap}
 .entity-dialog .color-picker-trigger{justify-self:stretch}
-.v2 .detail-content .field .time-control>input{border:0;border-radius:0;background:transparent;box-shadow:none}
-.v2 .detail-content .field .time-control>button{border-radius:0}
 @media(max-width:860px){.time-picker-grid button{min-height:44px}.entity-dialog .field{grid-template-columns:52px minmax(0,1fr)}}

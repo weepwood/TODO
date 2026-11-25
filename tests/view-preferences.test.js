@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readViewPreferences,updateViewPreference,normalizeView,defaultView,VIEW_PREFS_KEY} from '../src/core/view-preferences.js';
+import {readViewPreferences,updateViewPreference,normalizeView,defaultView,VIEW_PREFS_KEY,toggleGroupPreference,groupPreferenceKey} from '../src/core/view-preferences.js';
 test('validates preference values and isolated view patches',()=>{
  const state=readViewPreferences({getItem:()=>null});
  const first=updateViewPreference(state,'inbox',{sort:'title',order:'desc'});
  const second=updateViewPreference(first,'work',{group:'date'});
- assert.deepEqual(second.views.inbox,{sort:'title',order:'desc',group:'section'});
+ assert.deepEqual(second.views.inbox,{...defaultView(),sort:'title',order:'desc'});
  assert.deepEqual(second.views.work,{...defaultView(),group:'date'});
  assert.deepEqual(first.views.work,undefined);
  assert.deepEqual(normalizeView({sort:'bad',group:'bad',order:'bad'}),defaultView());
@@ -19,4 +19,15 @@ test('invalid storage falls back and bounded keys cannot alter prototype',()=>{
  let state={views:{}};
  for(let i=0;i<305;i++)state=updateViewPreference(state,'view-'+i,{group:'list'});
  assert.equal(Object.keys(state.views).length,300);
+});
+
+test('fold state is independent by view and grouping dimension',()=>{
+ let s=readViewPreferences({getItem:()=>null});
+ s=toggleGroupPreference(s,'inbox','section','unassigned',true);
+ s=toggleGroupPreference(s,'inbox','date','unassigned',true);
+ s=toggleGroupPreference(s,'today','section','unassigned',true);
+ s=toggleGroupPreference(s,'inbox','section','unassigned',false);
+ assert.deepEqual(s.views.inbox.collapsedGroups,[groupPreferenceKey('date','unassigned')]);
+ assert.deepEqual(s.views.today.collapsedGroups,[groupPreferenceKey('section','unassigned')]);
+ assert.deepEqual(normalizeView({collapsedGroups:[42,'a','a',null]}).collapsedGroups,['a']);
 });

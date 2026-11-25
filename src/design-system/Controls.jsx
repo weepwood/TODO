@@ -1,3 +1,4 @@
+import {useFieldControl} from './FieldFeedback.jsx';
 import React from 'react';
 import {Search,X,Minus,Plus,Flag,Inbox,Layers,FolderOpen,Circle,Clock,CheckCircle2,SkipForward,Trash2} from 'lucide-react';
 
@@ -15,7 +16,8 @@ export function Segmented({options,value,onValueChange,multiple=false,className=
 }
 // Draft mode intentionally retains invalid/empty input until the enclosing form validates.
 export function NumberControl({label,min,max,unit,disabled=false,minusDisabled,plusDisabled,onStep,inputProps={},onStepPointerDown}){
- return <div className="number-control" data-unit={unit||undefined}><button type="button" className="number-step" aria-label={label+'减少'} disabled={disabled||minusDisabled} onPointerDown={onStepPointerDown} onClick={()=>onStep(-1)}><Minus size={14}/></button><div className="number-value"><input {...inputProps} className="number-field" type="number" inputMode="numeric" step="1" min={min} max={max} aria-label={label} disabled={disabled}/>{unit&&<span className="number-unit" aria-hidden="true">{unit}</span>}</div><button type="button" className="number-step" aria-label={label+'增加'} disabled={disabled||plusDisabled} onPointerDown={onStepPointerDown} onClick={()=>onStep(1)}><Plus size={14}/></button></div>
+ const feedback=useFieldControl();
+ return <div className="number-control" data-invalid={feedback['aria-invalid']||undefined} data-unit={unit||undefined}><button type="button" className="number-step" aria-label={label+'减少'} disabled={disabled||minusDisabled} onPointerDown={onStepPointerDown} onClick={()=>onStep(-1)}><Minus size={14}/></button><div className="number-value"><input {...feedback} {...inputProps} className="number-field" type="number" inputMode="numeric" step="1" min={min} max={max} aria-label={label} disabled={disabled}/>{unit&&<span className="number-unit" aria-hidden="true">{unit}</span>}</div><button type="button" className="number-step" aria-label={label+'增加'} disabled={disabled||plusDisabled} onPointerDown={onStepPointerDown} onClick={()=>onStep(1)}><Plus size={14}/></button></div>
 }
 export function DraftNumberField({label,value,onValueChange,min,max,unit,disabled=false}){
  const numeric=String(value).trim()!==''&&Number.isFinite(Number(value)),number=numeric?Number(value):min;

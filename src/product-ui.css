@@ -95,7 +95,7 @@
  .v2.compact-mobile .detail-header .icon-button{width:44px;height:44px}
  .v2.compact-mobile .detail-content{padding:18px 18px 28px}
  :root[data-density] .v2.compact-mobile .detail-content .field,.v2.compact-mobile .detail-content .field{grid-template-columns:minmax(85px,1fr) minmax(0,1.5fr);min-height:48px;font-size:14px;margin-bottom:10px}
- .v2.compact-mobile .detail-content .field :is(input,button){min-height:44px;font-size:15px}
+ .v2.compact-mobile .detail-content .field>:is(input,button){min-height:44px;font-size:15px}
  .v2.compact-mobile .detail-title textarea{font-size:19px}
  .v2.compact-mobile .detail-group .detail-kicker{font-size:14px}
  .v2.compact-mobile .detail-content :is(.secondary,.primary,.date-trigger){min-height:44px}

@@ -20,7 +20,6 @@
  .planner-pane-nav button[aria-pressed=true]{color:var(--accent-text);background:var(--bg);box-shadow:var(--surface-shadow);font-weight:600}
  .planner-pane-nav small{font-variant-numeric:tabular-nums;background:var(--hover);padding:2px 6px;border-radius:6px;font-size:11px}
  .planner .unscheduled .view-task,.planner .unscheduled .text-link{min-height:44px}
- .planner .backlog-filter input{min-height:44px;font-size:16px}
  .planner .work-budget{padding:10px 12px;margin-bottom:10px}
  .planner .planner-overview{margin-bottom:10px}
 }

@@ -247,3 +247,8 @@ Android launcher 采用独立蓝色渐变背景、白色单对勾前景和单色
 - Radix 日期、时间、提醒、颜色、下拉及菜单统一可取消 transient 关闭机制，嵌套弹层按最后打开顺序关闭，保留既有校验及提醒草稿。实际Android Back待原生专项。
 - TaskRow、TaskDetail、EntityDialog、WorkspaceSidebar、WorkspaceSettings抽离；保留App业务协调与原有API。每视图本机排序/分组/顺序、文件夹折叠、清单栏可见性持久化；标准/专注/宽详情预设复用现有尺寸门禁。组件展厅以真实组件和独立演示状态运行。
 - 详见 docs/design-system.md、docs/performance-baseline.md，尚未覆盖全量历史CSS、独立模块布局/滚动及长时内存验收，不声称全面收口。
+
+### 公共控件所有权、表单反馈与视图恢复
+- 公共数值/时间/搜索结构只在 design-system/controls.css 维护；禁止历史页面规则对组合控件内部 input 执行通用 max-width/边框/内边距覆盖。页面上下文可设置整体宽度及表面，不复制控件结构；保留焦点、forced-colors与触屏要求。
+- 带反馈的 Field 使用独立标签、控制ID、关联说明及 aria-invalid，FieldMessage 统一错误、帮助及成功图标；无效输入不提交，不改变业务层验证。展厅继承当前主题，覆盖真实控件状态与重置，不写工作空间。
+- 分组折叠按清单/视图及分组模式保存，隐藏任务从可操作列表排除，搜索结果不折叠。每模块宽度、外层滚动与虚拟列表滚动本机独立恢复，不记录搜索内容或真实任务正文；数据模型与同步机制不变。

@@ -1,3 +1,4 @@
+import {FieldMessage} from '../design-system/FieldFeedback.jsx';
 import {useTransientPopover,popoverGeometry} from "../design-system/popover.js";
 import React,{useEffect,useState} from 'react';
 import * as Popover from '@radix-ui/react-popover';
@@ -17,7 +18,7 @@ export function DateTimeControl({label,value,onChange,required=false,defaultDate
    <header><strong>{label}</strong><small>日期与时间使用本地时区</small></header>
    <div className="datetime-date-label"><span>日期</span><DatePicker label={label+'日期'} value={date} required onChange={setDate}/></div>
    <div className="datetime-time-label"><span>时间</span><TimeControl label={label+'时间'} value={time} required onChange={setTime}/></div>
-   {changed&&<small role="alert">提醒已在其他操作中修改，请关闭后重试。</small>}
+   <FieldMessage error={changed?"提醒已在其他操作中修改，请关闭后重试。":undefined}/>
    <div className="datetime-actions">{!required&&<button type="button" className="secondary" disabled={changed} onClick={()=>apply('')}>清除提醒</button>}<button type="button" className="secondary" onClick={()=>setOpen(false)}>取消</button><button type="button" className="primary" disabled={changed||!validDate(date)||!validTime(time)} onClick={()=>apply(date+'T'+time)}>应用提醒</button></div>
   </Popover.Content></Popover.Portal>
  </Popover.Root>

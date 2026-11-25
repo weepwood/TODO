@@ -1,12 +1,15 @@
 import {test,expect} from '@playwright/test';
-import {initialState,newTask,dayKey} from '../src/domain.js';
 import {writeFileSync,mkdirSync} from 'node:fs';
 for(const count of [1000,10000])test('synthetic workspace '+count,async({page,browserName})=>{
  test.setTimeout(60000);
- const data=initialState(),today=dayKey();
- data.tasks=Array.from({length:count},(_,i)=>newTask('基准任务 '+String(i).padStart(5,'0'),'inbox',today));
- await page.addInitScript(d=>{if(!localStorage.getItem('todo-workbench-v1'))localStorage.setItem('todo-workbench-v1',JSON.stringify(d))},data);
- const start=performance.now();await page.goto('/');await expect(page.locator('.task-row').first()).toBeVisible();
+ await page.goto('/');await expect(page.getByRole('textbox',{name:'新任务名称'})).toBeVisible();
+ const stored=await page.evaluate(count=>{
+  const key='todo-workbench-v1',data=JSON.parse(localStorage.getItem(key)),now=new Date(),today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  data.tasks=Array.from({length:count},(_,i)=>({id:'bench-'+i,title:'基准任务 '+String(i).padStart(5,'0'),notes:'',listId:'inbox',date:today,priority:0,repeat:'none',miss:'keep',anchor:+today.slice(-2),seriesId:null,checklist:[],status:'pending',createdAt:now.toISOString(),completedAt:null}));
+  localStorage.setItem(key,JSON.stringify(data));return JSON.parse(localStorage.getItem(key)).tasks.length;
+ },count);
+ expect(stored).toBe(count);
+ const start=performance.now();await page.reload();await expect(page.locator('.task-row').first()).toBeVisible({timeout:15000});
  const first=performance.now()-start,rendered=await page.locator('.task-row').count();
  expect(rendered).toBeLessThan(count);
  const samples=[];

@@ -22,7 +22,7 @@
 @media(prefers-reduced-motion:reduce){.v2 .quick-add{transition:none}}
 .work-budget{display:grid;gap:8px;padding:12px 14px;border:1px solid var(--line);border-radius:8px;margin-bottom:14px;background:var(--panel)}
 .work-budget>div{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px}.work-budget>div span{color:var(--muted);font-variant-numeric:tabular-nums}.work-budget progress{width:100%;height:7px;accent-color:var(--accent);border:0;appearance:none;-webkit-appearance:none;background:var(--line);border-radius:999px;overflow:hidden}.work-budget p{margin:0;overflow-wrap:anywhere}
-.backlog-filter{display:grid;gap:6px;margin:8px 0 12px}.backlog-filter :is(input,select){min-width:0;width:100%;padding:7px 9px;border:1px solid var(--line);background:var(--bg);color:var(--text);border-radius:7px;font-size:12px}
+.backlog-filter{display:grid;gap:6px;margin:8px 0 12px}.backlog-filter>select{min-width:0;width:100%;padding:7px 9px;border:1px solid var(--line);background:var(--bg);color:var(--text);border-radius:7px;font-size:12px}
 .work-budget progress::-webkit-progress-bar{background:var(--line);border-radius:999px}
 .work-budget progress::-webkit-progress-value{background:var(--accent);border-radius:999px}
 .work-budget progress::-moz-progress-bar{background:var(--accent);border-radius:999px}
@@ -51,9 +51,6 @@
 
 /* Command palette and consistent bounded controls */
 .command-palette{width:min(600px,calc(100vw - 28px));max-width:none}
-.palette-search{display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:8px;padding:9px 11px;background:var(--panel);color:var(--muted)}
-.palette-search:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 12%,transparent)}
-.palette-search input{border:0;background:none;outline:0!important;min-width:0;flex:1;color:var(--text);font-size:14px}
 .palette-results{max-height:min(46dvh,360px);overflow:auto;margin:8px -4px 4px;padding:0 4px}
 .palette-option{display:flex;align-items:center;gap:10px;min-height:38px;padding:7px 10px;border-radius:6px;color:var(--muted);cursor:pointer}
 .palette-option[data-active=true]{background:var(--active);color:var(--accent-text)}
