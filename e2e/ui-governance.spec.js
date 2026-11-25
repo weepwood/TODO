@@ -48,6 +48,7 @@ test('展厅实际表单反馈、关联描述、深浅主题及重置',async({pa
   const name=gallery.getByRole('textbox',{name:'演示必填名称'});await name.fill('');await name.blur();
   await expect(name).toHaveAttribute('aria-invalid','true');await expect(name).toHaveAccessibleDescription('名称不能为空');
   await name.fill('示例');await expect(name).toHaveAccessibleDescription('名称有效');
+  const immediate=gallery.getByRole('spinbutton',{name:'演示即时数值'});await expect(immediate).toHaveValue('30');expect((await immediate.boundingBox()).width).toBeGreaterThan(32);
   const draft=gallery.getByRole('spinbutton',{name:'演示数值草稿'});await draft.fill('181');await expect(draft).toHaveAttribute('aria-invalid','true');await expect(draft).toHaveAccessibleDescription('请输入 0 至 180 之间的整数');
   await page.screenshot({path:'test-results/gallery-feedback-'+theme+'.png',animations:'disabled'});
   await gallery.getByRole('button',{name:'重置演示'}).click();await expect(draft).toHaveValue('');await nav.getByRole('button',{name:'组件展厅'}).click();

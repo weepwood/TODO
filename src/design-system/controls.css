@@ -19,7 +19,14 @@
 .component-gallery h3{font-size:var(--font-heading)}
 .gallery-row{display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-2)}
 .gallery-row label{display:flex;gap:5px;align-items:center}
-.component-gallery .field>*:last-child{min-width:0}
+.component-gallery .field{display:grid;grid-template-columns:minmax(80px,1fr) minmax(0,1.6fr);gap:12px;align-items:start}
+.component-gallery .field>span{padding-block:8px}
+.component-gallery .field>*:last-child{width:100%;min-width:0}
+.component-gallery :is(.number-control,.time-control,.shared-search){background:var(--bg);border-color:var(--line)}
+.component-gallery :is(.number-control,.time-control,.shared-search):focus-within{border-color:var(--accent)}
+.component-gallery .number-control[data-invalid=true]{border-color:var(--danger)}
+.component-gallery :is(.number-step,.time-picker-trigger){background:var(--panel)}
+@media(max-width:480px){.component-gallery .field{grid-template-columns:minmax(0,1fr);gap:4px}.component-gallery .field>span{padding-block:0}}
 /* Authoritative number/time geometry. Consumers can set width or surface
    via contextual properties; no internal padding/height overrides needed. */
 .number-control,.time-control{display:flex;align-items:center;min-width:0;max-width:100%;height:var(--control-height);padding:3px;gap:3px;border:1px solid transparent;border-radius:var(--radius-control);background:var(--panel);overflow:hidden}
