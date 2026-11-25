@@ -362,3 +362,8 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - PR #8 a8e2fac 完整浏览器CI 45602435185成功，合并038891c，正式本地main同步；Pages 45603314537成功。新独立worktree v12-planner-layout。
 - 新增手机规划时间轴/待安排分区、可折叠工作设置、按容器宽度响应的桌面规划布局、隐藏详情时解除侧栏宽度预留、看板跨列动画当前位移继承与宽度快照刷新。无新依赖、无安装包、不改数据模型、计时/排程/提醒/签名。
 - 本机资源门禁因Swap I/O 20.999 MiB/s拒绝npm ci及Web构建，未绕过。低开销productivity/command-search单测15/15通过；首次附带advanced.test.js因新worktree尚无ical.js依赖无法加载（不是业务断言失败）。复用上一工作树已安装的Babel解析器只读解析本次5个JS/JSX文件通过，git diff --check通过。新增3项浏览器专项，覆盖手机分区安排与设置保持、动画中途重定向坐标、桌面宽窄布局；实际运行、截图及最新全量CI待验收。日志artifacts/TODO/planner-layout.log。
+
+### V1.2 第十轮搜索与积分体验
+- PR #9 03fc21f 完整浏览器CI 45603676076成功，合并a11eb3f，本机正式main同步；Pages 45604123884查询时仍在运行。独立worktree v12-command-points 基于PR #9的源码提交。
+- 实施命令面板四种范围、清空搜索和类型图标，积分明细文本/日期筛选及日趋势联动，奖励可兑换筛选和差额提示、手机控件适配。未改积分业务函数、数据库、原生接口或签名，无新增运行时依赖。
+- 资源门禁下 npm ci、Web生产构建、命令单测2/2、专项Edge浏览器15/15通过（ui-command-points、v114、v116、points-program）；人工审阅command-scopes、points-ledger-search、points-mobile-rewards真实截图。旧兑换退款、余额不足、键盘最近使用、模拟IPC录入保存断言保留。日志artifacts/TODO/command-points.log。最终全量PR CI与部署待核实；桌面整体视觉深度重构、编辑器、CSS与大数据性能基准仍未完成；不构建安装包。

@@ -14,3 +14,6 @@ export function rankCommands(entries,query,limit=60,recent=[]){
 }
 export function readRecentCommands(storage){try{const v=JSON.parse(storage?.getItem('todo-command-recent-v1')||'[]');return Array.isArray(v)?[...new Set(v.filter(x=>typeof x==='string'&&x.length<=256))].slice(0,12):[]}catch{return []}}
 export function rememberCommand(storage,entry,recent){const id=entry.id||entry.name;const next=[id,...recent.filter(x=>x!==id)].slice(0,12);try{storage?.setItem('todo-command-recent-v1',JSON.stringify(next))}catch{}return next}
+
+export function commandKind(entry){return entry.kind==='task'?'task':entry.id?.startsWith('list:')||entry.id?.startsWith('smart:')||entry.id?.startsWith('view:')?'list':'command'}
+export function scopeCommands(entries,scope){return scope==='all'?entries:entries.filter(entry=>commandKind(entry)===scope)}
