@@ -1,8 +1,9 @@
 import {chooseOption} from './select-helper.js';
 import {test,expect} from '@playwright/test';
 const uid='00000000-0000-4000-8000-000000000009';
-const host='https://xepkhnatnpvopnlqnrrz.supabase.co';
-const key='sb-xepkhnatnpvopnlqnrrz-auth-token';
+// Match the isolated Vite build configuration used by CI and local builds.
+const host=(process.env.VITE_SUPABASE_URL||'https://xepkhnatnpvopnlqnrrz.supabase.co').replace(/\/+$/,'');
+const key='sb-'+new URL(host).hostname.split('.')[0]+'-auth-token';
 const encode=o=>Buffer.from(JSON.stringify(o)).toString('base64url');
 test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API）',async({browser})=>{
  const expires=Math.floor(Date.now()/1000)+3600;

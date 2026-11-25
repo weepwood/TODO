@@ -1,0 +1,137 @@
+/* V1.2 refinement. Workbench task-first composition; no data or engine changes. */
+:root{--ui-control:36px;--ui-space:12px;--ui-surface:var(--bg)}
+.v2 .toolbar{padding-inline:16px;gap:8px}
+.v2 .toolbar .icon-button{width:36px;height:36px}
+.v2 .toolbar-add{min-height:34px}
+.v2 .sidebar .brand{padding-bottom:20px}
+.v2 .sidebar .section-label{font-size:11px;letter-spacing:0}
+.v2 .sidebar .nav-row{padding-inline:9px}
+.v2 .heading{align-items:end;padding-bottom:12px}
+.v2 .task-content{padding-inline:clamp(20px,3vw,42px)}
+.v2 .task-group{margin-bottom:22px}
+.v2 .task-row:not(.selected):not(.checked){border-radius:5px}
+.v2 .task-body span{font-weight:500}
+.v2 .task-more{flex:none}
+.v2 .detail-title textarea{font-weight:600;line-height:1.5}
+.v2 .detail-group{padding-block:15px 10px}
+.v2 .detail-group .detail-kicker{font-weight:600}
+.v2 .detail-content .field>span{white-space:normal;overflow-wrap:anywhere}
+.v2 .bulk-bar{gap:12px}
+.v2 .task-row[data-dragging=true]{box-shadow:var(--shadow);z-index:5;position:relative;background:var(--bg)}
+.mobile-sidebar-scrim,.mobile-toolbar-title,.mobile-nav-indicator{display:none}
+.date-control{display:inline-flex;align-items:center;gap:4px;max-width:100%;min-width:0}
+.date-control>input{min-width:0;width:142px;height:var(--ui-control);border:1px solid var(--line);border-radius:8px;padding-inline:9px;background:var(--bg)}
+.date-control>.date-trigger{width:var(--ui-control);min-width:var(--ui-control);height:var(--ui-control);overflow:hidden;justify-content:flex-start;gap:24px;padding:8px;font-size:0}
+.date-control>.date-trigger svg:last-child{display:none}
+.date-popover{padding:12px;max-width:calc(100vw - 24px)}
+.date-popover .rdp-root{--rdp-accent-color:var(--accent);--rdp-accent-background-color:var(--active);--rdp-day-height:36px;--rdp-day-width:36px;--rdp-day_button-height:34px;--rdp-day_button-width:34px}
+.date-popover .rdp-selected .rdp-day_button{border:1px solid var(--accent);background:var(--active);color:var(--accent-text)}
+.number-field{font-variant-numeric:tabular-nums;text-align:start;appearance:textfield;-moz-appearance:textfield}
+.number-field::-webkit-inner-spin-button,.number-field::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input[type=checkbox]{appearance:none;-webkit-appearance:none;display:inline-grid;place-content:center;width:16px;height:16px;border:1px solid var(--muted);border-radius:4px;background:var(--bg);vertical-align:middle;flex:none;cursor:pointer}
+input[type=checkbox]:checked{background:var(--accent);border-color:var(--accent)}
+input[type=checkbox]:checked::after{content:"";width:7px;height:4px;border:solid white;border-width:0 0 2px 2px;transform:translateY(-1px) rotate(-45deg)}
+input[type=checkbox]:disabled{opacity:.5;cursor:default}
+.update-panel>label input[type=checkbox]{width:34px;height:20px;border-radius:999px;display:inline-block;position:relative;border-color:var(--line);background:var(--hover)}
+.update-panel>label input[type=checkbox]::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--bg);border:1px solid var(--line);transform:none}
+.update-panel>label input[type=checkbox]:checked{background:var(--accent);border-color:var(--accent)}
+.update-panel>label input[type=checkbox]:checked::after{transform:translateX(14px)}
+.calendar-info,.planner-toolbar{gap:8px;align-items:center}
+.calendar-main .fc{--fc-border-color:var(--line)}
+.calendar-main .fc .fc-toolbar-title{font-weight:650;letter-spacing:-.02em}
+.calendar-main .fc .fc-daygrid-day-number{padding:8px;font-variant-numeric:tabular-nums}
+.calendar-main .fc .fc-col-header-cell-cushion{padding:9px 3px}
+.calendar-main .fc .fc-event{border-radius:5px}
+.calendar-main .fc .fc-event-mirror{opacity:.88;box-shadow:var(--shadow)}
+.calendar-agenda{position:sticky;top:0;padding:14px;gap:10px}
+.calendar-agenda-head h3{margin:0}
+.calendar-agenda-head small{font-size:11px;color:var(--muted)}
+.planner .planner-overview{padding:14px 6px;margin-bottom:12px}
+.planner .work-budget{padding:14px;background:var(--bg)}
+.planner .timeline{min-width:0}
+.time-block{border-radius:6px}
+.time-drop-guide{z-index:9}
+.stats-section-title{font-size:16px;margin:10px 0 14px;font-weight:650}
+.stats-toolbar .stats-jump{display:flex;gap:6px;margin-left:auto;order:3}
+.stats .stat-grid>div{padding:16px 14px;min-width:0}
+.stats .stat-grid>div strong{font-variant-numeric:tabular-nums;font-size:25px}
+.stats .stat-grid>div small{line-height:1.5}
+.stats .points-dashboard{margin-top:26px;padding-top:20px;border-top:1px solid var(--line)}
+.points-chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.points-chart-grid .stat-card{min-width:0}
+.points-chart-grid .points-trend{min-height:135px}
+.points-chart-grid .points-curve{min-height:150px}
+.points-wallet .wallet-grid>div:first-child{background:var(--active);border-color:transparent}
+.points-wallet .reward-row{padding-block:12px}
+.points-wallet .reward-row>.primary{min-width:56px;justify-content:center}
+.settings-navigation{top:65px}
+.settings-sections .account-panel{display:grid;gap:8px}
+.settings-sections .account-panel .sync-conflict{padding:12px;border-radius:9px;border:1px solid var(--line)}
+.settings-sections .account-panel input:not([type=checkbox]){min-height:40px}
+.settings-sections .settings-section{scroll-margin:0}
+.settings-sections .settings-section:last-child{min-height:190px}
+@media(prefers-reduced-motion:no-preference){
+ .v2 .task-row .task-check:active:not(:disabled){transform:scale(.9)}
+ .v2 .task-check{transition:transform 120ms var(--ui-ease),background-color 120ms,border-color 120ms}
+ .toast{animation:todo-feedback 160ms var(--ui-ease) both}
+ .update-panel>label input[type=checkbox]::after{transition:transform 150ms var(--ui-ease)}
+ @keyframes todo-feedback{from{opacity:0;translate:0 8px}to{opacity:1;translate:0 0}}
+}
+@media(max-width:1100px){.points-chart-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:860px){
+ .v2.compact-mobile .toolbar{gap:4px;padding:0 8px}
+ .compact-mobile .toast{bottom:calc(78px + env(safe-area-inset-bottom,0px));max-width:calc(100vw - 28px)}
+ .mobile-toolbar-title{display:block;font-size:16px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .v2.compact-mobile .toolbar>.grow{min-width:0}
+ .v2.compact-mobile .heading{align-items:flex-start}
+ .v2.compact-mobile .task-content{padding:18px 14px}
+ .v2.compact-mobile .heading .muted{font-size:13px}
+ .v2.compact-mobile .quick-add{margin-bottom:5px}
+ .v2.compact-mobile .bulk-bar{min-height:44px;margin-bottom:5px}
+ .v2.compact-mobile[data-selection-mode=false] .bulk-select-all,.v2.compact-mobile[data-selection-mode=false] .multi-toggle,.v2.compact-mobile[data-selection-mode=false] .drag-handle{display:none}
+ .v2.compact-mobile .multi-toggle,.v2.compact-mobile .drag-handle,.v2.compact-mobile .task-more{width:44px;min-width:44px;height:44px;justify-content:center;align-items:center}
+ .v2.compact-mobile .task-body{touch-action:pan-y}
+ .v2.compact-mobile .task-row{gap:3px}
+ .v2.compact-mobile .task-body span{font-size:15px}
+ .v2.compact-mobile .task-date{font-size:11px}
+ .v2.compact-mobile .task-row.selected{box-shadow:none}
+ .v2.compact-mobile .task-row:not(.checked).selected{background:var(--hover)}
+ .v2.compact-mobile .task-points{font-size:10px}
+ .mobile-sidebar-scrim{display:block;position:fixed;inset:0;z-index:29;background:#10152266;border-radius:0}
+ .v2.compact-mobile .mobile-nav{position:relative;isolation:isolate;gap:3px}
+ .v2.compact-mobile .mobile-nav-indicator{display:block;position:absolute;z-index:-1;pointer-events:none;top:5px;height:54px;left:8px;width:calc((100% - 28px)/5);transform:translateX(calc(var(--nav-index) * (100% + 3px)));background:var(--active);border-radius:9px}
+ .v2.compact-mobile .mobile-nav>button.active{background:transparent}
+ .v2.compact-mobile .mobile-nav>button{font-size:11px}
+ .v2.compact-mobile .detail-content{padding:16px 14px 28px}
+ .v2.compact-mobile .detail-group{padding-block:12px 8px}
+ .v2.compact-mobile .detail-content .field>span{font-size:13px}
+ .dialog.mobile-capture-sheet{top:auto;left:0;right:0;bottom:0;width:100%;max-width:none;transform:none;border-radius:18px 18px 0 0;max-height:calc(100dvh - 16px);padding-bottom:max(20px,env(safe-area-inset-bottom,0px))}
+ .dialog.mobile-capture-sheet .dialog-actions{gap:8px;flex-wrap:wrap}
+ .date-control>input,.date-control>.date-trigger{height:44px}
+ .date-control>.date-trigger{width:44px;min-width:44px;padding:13px}
+ .calendar-info .secondary,.planner-toolbar .secondary,.planner-toolbar .primary{min-height:44px}
+ .calendar-info .date-control,.planner-toolbar .date-control{flex:none}
+ .calendar-main .fc .fc-toolbar{flex-wrap:wrap;gap:10px}
+ .calendar-main .fc .fc-toolbar-title{font-size:17px}
+ .calendar-main .fc .fc-button{min-height:40px;font-size:12px}
+ .calendar-main .fc .fc-daygrid-day-number{padding:5px}
+ .calendar-agenda{position:static;max-height:none}
+ .planner .planner-overview{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:12px}
+ .planner .planner-overview>div{border:0;padding:6px}
+ .planner-hours{gap:8px;flex-wrap:wrap}
+ .stats .stat-grid>div{padding:12px}
+ .stats .stat-grid>div strong{font-size:22px}
+ .stats-toolbar .stats-jump{flex-basis:100%;margin-left:0;order:4}
+ .stats .points-dashboard{margin-top:20px}
+ .settings-navigation{top:58px;position:sticky;justify-content:flex-start}
+ .settings-navigation button{min-width:max-content}
+ .settings-sections .account-panel input:not([type=checkbox]){min-height:44px;font-size:16px}
+ .settings-sections .settings-section:last-child{min-height:calc(100dvh - 180px)}
+ @media(prefers-reduced-motion:no-preference){
+  .mobile-nav-indicator{transition:transform 190ms var(--ui-ease)}
+  .dialog.mobile-capture-sheet[data-state=open]{animation:ui-sheet-in 180ms var(--ui-ease) both}
+  .dialog.mobile-capture-sheet[data-state=closed]{animation:ui-sheet-out 140ms ease both}
+ }
+}
+@media(prefers-reduced-motion:reduce){.v2 .task-check,.toast,.mobile-nav-indicator,.dialog.mobile-capture-sheet,.update-panel>label input[type=checkbox]::after{animation:none!important;transition:none!important}}
+@media(forced-colors:active){input[type=checkbox]:checked{background:Highlight;border-color:Highlight}input[type=checkbox]:checked::after{border-color:HighlightText}}

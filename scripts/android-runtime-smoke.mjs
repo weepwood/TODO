@@ -80,13 +80,13 @@ try{
  await page.getByRole('button',{name:'添加',exact:true}).click();
  await retry(async()=>{const s=await store(page);assert.equal(s.tasks.filter(t=>t.title===title&&t.points===10).length,1)});
  pass('UI task creation, signed points and real SQLite IPC');
- screenshot('01-task-created');
  // Quick add selects the new task and opens its full-screen mobile detail.
  // Assert the actual selected task, rather than clicking the obscured list.
  await expect(page.locator('.details')).toBeVisible();
  await expect(page.locator('.details').getByRole('textbox',{name:'任务标题'})).toHaveValue(title);
  await expect(page.locator('.details').getByRole('spinbutton',{name:'任务积分'})).toHaveValue('10');
  await waitForAppFocus();
+ screenshot('01-task-created');
  // Dismiss the input method only if the OS reports it shown. Then exercise
  // one actual system Back while TODO owns the focused window.
  if(/mInputShown=true|mIsInputViewShown=true/.test(adb('shell','dumpsys','input_method'))){
@@ -116,6 +116,8 @@ try{
  await waitForAppFocus();
  assert.equal((await store(page)).tasks.filter(t=>t.title===title&&t.points===10).length,1);
  await expect(page.locator('.task-body').filter({hasText:title})).toBeVisible();
+ await waitForAppFocus();
+ screenshot('02-restored');
  assert.deepEqual(await invoke(page,'plugin:todo-mobile|session_read',{key:vaultKey}),{value:sentinel});
  await invoke(page,'plugin:todo-mobile|session_remove',{key:vaultKey});
  assert.deepEqual(await invoke(page,'plugin:todo-mobile|session_read',{key:vaultKey}),{value:null});
@@ -135,7 +137,6 @@ try{
  await invoke(page,'plugin:notification|cancel',{notifications:[id]});
  await retry(async()=>assert.ok(!(await invoke(page,'plugin:notification|get_pending')).some(r=>r.id===id)));
  pass('native notification schedule accepted, pending list and cancellation');
- screenshot('02-restored');
  writeFileSync(out+'/result.json',JSON.stringify({status:'pass',reports,limitations:['x86_64 emulator, not ARM64 physical device','no authenticated cloud or WorkManager network test','alarm delivery, reboot and Doze not tested']},null,2));
 }catch(e){
  writeFileSync(out+'/result.json',JSON.stringify({status:'fail',reports,error:String(e)},null,2));
