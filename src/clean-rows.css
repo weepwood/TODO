@@ -2,7 +2,6 @@
    shrink animation; no unselected dots or hover markers. */
 .v2 .sidebar .nav-row[data-view-key]:not(.active)::before,
 .v2 .task-row:not(.selected)::before,
-.v2:not(.compact-mobile) .rail>button:not(.active)::before,
 .settings-navigation button:not(.active)::before,
 .workspace-segment>button:not([aria-pressed=true])::after{opacity:0}
 .v2:not(.compact-mobile) .task-row .multi-toggle,
