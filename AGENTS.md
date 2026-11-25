@@ -280,3 +280,6 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 ### 首个 Android ARM64 APK 及原生运行专项
 - 45572563121 对应 f69cac8 实际成功，84/84 JS、完整 Rust/Kotlin/Gradle、APK v2 签名与 ABI/包名检查、SHA256 文件及 artifact 15002832661 成功；Pages 45572563040 成功。ARM64 ZIP 38443963 字节，ZIP SHA256 afaa20bba4b42a5e65e77cb3cd2e2e6199aa826aab129049380093310f57d80b；不将 ZIP digest 当成 APK digest。
 - 新增独立 Android API35 x86_64 模拟器 CI 和原生运行脚本，QA 专用包名、无效云地址、合成任务/会话探针、真实 ADB/CDP IPC；验证启动、SQLite 恢复、积分、Back、桌面权限隔离、Keystore、即时系统通知及定时请求取消。最新模拟器 CI 尚待结果，未验证实体设备、Doze/重启送达、WorkManager 实网或后台双向同步。未改变业务及已有发布资产，无新增收费资源。Desktop Commander 未恢复，本轮使用 GitHub 连接器原子提交。
+
+### Android 图标资源专项
+- 基线 de2cfab；通过已锁定 Tauri CLI 2.12.6 源码核对 manifest 支持独立 SVG default/fg/bg/monochrome。新增 Android 单对勾渐变图标源及资源生成脚本，五档密度 PNG/XML 检查，preandroid:init/build 自动生成并同步已有工程，桌面/Web 资源不变。CI 增加 APK 背景和单色资源检查。Desktop Commander 未连接，本机未执行生成及视觉验收；以实际新 APK/截图为准。更新机制仅设计，未接入 updater/安装权限、未生成或披露签名私钥、不增加费用；QA 包不承诺覆盖升级。

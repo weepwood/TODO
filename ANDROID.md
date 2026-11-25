@@ -27,3 +27,6 @@
 
 - 工作流 45572563121（f69cac8）真实通过 84 项 JS、Rust ARM64/Kotlin/Gradle 编译、APK v2 签名、独立包名与 ARM64 库检查，并生成 SHA256。产物 ID 15002832661，压缩包 38443963 字节，ZIP SHA256 afaa20bba4b42a5e65e77cb3cd2e2e6199aa826aab129049380093310f57d80b。Pages 45572563040 成功。调试签名不是长期发布签名，不承诺覆盖升级。
 - 独立 android-runtime.yml 生成 x86_64 测试包 com.weepwood.todo.qa.runtime，使用无效云地址、合成测试数据和 Android API35 模拟器。通过真实 WebView CDP 与 ADB 尝试验收安装/启动、任务积分与 SQLite、系统返回键、桌面 ACL、Keystore 密文/重启恢复、通知权限及系统记录、定时请求/取消。仅将 CI 实际通过的项记录为已验证，不等同于 ARM64 实体设备、后台通知送达、重启恢复或真实云同步。测试包仅用于 CI，不发布或传输真实会话。
+
+## Android 品牌图标
+- 新版 Android 图标源文件在 src-tauri/brand，蓝色渐变背景、单一对勾、单色主题层。`npm run android:icons` 通过锁定的 Tauri CLI 生成五档密度及 adaptive XML，并仅复制 Android 资源；android:init / android:build 自动调用，已有生成工程同步资源。桌面和 Web 原有图标暂保持不变。CI 检查 APK 中背景/单色资源；新图标实际打包和 launcher 截图仍待验收。

@@ -6,6 +6,8 @@ on:
     paths:
       - '.github/workflows/android.yml'
       - 'package.json'
+      - 'src-tauri/brand/**'
+      - 'scripts/android-icons.mjs'
       - 'package-lock.json'
       - 'tests/android-build.test.js'
       - 'src-tauri/tauri.android.conf.json'
@@ -66,6 +68,9 @@ jobs:
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging android-qa/TODO-Android-QA-arm64.apk > android-qa/APK_INFO.txt
           grep -F "package: name='com.weepwood.todo.qa.android'" android-qa/APK_INFO.txt
           unzip -l android-qa/TODO-Android-QA-arm64.apk | grep 'lib/arm64-v8a/.*\.so'
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump resources android-qa/TODO-Android-QA-arm64.apk > android-qa/APK_RESOURCES.txt
+          grep -F 'mipmap/ic_launcher_monochrome' android-qa/APK_RESOURCES.txt
+          grep -F 'mipmap/ic_launcher_background' android-qa/APK_RESOURCES.txt'
           (cd android-qa && sha256sum *.apk > SHA256SUMS.txt)
           printf '%s\n' "$GITHUB_SHA" > android-qa/BUILD_COMMIT.txt
       - uses: actions/upload-artifact@v4
