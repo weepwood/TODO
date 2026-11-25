@@ -10,9 +10,15 @@ export function DetailNavigation(){
    const selected=items.filter(el=>el.getBoundingClientRect().top<=boundary).at(-1)||items[0];
    if(selected)setActive(selected.dataset.detailSection);
   };
-  host.addEventListener('scroll',update,{passive:true});update();
-  return()=>host.removeEventListener('scroll',update);
+  let frame=0;const schedule=()=>{if(!frame)frame=requestAnimationFrame(()=>{frame=0;update()})};
+  host.addEventListener('scroll',schedule,{passive:true});update();
+  return()=>{host.removeEventListener('scroll',schedule);if(frame)cancelAnimationFrame(frame)};
+
  },[]);
+ useEffect(()=>{
+  const el=nav.current?.querySelector('[aria-current="location"]'),host=nav.current;if(!el||!host)return;
+  const a=el.getBoundingClientRect(),b=host.getBoundingClientRect();if(a.left<b.left)host.scrollLeft+=a.left-b.left;else if(a.right>b.right)host.scrollLeft+=a.right-b.right;
+ },[active]);
  const go=id=>{
   const host=nav.current?.closest('.detail-content'),target=host?.querySelector('[data-detail-section="'+id+'"]');
   if(!target)return;

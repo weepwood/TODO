@@ -129,8 +129,6 @@ input[type=checkbox]:disabled{opacity:.5;cursor:default}
  .settings-sections .settings-section:last-child{min-height:calc(100dvh - 180px)}
  @media(prefers-reduced-motion:no-preference){
   .mobile-nav-indicator{transition:transform 190ms var(--ui-ease)}
-  .dialog.mobile-capture-sheet[data-state=open]{animation:ui-sheet-in 180ms var(--ui-ease) both}
-  .dialog.mobile-capture-sheet[data-state=closed]{animation:ui-sheet-out 140ms ease both}
  }
 }
 @media(prefers-reduced-motion:reduce){.v2 .task-check,.toast,.mobile-nav-indicator,.dialog.mobile-capture-sheet,.update-panel>label input[type=checkbox]::after{animation:none!important;transition:none!important}}

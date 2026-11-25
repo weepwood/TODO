@@ -117,18 +117,12 @@
  .settings-dialog .dialog-head{height:58px}
  .mobile-more-sheet.dialog{padding:16px 16px max(16px,env(safe-area-inset-bottom,0px))}
  @media(prefers-reduced-motion:no-preference){
-  .v2.compact-mobile .detail-enter{animation:ui-mobile-enter var(--ui-normal) var(--ui-ease) both}
-  .v2.compact-mobile .detail-exit{animation:ui-mobile-exit var(--motion-exit) ease both}
   .v2.compact-mobile .sidebar.mobile-open{animation:ui-sidebar-enter var(--ui-normal) var(--ui-ease) both}
   .settings-dialog.dialog[data-state=open]{animation:ui-mobile-enter var(--ui-normal) var(--ui-ease) both}
   .settings-dialog.dialog[data-state=closed]{animation:ui-mobile-exit var(--motion-exit) ease both}
-  .mobile-more-sheet.dialog[data-state=open]{animation:ui-sheet-in var(--ui-normal) var(--ui-ease) both}
-  .mobile-more-sheet.dialog[data-state=closed]{animation:ui-sheet-out var(--motion-exit) ease both}
   @keyframes ui-mobile-enter{from{opacity:.7;transform:translateX(24px)}to{opacity:1;transform:translateX(0)}}
   @keyframes ui-mobile-exit{to{opacity:0;transform:translateX(24px)}}
   @keyframes ui-sidebar-enter{from{opacity:.8;transform:translateX(-18px)}to{opacity:1;transform:translateX(0)}}
-  @keyframes ui-sheet-in{from{opacity:.7;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
-  @keyframes ui-sheet-out{to{opacity:0;transform:translateY(28px)}}
  }
 }
 @media(prefers-reduced-motion:reduce){

@@ -77,3 +77,35 @@
 /* Keep edit affordances touch-visible, desktop hover quiet. */
 @media(max-width:860px){.v2.compact-mobile .detail-section-toggle{opacity:1;min-height:44px;min-width:44px}.v2.compact-mobile .detail-fact-edit{min-height:40px}.v2.compact-mobile .detail-section-heading{min-height:44px}}
 @media(prefers-reduced-motion:no-preference){.v2 .detail-section-card{transition:background-color var(--motion-fast),border-color var(--motion-fast)}.v2 .detail-section-toggle,.v2 .detail-fact-edit{transition:background-color var(--motion-fast),color var(--motion-fast),opacity var(--motion-fast)}}
+
+
+/* Compact inspector: clear groups and less blank space, unchanged field semantics. */
+.v2 .detail-content .detail-mode-summary{min-width:0;overflow-wrap:anywhere}
+.detail-mode-summary small{font:inherit;color:var(--muted)}
+.v2 .detail-content .detail-section-card[data-editing=true]{border-color:color-mix(in srgb,var(--accent) 19%,var(--line))}
+@media(max-width:860px){
+ .v2.compact-mobile .detail-content{padding:10px 12px 16px}
+ .v2.compact-mobile .detail-content .detail-title{gap:10px;margin-bottom:4px}
+ .v2.compact-mobile .detail-content .detail-mode-bar{margin-bottom:4px;min-height:44px}
+ .v2.compact-mobile .detail-mode-bar .secondary{padding-inline:10px}
+ .v2.compact-mobile .detail-content .detail-section-stack{gap:8px;margin-bottom:8px}
+ .v2.compact-mobile .detail-content>.detail-section-card{margin-bottom:8px}
+ .v2.compact-mobile .detail-section-heading{margin-bottom:4px}
+ .v2.compact-mobile .detail-facts{gap:6px 10px}
+ .v2.compact-mobile .detail-facts>div{gap:0}
+ .v2.compact-mobile .detail-facts dd .detail-fact-edit{min-height:40px}
+ .v2.compact-mobile .detail-content .detail-field-grid>.field{margin:0;gap:5px}
+ .v2.compact-mobile .detail-content .detail-field-grid :is(.number-control,.time-control,.smart-select-trigger,.date-trigger){min-height:44px}
+ .v2.compact-mobile .detail-content .detail-field-grid .field>span{font-size:12px}
+}
+@media(min-width:360px) and (max-width:860px){
+ .v2.compact-mobile .detail-content .detail-field-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .v2.compact-mobile .detail-content .detail-group .detail-field-grid>.field{grid-template-columns:minmax(0,1fr);align-items:start;min-width:0;gap:5px;margin:0}
+ .v2.compact-mobile .detail-content .detail-field-grid .number-control{width:100%;min-width:0}
+ .v2.compact-mobile .detail-content .detail-field-grid .number-step{width:44px;min-width:44px}
+ .v2.compact-mobile .detail-content .detail-field-grid .number-unit{display:none}
+ .v2.compact-mobile .detail-content .detail-field-grid .time-control>input{padding-inline:4px}
+}
+@media(min-width:861px) and (hover:hover) and (pointer:fine){
+ .v2 .detail-section-card:focus-within .detail-section-toggle{opacity:1!important}
+}

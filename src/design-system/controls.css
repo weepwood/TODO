@@ -110,3 +110,12 @@ html[data-focus-mode=enhanced] .shared-search:focus-within{box-shadow:0 0 0 2px 
 .detail-fact-value[data-status=completed] svg{color:var(--success,#26866e)}
 
 @media(prefers-reduced-motion:no-preference){.shared-search,.number-control,.time-control{transition:border-color var(--motion-fast),background-color var(--motion-fast)}.shared-segment>button,.number-step,.time-picker-trigger{transition:background-color var(--motion-fast),color var(--motion-fast)}}
+
+@media(prefers-reduced-motion:no-preference){
+ :is(.number-step,.time-picker-trigger,.shared-segment>button):not(:disabled){transition:background-color var(--motion-fast),color var(--motion-fast),scale var(--motion-fast)}
+ :is(.number-step,.time-picker-trigger,.shared-segment>button):not(:disabled):active{scale:.96}
+}
+@media(hover:hover) and (pointer:fine){
+ .shared-search:not([data-invalid=true]):hover,.number-control:not([data-invalid=true]):hover,.time-control:not([data-invalid=true]):hover{border-color:color-mix(in srgb,var(--line) 75%,var(--muted))}
+ .shared-search:not([data-invalid=true]):focus-within,.number-control:not([data-invalid=true]):focus-within,.time-control:not([data-invalid=true]):focus-within{border-color:var(--accent)}
+}

@@ -70,3 +70,5 @@
 }
 .habits-view .quick-add .smart-select-trigger{background:var(--bg);color:var(--text);border:1px solid var(--line)}
 .focus-card .segmented button.chosen:disabled{opacity:1;color:var(--accent-text)}
+
+@media(max-width:860px){.v2.compact-mobile .detail-navigation{top:-10px;padding:5px 0;margin:0 0 8px;gap:2px}.v2.compact-mobile .detail-navigation button{min-height:44px;padding:5px 7px}}
