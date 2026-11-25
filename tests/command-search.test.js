@@ -8,3 +8,12 @@ test('命令精确匹配优先、非连续字符、多词及最近使用',()=>{
  const m=new Map(),storage={getItem:k=>m.get(k),setItem:(k,v)=>m.set(k,v)};
  assert.deepEqual(rememberCommand(storage,entries[1],['a','b']),['b','a']);assert.deepEqual(readRecentCommands(storage),['b','a']);
 });
+
+test('命令范围分类互斥并保留排序输入',async()=>{
+ const {scopeCommands}=await import('../src/command-search.js');
+ const entries=[{id:'task:a',name:'工作',kind:'task'},{id:'list:a',name:'打开 工作'},{id:'smart:b',name:'打开 今日'},{id:'view:today',name:'打开 今天'},{id:'module:tasks',name:'打开 任务'},{name:'设置'}];
+ assert.deepEqual(scopeCommands(entries,'task').map(e=>e.id),['task:a']);
+ assert.deepEqual(scopeCommands(entries,'list').map(e=>e.id),['list:a','smart:b','view:today']);
+ assert.equal(scopeCommands(entries,'command').length,2);
+ assert.equal(scopeCommands(entries,'all'),entries);
+});
