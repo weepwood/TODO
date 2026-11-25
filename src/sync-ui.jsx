@@ -6,7 +6,7 @@ export function ConflictPreview({local,remote}){const d=compareWorkspace(local,r
 
 import {useState,useMemo} from 'react';
 import {manualMergePlan} from './sync-merge.js';
-const fieldLabels={title:'标题',notes:'备注',priority:'优先级'};
+const fieldLabels={title:'标题',notes:'备注',priority:'优先级',points:'积分'};
 export function FieldMerge({conflict,local,onApply}){
  const plan=useMemo(()=>manualMergePlan(conflict.base,local,conflict.remote),[conflict.base,local,conflict.remote]);
  const [choices,setChoices]=useState({});

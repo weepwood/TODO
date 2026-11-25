@@ -63,7 +63,7 @@ export function useDirectCapture({uid,storage,data,blocked,edit,onSaved}){
   if(!latest.current.data.tasks.some(t=>t.id===req.id)){
    const {quickParse}=await import('./advanced.js');const {newTask,dayKey}=await import('./domain.js');
    if(disposed||latest.current.blocked)return;const parsed=quickParse(req.text,dayKey(new Date(req.created_at?req.created_at*1000:Date.now())));if(!parsed.title){await invoke('native_direct_cancel_pending',{scope,id:req.id});return}
-   const task={...newTask(parsed.title,'inbox',parsed.date,req.id),time:parsed.time,priority:parsed.priority};
+   const task={...newTask(parsed.title,'inbox',parsed.date,req.id),time:parsed.time,priority:parsed.priority,...(parsed.points===undefined?{}:{points:parsed.points})};
    attempt=req;latest.current.edit(d=>d.tasks.some(t=>t.id===req.id)?d:{...d,tasks:[...d.tasks,task]});return;
   }
   attempt=req;

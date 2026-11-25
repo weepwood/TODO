@@ -1,3 +1,4 @@
+import {validPoints} from './points.js';
 import {dayKey,shiftDay,validDate,id} from './domain.js';
 export function nextWeekday(date,days,interval=1,origin=date){
  const selected=new Set(days);const monday=k=>shiftDay(k,-((new Date(k+'T12:00:00').getDay()+6)%7));
@@ -25,5 +26,6 @@ export function quickParse(raw,today=dayKey()){
  const relative=title.match(/(?:^|\s)(今天|明天|后天)(?=\s|$)/);if(relative){date=shiftDay(today,['今天','明天','后天'].indexOf(relative[1]));title=title.replace(relative[0],' ')}
  const explicit=title.match(/(?:^|\s)(\d{4}-\d{2}-\d{2})(?=\s|$)/);if(explicit&&validDate(explicit[1])){date=explicit[1];title=title.replace(explicit[0],' ')}
  const clock=title.match(/(?:^|\s)([01]\d|2[0-3]):([0-5]\d)(?=\s|$)/);if(clock){time=clock[1]+':'+clock[2];title=title.replace(clock[0],' ');date=date||today}
- return {title:title.trim(),date,time,priority}
+ const match=title.match(/(?:^|\s)积分([+-]?\d+)(?=\s|$)/);let points;if(match&&validPoints(Number(match[1]))){points=Number(match[1]);title=title.replace(match[0],' ')}
+ return {title:title.trim(),date,time,priority,...(points===undefined?{}:{points})}
 }

@@ -1,3 +1,4 @@
+import {validPoints} from './points.js';
 import {validSmartLists} from './smart-lists.js';
 import {nextWeekday,offsetDate,blockers,canLink} from './advanced.js';
 export const STORAGE_KEY='todo-workbench-v1';
@@ -109,7 +110,7 @@ export function migrateState(input){
   const list=v.lists.find(l=>l.id===t.listId)||v.lists.find(l=>l.id==='inbox');
   const n={...newTask(t.title,list.id,t.date||'',t.id),...t,listId:list.id,sectionId:list.sections.some(s=>s.id===t.sectionId)?t.sectionId:null};
   check(Array.isArray(n.tags)&&n.tags.every(str)&&validTime(n.reset)&&(!n.time||validTime(n.time))&&Number.isFinite(n.duration)&&n.duration>=1&&n.duration<=1440&&['todo','doing','done'].includes(n.stage)&&(!n.reminderAt||/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(n.reminderAt)&&validDate(n.reminderAt.slice(0,10))&&validTime(n.reminderAt.slice(11))),'任务时间或扩展字段无效');
-  check(n.anchor===null||Number.isInteger(n.anchor)&&n.anchor>=1&&n.anchor<=31,'重复日期锚点无效');check(n.deletedAt===null||str(n.deletedAt),'回收站状态无效');check(n.seriesId===null||str(n.seriesId),'系列标识无效');check(Array.isArray(n.weekdays)&&n.weekdays.every(x=>Number.isInteger(x)&&x>=0&&x<=6)&&(!n.repeatUntil||validDate(n.repeatUntil))&&(!n.seriesStart||validDate(n.seriesStart))&&Number.isInteger(n.repeatCount)&&n.repeatCount>=0&&n.repeatCount<=100000&&Number.isInteger(n.occurrenceIndex)&&n.occurrenceIndex>=1,'扩展周期无效');
+  check(n.points===undefined||validPoints(n.points),'任务积分无效');check(n.anchor===null||Number.isInteger(n.anchor)&&n.anchor>=1&&n.anchor<=31,'重复日期锚点无效');check(n.deletedAt===null||str(n.deletedAt),'回收站状态无效');check(n.seriesId===null||str(n.seriesId),'系列标识无效');check(Array.isArray(n.weekdays)&&n.weekdays.every(x=>Number.isInteger(x)&&x>=0&&x<=6)&&(!n.repeatUntil||validDate(n.repeatUntil))&&(!n.seriesStart||validDate(n.seriesStart))&&Number.isInteger(n.repeatCount)&&n.repeatCount>=0&&n.repeatCount<=100000&&Number.isInteger(n.occurrenceIndex)&&n.occurrenceIndex>=1,'扩展周期无效');
   check((n.parentId===null||str(n.parentId))&&Array.isArray(n.dependsOn)&&n.dependsOn.every(str)&&Array.isArray(n.extraReminders)&&n.extraReminders.length<=20&&unique(n.extraReminders)&&n.extraReminders.every(r=>obj(r)&&str(r.id)&&str(r.at)&&validDate(r.at.slice(0,10))&&validTime(r.at.slice(11))&&(r.sentAt===null||str(r.sentAt))),'扩展任务字段无效');
   if(n.links!==undefined)check(Array.isArray(n.links)&&n.links.length<=30&&n.links.every(l=>obj(l)&&str(l.name)&&l.name.length<=100&&str(l.url)&&l.url.length<=2048&&(()=>{try{const u=new URL(l.url);return ['http:','https:'].includes(u.protocol)&&!u.username&&!u.password}catch{return false}})()),'关联链接无效');
   n.tags=n.tags.filter(x=>v.tags.some(tag=>tag.id===x));n.interval=intervalOf(n.interval);return n
@@ -118,7 +119,7 @@ export function migrateState(input){
  for(const t of v.tasks){if(t.parentId&&!canLink(v.tasks,t.id,t.parentId,'parentId'))throw Error('子任务循环');for(const dep of t.dependsOn)if(!canLink(v.tasks,t.id,dep))throw Error('任务依赖循环')}
  v.calendarEvents=records(v.calendarEvents,'日历事件');for(const e of v.calendarEvents)check(str(e.title)&&str(e.start)&&Number.isFinite(Date.parse(e.start))&&(!e.end||Number.isFinite(Date.parse(e.end))),'日历事件无效');
  check(obj(v.focusConfig)&&['focus','break','longBreak','cycles'].every(k=>Number.isFinite(v.focusConfig[k])&&v.focusConfig[k]>=1&&v.focusConfig[k]<=180),'专注设置无效');
- v.templates=records(v.templates,'模板');for(const t of v.templates)check(str(t.name)&&obj(t.task)&&str(t.task.title)&&str(t.task.notes)&&Array.isArray(t.task.checklist)&&t.task.checklist.every(c=>obj(c)&&str(c.text)),'模板无效');
+ v.templates=records(v.templates,'模板');for(const t of v.templates)check(str(t.name)&&obj(t.task)&&str(t.task.title)&&str(t.task.notes)&&(t.task.points===undefined||validPoints(t.task.points))&&Array.isArray(t.task.checklist)&&t.task.checklist.every(c=>obj(c)&&str(c.text)),'模板无效');
  v.habits=records(v.habits,'习惯');for(const h of v.habits)check(str(h.name)&&Array.isArray(h.days)&&h.days.every(validDate),'习惯无效');
  v.sessions=records(v.sessions,'专注记录');for(const s of v.sessions)check(str(s.startedAt)&&Number.isFinite(s.seconds)&&s.seconds>=0,'专注记录无效');
  if(v.timer!==null)check(obj(v.timer)&&['focus','stopwatch','break'].includes(v.timer.mode)&&Number.isFinite(v.timer.elapsed)&&v.timer.elapsed>=0&&Number.isFinite(v.timer.target)&&v.timer.target>=0&&(v.timer.startedAt===null||Number.isFinite(v.timer.startedAt))&&str(v.timer.createdAt),'计时器无效');
@@ -136,7 +137,7 @@ export function reorderTasks(tasks,active,over){const i=tasks.findIndex(t=>t.id=
 export function duplicateTask(task,lists,tags){
  if(!task||task.status!=='pending'||task.deletedAt)return null;
  const list=lists.find(l=>l.id===task.listId)||lists.find(l=>l.id==='inbox');if(!list)return null;
- return {...newTask(task.title+'（副本）',list.id,task.date),notes:task.notes,time:task.time,duration:task.duration,priority:task.priority,sectionId:list.sections.some(s=>s.id===task.sectionId)?task.sectionId:null,tags:task.tags.filter(id=>tags.some(t=>t.id===id)),checklist:task.checklist.map(c=>({id:id(),text:c.text,done:false})),...(task.links?{links:task.links.map(l=>({...l}))}:{})};
+ return {...newTask(task.title+'（副本）',list.id,task.date),notes:task.notes,time:task.time,duration:task.duration,priority:task.priority,...(task.points!==undefined?{points:task.points}:{}),sectionId:list.sections.some(s=>s.id===task.sectionId)?task.sectionId:null,tags:task.tags.filter(id=>tags.some(t=>t.id===id)),checklist:task.checklist.map(c=>({id:id(),text:c.text,done:false})),...(task.links?{links:task.links.map(l=>({...l}))}:{})};
 }
 export function moveTaskToList(state,tid,listId,sectionId=null){
  const list=state.lists.find(l=>l.id===listId),task=state.tasks.find(t=>t.id===tid);
