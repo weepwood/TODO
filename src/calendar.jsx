@@ -1,5 +1,5 @@
 import {TimeControl} from './components/TimeControl.jsx';
-import {DateControl} from './task-fields.jsx';
+import {DateControl} from './components/DatePicker.jsx';
 import React,{useEffect,useState,useRef,useMemo} from 'react';
 import FullCalendar from '@fullcalendar/react';
 import classicThemePlugin from '@fullcalendar/react/themes/classic';

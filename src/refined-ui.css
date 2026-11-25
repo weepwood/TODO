@@ -23,7 +23,7 @@
 .date-control>input{min-width:0;width:142px;height:var(--ui-control);border:1px solid var(--line);border-radius:8px;padding-inline:9px;background:var(--bg)}
 .date-control>.date-trigger{width:var(--ui-control);min-width:var(--ui-control);height:var(--ui-control);overflow:hidden;justify-content:flex-start;gap:24px;padding:8px;font-size:0}
 .date-control>.date-trigger svg:last-child{display:none}
-.date-popover{padding:12px;max-width:calc(100vw - 24px)}
+.date-popover{padding:12px;max-width:calc(100vw - 24px);max-height:var(--radix-popover-content-available-height);overflow:auto}
 .date-popover .rdp-root{--rdp-accent-color:var(--accent);--rdp-accent-background-color:var(--active);--rdp-day-height:36px;--rdp-day-width:36px;--rdp-day_button-height:34px;--rdp-day_button-width:34px}
 .date-popover .rdp-selected .rdp-day_button{border:1px solid var(--accent);background:var(--active);color:var(--accent-text)}
 .number-field{font-variant-numeric:tabular-nums;text-align:start;appearance:textfield;-moz-appearance:textfield}

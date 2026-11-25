@@ -29,7 +29,8 @@ import {CommandPalette} from './command-palette.jsx';
 
 import {useAccount,useAccountLock,useWorkspaceSync,AccountPanel,cloud} from './cloud.jsx';
 import {scopedStorage} from './services/cloud-core.js';
-import {DatePicker,RecurrenceFields,ReminderFields,Relations} from './task-fields.jsx';
+import {DatePicker} from './components/DatePicker.jsx';
+import {RecurrenceFields,ReminderFields,Relations} from './task-fields.jsx';
 import {quickParse,blockers,taskConflicts} from './core/advanced.js';
 import {SectionGroup,VirtualTaskList} from './task-list.jsx';
 import {useHistory} from './history.js';

@@ -5,12 +5,11 @@
 .datetime-popover{z-index:1200;width:min(320px,calc(100vw - 24px));max-height:var(--radix-popover-content-available-height);overflow:auto;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--text);box-shadow:var(--shadow)}
 .datetime-popover header{display:grid;gap:4px;margin-bottom:14px}.datetime-popover header small{font-size:11px;color:var(--muted)}
 .datetime-date-label,.datetime-time-label{display:grid;grid-template-columns:48px minmax(0,1fr);align-items:center;gap:10px;margin:10px 0;font-size:13px}
-.datetime-date-label input{min-width:0;height:36px;font-variant-numeric:tabular-nums}
-.datetime-date-label input[aria-invalid=true]{border-color:#c65a5a}
 .datetime-time-label .time-control{width:100%}.datetime-time-label .time-control input{flex:1}
 .datetime-actions{display:flex;justify-content:flex-end;gap:6px;margin-top:16px;flex-wrap:wrap}
 .datetime-actions button{font-size:12px}
-.datetime-popover .date-presets{margin:4px 0 12px}
+.datetime-date-label .date-trigger{width:100%;min-width:0;min-height:36px;background:var(--panel);border-color:transparent;border-radius:var(--radius-control)}
+.datetime-date-label .date-trigger[data-state=open],.datetime-date-label .date-trigger:focus-visible{border-color:var(--accent)}
 .extra-reminder .datetime-trigger{flex:1}
 .number-control{display:flex;align-items:center;min-width:0;max-width:100%;height:34px;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--bg)}
 .number-control:focus-within{border-color:var(--accent)}
@@ -35,8 +34,7 @@
 }
 @media(max-width:860px){
  .datetime-trigger{min-height:44px;font-size:13px}
- .datetime-date-label input,.datetime-actions button{min-height:44px}
- .datetime-date-label input{font-size:16px}
+ .datetime-date-label .date-trigger,.datetime-actions button{min-height:44px}
  .number-control{height:44px}
  .number-control .number-step{width:44px}
  .number-control .number-value>.number-field{font-size:15px}
@@ -44,12 +42,11 @@
  .v2.compact-mobile .detail-content .extra-reminder{gap:6px}
  .v2.compact-mobile .detail-content .extra-reminder>.icon-button{width:44px;height:44px;flex:none}
 }
-.datetime-date-label input{width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text)}
-.datetime-calendar-toggle{min-height:32px;margin-left:58px;display:flex;align-items:center;gap:6px}
-.datetime-popover .rdp-root{--rdp-accent-color:var(--accent);--rdp-day-height:36px;--rdp-day-width:36px;--rdp-day_button-height:34px;--rdp-day_button-width:34px;margin:10px auto;max-width:100%}
 .v2 .bulk-bar[data-has-selection=true]{padding:9px 10px;gap:7px;border:1px solid var(--line);border-radius:9px;background:var(--panel);align-items:center}
 .v2 .bulk-bar[data-has-selection=true]>.text-link{min-height:30px;padding:4px 6px;border-radius:6px;white-space:nowrap}
 .v2 .bulk-bar[data-has-selection=true]>.text-link:hover{background:var(--hover)}
 .v2 .bulk-bar .bulk-points{display:inline-flex;align-items:center;gap:4px}
 .v2 .bulk-bar .bulk-points input{width:58px;min-width:0;border:1px solid var(--line);border-radius:7px;background:var(--bg);height:34px;padding:4px 7px;font-variant-numeric:tabular-nums}
-@media(max-width:860px){.datetime-calendar-toggle{min-height:44px}.v2.compact-mobile .bulk-bar[data-has-selection=true]>.text-link{min-height:44px}.v2.compact-mobile .bulk-bar .bulk-points input{height:44px;font-size:16px}}
+@media(max-width:860px){.v2.compact-mobile .bulk-bar[data-has-selection=true]>.text-link{min-height:44px}.v2.compact-mobile .bulk-bar .bulk-points input{height:44px;font-size:16px}}
+
+.datetime-date-label .date-trigger svg:last-child{margin-left:auto}
