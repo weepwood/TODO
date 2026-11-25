@@ -1,0 +1,63 @@
+import {test,expect,devices} from '@playwright/test';
+test('共享时间选择器验证输入、选择、清除及持久化',async({page})=>{
+ await page.goto('/');
+ await page.getByRole('textbox',{name:'新任务名称'}).fill('时间控件验收');
+ await page.getByRole('button',{name:'添加',exact:true}).click();
+ const time=page.getByRole('textbox',{name:'计划时间',exact:true});
+ await time.fill('10:37');await time.press('Tab');await expect(time).toHaveValue('10:37');
+ await time.fill('25:90');await expect(time).toHaveAttribute('aria-invalid','true');
+ await time.press('Escape');await expect(time).toHaveValue('10:37');
+ await page.getByRole('button',{name:'计划时间选择器',exact:true}).click();
+ const picker=page.locator('.time-picker-popover');await expect(picker).toBeVisible();
+ await picker.getByRole('button',{name:'14时',exact:true}).click();
+ await picker.getByRole('button',{name:'15分',exact:true}).click();
+ await picker.getByRole('button',{name:'应用时间'}).click();
+ await expect(time).toHaveValue('14:15');
+ await page.reload();await page.locator('.task-body').filter({hasText:'时间控件验收'}).click();
+ await expect(time).toHaveValue('14:15');
+ await page.getByRole('button',{name:'计划时间选择器',exact:true}).click();
+ await picker.getByRole('button',{name:'清除',exact:true}).click();await expect(time).toHaveValue('');
+});
+test('手机时间选择器边界与左滑非破坏性菜单',async({browser})=>{
+ const ctx=await browser.newContext({...devices['Pixel 7'],baseURL:'http://127.0.0.1:4178'});
+ try{
+  const page=await ctx.newPage();await page.goto('/');
+  await page.getByRole('textbox',{name:'新任务名称'}).fill('手势验收');
+  await page.getByRole('button',{name:'添加',exact:true}).click();
+  await page.getByRole('button',{name:'计划时间选择器',exact:true}).click();
+  const picker=page.locator('.time-picker-popover');await expect(picker).toBeVisible();
+  const box=await picker.boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(await page.evaluate(()=>innerWidth)+1);
+  await page.screenshot({path:'test-results/controls-mobile-time.png',animations:'disabled'});
+  await picker.getByRole('button',{name:'应用时间'}).click();
+  await page.getByRole('button',{name:'关闭详情'}).click();await expect(page.locator('.details')).toHaveCount(0);
+  const task=page.locator('.task-body').filter({hasText:'手势验收'});
+  const r=await task.boundingBox(),x=r.x+r.width*.8,y=r.y+r.height/2;
+  const cdp=await ctx.newCDPSession(page);
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x-35,y}]});
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x-85,y}]});
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  await expect(page.getByRole('menuitem',{name:'安排明天'})).toBeVisible();
+  await page.screenshot({path:'test-results/controls-mobile-swipe.png',animations:'disabled'});
+  await page.keyboard.press('Escape');await expect(task).toBeVisible();await expect(page.locator('.details')).toHaveCount(0);
+ }finally{await ctx.close()}
+});
+test('自定义颜色控件支持预设及精确十六进制',async({page})=>{
+ await page.goto('/');
+ await page.getByRole('button',{name:'新建标签',exact:true}).click();
+ const dialog=page.getByRole('dialog',{name:'新建标签'});
+ await dialog.getByRole('textbox',{name:'名称'}).fill('颜色验收');
+ await dialog.getByRole('button',{name:'颜色',exact:true}).click();
+ const picker=page.locator('.color-picker-popover');await expect(picker).toBeVisible();
+ await picker.getByRole('button',{name:'#4d9a79',exact:true}).click();
+ await expect(dialog.getByRole('button',{name:'颜色',exact:true})).toContainText('#4d9a79');
+ await dialog.getByRole('button',{name:'颜色',exact:true}).click();
+ await picker.getByRole('textbox',{name:'十六进制颜色'}).fill('#12345');
+ await expect(picker.getByRole('button',{name:'应用颜色'})).toBeDisabled();
+ await picker.getByRole('textbox',{name:'十六进制颜色'}).fill('#123456');
+ await page.screenshot({path:'test-results/controls-color.png',animations:'disabled'});
+ await picker.getByRole('button',{name:'应用颜色'}).click();
+ await expect(dialog.getByRole('button',{name:'颜色',exact:true})).toContainText('#123456');
+ await dialog.getByRole('button',{name:'保存',exact:true}).click();
+ await expect(dialog).toHaveCount(0);
+});
