@@ -1,25 +1,34 @@
 /* Visual refinement: semantic selection markers, intentional whitespace and
    compact inspector layout. No imported illustration or font assets. */
 :root{
- --row-gap:4px;
- --nav-gap:4px;
+ --space-1:4px;
+ --space-2:8px;
+ --space-3:12px;
+ --space-4:16px;
+ --space-6:24px;
+ --radius-control:8px;
+ --radius-surface:12px;
+ --control-height:36px;
+ --control-touch-height:44px;
+ --row-gap:var(--space-1);
+ --nav-gap:var(--space-1);
  --marker-idle:5px;
  --marker-active:19px;
  --marker-width:3px;
  --marker-duration:200ms;
- --inspector-gap:12px;
- --inspector-radius:12px;
+ --inspector-gap:var(--space-3);
+ --inspector-radius:var(--radius-surface);
 }
 .v2 .sidebar{gap:var(--nav-gap)}
 .v2 .sidebar nav,.v2 .sidebar .nested{display:flex;flex-direction:column;gap:var(--nav-gap)}
 .v2 .sidebar .section-label{padding-top:14px;padding-bottom:3px}
-.v2 .sidebar .nav-row[data-view-key],.v2 .task-row,.v2:not(.compact-mobile) .rail>button{position:relative}
+.v2 .sidebar .nav-row[data-view-key],.v2 .task-row,.v2:not(.compact-mobile) .rail>button,.settings-navigation button{position:relative}
 .v2 .sidebar .nav-row[data-view-key]{padding-inline-start:14px}
-.v2 .sidebar .nav-row[data-view-key]::before,.v2 .task-row::before,.v2:not(.compact-mobile) .rail>button::before{
+.v2 .sidebar .nav-row[data-view-key]::before,.v2 .task-row::before,.v2:not(.compact-mobile) .rail>button::before,.settings-navigation button::before{
  content:"";position:absolute;pointer-events:none;inset-inline-start:4px;top:50%;transform:translateY(-50%);
  width:var(--marker-width);height:var(--marker-idle);border-radius:10px;background:var(--muted);opacity:.28;
 }
-.v2 .sidebar .nav-row[data-view-key].active::before,.v2 .task-row.selected::before,.v2:not(.compact-mobile) .rail>button.active::before{
+.v2 .sidebar .nav-row[data-view-key].active::before,.v2 .task-row.selected::before,.v2:not(.compact-mobile) .rail>button.active::before,.settings-navigation button.active::before{
  height:var(--marker-active);background:var(--accent);opacity:1
 }
 .v2 .sidebar .nav-row[data-view-key]:hover::before,.v2 .task-row:hover::before{background:var(--accent);opacity:.8}
@@ -85,7 +94,7 @@
  .v2 .detail-content .detail-field-grid>.field{grid-template-columns:minmax(0,1fr);gap:6px}
 }
 @media(prefers-reduced-motion:no-preference){
- .v2 .sidebar .nav-row[data-view-key]::before,.v2 .task-row::before,.v2:not(.compact-mobile) .rail>button::before{transition:height var(--marker-duration) var(--ui-ease),background-color var(--marker-duration) ease,opacity var(--marker-duration) ease}
+ .v2 .sidebar .nav-row[data-view-key]::before,.v2 .task-row::before,.v2:not(.compact-mobile) .rail>button::before,.settings-navigation button::before{transition:height var(--marker-duration) var(--ui-ease),background-color var(--marker-duration) ease,opacity var(--marker-duration) ease}
 }
 @media(max-width:860px){
  .v2.compact-mobile .task-row,.v2.compact-mobile .task-row:not(.selected):not(.checked){padding-inline-start:11px;border-radius:9px}
@@ -121,4 +130,44 @@
  .v2.compact-mobile .detail-title{margin-bottom:8px}
  .v2.compact-mobile .detail-content fieldset{gap:8px}
  .v2.compact-mobile .detail-content .detail-group .field{margin-bottom:2px}
+}
+
+/* Common selection feedback, including portaled menus and settings. */
+.settings-navigation button{padding-inline-start:16px}
+.settings-navigation button.active{box-shadow:none}
+.smart-select-content,.dropdown,.date-popover,.time-picker-popover,.datetime-popover,.color-picker-popover{border-radius:var(--radius-surface)}
+.smart-select-content .smart-select-viewport,.dropdown{padding:var(--space-1)}
+.smart-select-option,.dropdown-item{min-height:34px;border-radius:var(--radius-control);margin:0 0 2px}
+.smart-select-option:last-child,.dropdown-item:last-child{margin-bottom:0}
+.smart-select-option[data-state=checked]{background:var(--active)}
+.smart-select-option[data-state=checked][data-highlighted]{background:var(--active);outline:1px solid var(--accent);outline-offset:-1px}
+.dropdown-item[data-highlighted]:not([data-disabled]){background:var(--hover);outline:none}
+.dropdown-separator{margin:var(--space-1) 0}
+.v2 .heading .view-toolbar{align-items:center;gap:var(--space-2)}
+.v2 .heading .sort{display:flex;align-items:center;gap:var(--space-1);min-width:0}
+.v2 .heading .sort>span{font-size:12px;color:var(--muted);white-space:nowrap}
+.v2 .heading .sort .smart-select-trigger{min-height:var(--control-height);background:var(--panel);border-color:transparent}
+.v2 .heading .sort .smart-select-trigger[data-state=open]{border-color:var(--accent)}
+.v2 .heading .view-toolbar>.secondary{min-height:var(--control-height);border-radius:var(--radius-control)}
+.v2 .detail-content .detail-group .detail-tags{margin-bottom:var(--space-3)}
+.v2 .detail-content .detail-group .check-item{min-height:36px;margin-bottom:var(--space-1);border-radius:var(--radius-control);padding:4px 6px}
+.v2 .detail-content .detail-group .check-item:hover{background:var(--hover)}
+.v2 .detail-content .detail-group .check-add{border-radius:var(--radius-control)}
+.v2 .detail-content .detail-tags-notes h3,.v2 .detail-content [data-detail-section=relations] h3{font-weight:600}
+.v2 .detail-content .detail-actions{display:flex;gap:var(--space-2);flex-wrap:wrap}
+.v2 .detail-content .detail-actions>button{border-radius:var(--radius-control)}
+@container(max-width:490px){
+ .v2 .heading .view-toolbar{justify-content:flex-start;flex-wrap:wrap}
+ .v2 .heading .sort{flex:0 1 auto}
+}
+@media(max-width:860px){
+ .settings-navigation button{padding-inline:12px}
+ .settings-navigation button::before{inset-inline-start:50%;top:auto;bottom:3px;transform:translateX(-50%);width:var(--marker-idle);height:var(--marker-width)}
+ .settings-navigation button.active::before{width:var(--marker-active);height:var(--marker-width)}
+ .smart-select-option,.dropdown-item{min-height:var(--control-touch-height)}
+ .v2 .heading .sort .smart-select-trigger,.v2 .heading .view-toolbar>.secondary{min-height:var(--control-touch-height)}
+ .v2 .detail-content .detail-group .check-item{min-height:var(--control-touch-height)}
+}
+@media(prefers-reduced-motion:no-preference){
+ .settings-navigation button::before{transition:height var(--marker-duration) var(--ui-ease),width var(--marker-duration) var(--ui-ease),background-color var(--marker-duration) ease}
 }
