@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/android.yml'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tests/android-build.test.js'
       - 'src-tauri/tauri.android.conf.json'
       - 'src-tauri/plugins/todo-mobile/**'
       - 'src-tauri/capabilities/android-native.json'

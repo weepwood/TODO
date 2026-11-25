@@ -13,7 +13,8 @@
     "desktop:build": "tauri build",
     "android:init": "tauri android init",
     "android:build": "tauri android build --target aarch64 --apk",
-    "android:dev": "tauri android dev"
+    "android:dev": "tauri android dev",
+    "tauri": "tauri"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

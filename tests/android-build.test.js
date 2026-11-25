@@ -12,3 +12,10 @@ test('Android ARM64 APK 构建命令不重复传递单值参数',()=>{
  assert.equal(args[args.indexOf('--target')+1],'aarch64');
  assert.match(read('ANDROID.md'),/npm run android:build -- --debug`/);
 });
+
+test('Tauri 生成的 Gradle Rust 构建任务可使用通用 npm CLI 入口',()=>{
+ const pkg=JSON.parse(read('package.json'));
+ assert.equal(pkg.scripts.tauri,'tauri');
+ assert.ok(pkg.devDependencies['@tauri-apps/cli']);
+ assert.match(read('.github/workflows/android.yml'),/['"]package\.json['"]/);
+});

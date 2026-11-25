@@ -271,3 +271,8 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 
 ### Android APK 收口
 - 远端 main 9780c8d 已部署，Pages 45567472970 成功。Android 45567472907 已实际通过 SDK/NDK、npm ci、npm test、Android 工程初始化；构建失败是 npm script 与 CI 重复指定 --apk / --target aarch64，CLI 退出2，未进入 Rust/Kotlin 编译。保留 package.json 中固定的 ARM64 APK 参数，调用处不再重复，新增构建参数回归测试并同步 ANDROID.md。未修改业务、原生权限、云端或用户数据；实际 APK、签名与真机仍待验收。
+
+### Android Gradle CLI 收口（910b75a）
+
+- CI 45567844861：SDK/NDK、JS 测试和工程初始化均通过，Gradle 已开始构建并加载 Tauri 与自定义插件。实际阻塞为 :app:rustBuildArm64Debug 调用 npm run tauri 时缺少通用脚本（Missing script: "tauri"），不是已确认的 Rust/Kotlin 源码错误。新增 package.json 的 tauri: tauri 入口，构建路径监听 package/lock 与构建回归测试。仍需实际 APK 编译及签名校验。
+- Pages 45567844963 已成功。Desktop Commander 连接失效，本轮改用 GitHub 连接器读取实际 job 139046907306 日志并原子提交；本机测试未执行，由 CI 执行，不声称原生通过。未改变业务或安全门禁。

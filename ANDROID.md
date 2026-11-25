@@ -20,3 +20,5 @@
 - CI 45565487067 实际失败在 setup-android 默认安装已废弃 tools 包，明确 packages: platform-tools；已版本化 Kotlin/Gradle 插件源码和 Android 专属 ACL，CI 按移动源码/配置触发。仅 debug QA APK，不创建正式 Release；正式长期签名另验收。
 
 - 构建参数约定：package.json 的 android:build 已固定 --target aarch64 --apk；CI 和本机调用仅附加 --debug、--ci、--config 等参数，不重复传入 APK 与目标架构。CI 45567472907 已通过 SDK/NDK、npm test 与 Android 工程生成，在 CLI 参数解析处因重复 --apk 失败，尚未编译原生代码。
+
+- CI 45567844861：SDK/NDK、JS 测试和工程初始化均通过，Gradle 已开始构建并加载 Tauri 与自定义插件。实际阻塞为 :app:rustBuildArm64Debug 调用 npm run tauri 时缺少通用脚本（Missing script: "tauri"），不是已确认的 Rust/Kotlin 源码错误。新增 package.json 的 tauri: tauri 入口，构建路径监听 package/lock 与构建回归测试。仍需实际 APK 编译及签名校验。
