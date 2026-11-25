@@ -37,7 +37,7 @@
  .v2 .sidebar .section-label{padding-top:18px}
  .v2 .sidebar .nav-row{gap:9px}
  .v2 .rail .brand-icon{box-shadow:0 2px 5px color-mix(in srgb,var(--accent) 25%,transparent)}
- .v2 .rail>button.active{box-shadow:inset 2px 0 var(--accent)}
+
  .app.v2[data-sidebar-hidden=true]{grid-template-columns:var(--shell-rail) minmax(0,1fr) auto}
  .app.v2[data-sidebar-hidden=true]>.sidebar{display:none}
 }

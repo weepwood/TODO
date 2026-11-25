@@ -9,7 +9,7 @@
 :root[data-theme=dark]{--surface-shadow:0 1px 2px #0003}
 @media(prefers-color-scheme:dark){:root[data-theme=system]{--surface-shadow:0 1px 2px #0003}}
 .v2 .sidebar .search{border-radius:9px}
-.v2 .sidebar .nav-row.active{box-shadow:inset 2px 0 var(--accent)}
+
 .v2 .toolbar .primary,.v2 .toolbar-add{border-radius:8px;box-shadow:var(--surface-shadow)}
 .v2 .task-content>.heading{border-bottom:0;margin-bottom:14px}
 .v2 .quick-add{border-radius:10px}
