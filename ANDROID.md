@@ -22,3 +22,8 @@
 - 构建参数约定：package.json 的 android:build 已固定 --target aarch64 --apk；CI 和本机调用仅附加 --debug、--ci、--config 等参数，不重复传入 APK 与目标架构。CI 45567472907 已通过 SDK/NDK、npm test 与 Android 工程生成，在 CLI 参数解析处因重复 --apk 失败，尚未编译原生代码。
 
 - CI 45567844861：SDK/NDK、JS 测试和工程初始化均通过，Gradle 已开始构建并加载 Tauri 与自定义插件。实际阻塞为 :app:rustBuildArm64Debug 调用 npm run tauri 时缺少通用脚本（Missing script: "tauri"），不是已确认的 Rust/Kotlin 源码错误。新增 package.json 的 tauri: tauri 入口，构建路径监听 package/lock 与构建回归测试。仍需实际 APK 编译及签名校验。
+
+## 首个 ARM64 APK 与原生运行验收
+
+- 工作流 45572563121（f69cac8）真实通过 84 项 JS、Rust ARM64/Kotlin/Gradle 编译、APK v2 签名、独立包名与 ARM64 库检查，并生成 SHA256。产物 ID 15002832661，压缩包 38443963 字节，ZIP SHA256 afaa20bba4b42a5e65e77cb3cd2e2e6199aa826aab129049380093310f57d80b。Pages 45572563040 成功。调试签名不是长期发布签名，不承诺覆盖升级。
+- 独立 android-runtime.yml 生成 x86_64 测试包 com.weepwood.todo.qa.runtime，使用无效云地址、合成测试数据和 Android API35 模拟器。通过真实 WebView CDP 与 ADB 尝试验收安装/启动、任务积分与 SQLite、系统返回键、桌面 ACL、Keystore 密文/重启恢复、通知权限及系统记录、定时请求/取消。仅将 CI 实际通过的项记录为已验证，不等同于 ARM64 实体设备、后台通知送达、重启恢复或真实云同步。测试包仅用于 CI，不发布或传输真实会话。

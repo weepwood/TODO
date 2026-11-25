@@ -108,3 +108,6 @@ SQLite 历史备份使用时间、大小和明确导出/恢复操作，恢复仍
 
 ### Android 构建入口约定
 通用 npm run tauri 提供生成的 Gradle Rust 任务所需 CLI 入口；android:build 保留 ARM64 APK 固定参数。构建配置变更纳入独立 Android 验收，不改变业务与平台隔离设计。
+
+### Android 原生运行门禁
+独立 x86_64 模拟器验收与 ARM64 发布产物构建解耦；使用不同 QA 包名和无效云地址，真实 IPC 与 SQLite/Keystore 不注入模拟实现。先验收已提交数据、Activity 返回、通知请求与 ACL，再扩展后台读写与持久签名；CI 证据不代表实体设备。

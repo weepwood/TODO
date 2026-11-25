@@ -1,0 +1,80 @@
+name: Android 模拟器原生运行验收
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/android-runtime.yml'
+      - 'scripts/android-runtime-smoke.mjs'
+permissions:
+  contents: read
+concurrency:
+  group: android-runtime-main
+  cancel-in-progress: true
+jobs:
+  emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: 'true'
+      VITE_SUPABASE_URL: https://example.invalid
+      VITE_SUPABASE_PUBLISHABLE_KEY: qa-isolated-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-linux-android
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Android SDK and NDK
+        run: |
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
+      - run: npm ci
+      - name: Build isolated x86_64 APK
+        run: |
+          npm run android:init -- --ci --skip-targets-install --config '{"identifier":"com.weepwood.todo.qa.runtime","productName":"TODO Runtime QA"}'
+          npm run tauri -- android build --ci --debug --apk --target x86_64 --config '{"identifier":"com.weepwood.todo.qa.runtime","productName":"TODO Runtime QA"}'
+          mkdir -p android-runtime
+          test "$(find src-tauri/gen/android/app/build/outputs/apk -type f -name '*.apk' | wc -l)" -eq 1
+          cp "$(find src-tauri/gen/android/app/build/outputs/apk -type f -name '*.apk' -print -quit)" android-runtime/qa.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify android-runtime/qa.apk
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging android-runtime/qa.apk > android-runtime/APK_INFO.txt
+          grep -F "package: name='com.weepwood.todo.qa.runtime'" android-runtime/APK_INFO.txt
+          unzip -l android-runtime/qa.apk | grep 'lib/x86_64/libapp_lib.so'
+          printf '%s\n' "$GITHUB_SHA" > android-runtime/BUILD_COMMIT.txt
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Native WebView and device storage
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          disable-animations: true
+          script: node scripts/android-runtime-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TODO-Android-runtime-evidence
+          path: |
+            android-runtime/*.png
+            android-runtime/*.txt
+            android-runtime/*.json
+          if-no-files-found: warn

@@ -276,3 +276,7 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 
 - CI 45567844861：SDK/NDK、JS 测试和工程初始化均通过，Gradle 已开始构建并加载 Tauri 与自定义插件。实际阻塞为 :app:rustBuildArm64Debug 调用 npm run tauri 时缺少通用脚本（Missing script: "tauri"），不是已确认的 Rust/Kotlin 源码错误。新增 package.json 的 tauri: tauri 入口，构建路径监听 package/lock 与构建回归测试。仍需实际 APK 编译及签名校验。
 - Pages 45567844963 已成功。Desktop Commander 连接失效，本轮改用 GitHub 连接器读取实际 job 139046907306 日志并原子提交；本机测试未执行，由 CI 执行，不声称原生通过。未改变业务或安全门禁。
+
+### 首个 Android ARM64 APK 及原生运行专项
+- 45572563121 对应 f69cac8 实际成功，84/84 JS、完整 Rust/Kotlin/Gradle、APK v2 签名与 ABI/包名检查、SHA256 文件及 artifact 15002832661 成功；Pages 45572563040 成功。ARM64 ZIP 38443963 字节，ZIP SHA256 afaa20bba4b42a5e65e77cb3cd2e2e6199aa826aab129049380093310f57d80b；不将 ZIP digest 当成 APK digest。
+- 新增独立 Android API35 x86_64 模拟器 CI 和原生运行脚本，QA 专用包名、无效云地址、合成任务/会话探针、真实 ADB/CDP IPC；验证启动、SQLite 恢复、积分、Back、桌面权限隔离、Keystore、即时系统通知及定时请求取消。最新模拟器 CI 尚待结果，未验证实体设备、Doze/重启送达、WorkManager 实网或后台双向同步。未改变业务及已有发布资产，无新增收费资源。Desktop Commander 未恢复，本轮使用 GitHub 连接器原子提交。
