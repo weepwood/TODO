@@ -110,8 +110,8 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
   // Series controls travel through the same revision-checked task delta protocol.
   await a.page.locator('[data-view-key=inbox]').click();await add(a.page,'同步重复系列');
   await a.page.locator('.task-body').filter({hasText:'同步重复系列'}).click();
-  const expand=a.page.getByRole('button',{name:'编辑全部',exact:true});if(await expand.isVisible())await expand.click();
-  await chooseOption(a.page.getByRole('combobox',{name:'重复规则'}),'daily');
+  await a.page.getByRole('button',{name:'重复',exact:true}).click();
+  await chooseOption(a.page.getByRole('combobox',{name:'重复规则'}),'daily');await a.page.getByRole('dialog',{name:'重复设置'}).getByRole('button',{name:'确定',exact:true}).click();
   await expect.poll(()=>row.state.tasks.find(t=>t.title==='同步重复系列')?.repeat).toBe('daily');
   await a.page.getByRole('button',{name:'查看重复系列'}).click();
   a.page.once('dialog',d=>d.accept());await a.page.getByRole('button',{name:'暂停系列'}).click();

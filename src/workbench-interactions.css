@@ -36,10 +36,10 @@
 
 /* Shared action and field surfaces, including Radix portals outside .app. */
 .dialog-description{font-size:12px;line-height:1.6;color:var(--muted);margin:0 0 15px}
-.inline-title-editor{display:flex;flex:1;min-width:0;align-items:center;flex-wrap:wrap;gap:6px}
-.inline-title-editor input{flex:1;min-width:80px;border:1px solid var(--accent);border-radius:6px;background:var(--bg);color:var(--text);padding:6px 8px;font-size:13px}
+.inline-title-editor{display:flex;flex:1;min-width:0;flex-direction:column;justify-content:center;gap:2px}
+.inline-title-editor input{display:block;width:100%;min-width:0;box-sizing:border-box;border:0;border-radius:0;background:transparent;color:var(--text);padding:0;outline:none;box-shadow:none;font:inherit;font-size:13px;font-weight:500;line-height:1.45;caret-color:var(--accent)}
 .inline-title-editor small{flex-basis:100%;color:var(--danger);font-size:11px}
-.inline-title-editor button{flex:none;font-size:11px;padding:5px 7px}
+
 .quick-capture-dialog{width:min(530px,calc(100vw - 32px));max-width:none}
 .quick-capture-dialog .dialog-input{font-size:15px;min-height:42px}
 .capture-preview{display:grid;gap:4px;margin:12px 0;padding:10px 12px;border:1px solid var(--line);border-radius:7px;background:var(--panel);overflow-wrap:anywhere}
@@ -120,3 +120,6 @@
 @media(max-width:620px){.goal-grid,.wallet-grid{grid-template-columns:1fr}.goal-card,.wallet-grid>div{padding:9px}.points-curve{min-height:115px}}
 
 .update-panel{display:grid;gap:9px}.update-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}.update-heading h3,.update-heading p{margin:0}.update-panel progress{width:100%;accent-color:var(--accent)}.update-panel .update-release{border:1px solid var(--line);padding:12px;border-radius:8px;overflow-wrap:anywhere}.update-release p{white-space:pre-wrap;max-height:180px;overflow:auto;margin:6px 0}.update-panel>p{margin:0}.update-panel a{color:var(--accent)}
+
+:root[data-font=small] .v2 .inline-title-editor input{font-size:12px}
+:root[data-font=large] .v2 .inline-title-editor input,.v2.compact-mobile .inline-title-editor input{font-size:15px}

@@ -9,9 +9,9 @@ test('快速录入、智能清单、备注链接及批量规划',async({page})=>
  await page.getByRole('textbox',{name:'任务备注'}).fill('# 计划\n- **第一步**');
  await page.getByRole('button',{name:'预览',exact:true}).click();
  await expect(page.locator('.markdown-preview strong')).toHaveText('第一步');
- await page.getByRole('textbox',{name:'链接地址'}).fill('https://example.com/guide');
+ await page.getByRole('button',{name:'添加链接',exact:true}).click();await page.getByRole('textbox',{name:'链接地址'}).fill('https://example.com/guide');
  await page.getByRole('textbox',{name:'链接名称'}).fill('参考文档');
- await page.getByRole('button',{name:'添加链接'}).click();
+ await page.getByRole('dialog',{name:'添加关联链接'}).getByRole('button',{name:'添加链接',exact:true}).click();
  await expect(page.getByRole('link',{name:'打开 参考文档'})).toHaveAttribute('href','https://example.com/guide');
  await page.getByRole('button',{name:'新建智能清单'}).click();
  await page.getByRole('textbox',{name:'智能清单名称'}).fill('高优先级');

@@ -188,3 +188,47 @@
 .task-action-menu [data-priority="1"]{color:var(--priority-low)}
 .task-action-menu [data-priority="0"]{color:var(--muted)}
 .menu-action-sub{max-width:calc(100vw - 24px);max-height:var(--radix-context-menu-content-available-height,var(--radix-dropdown-menu-content-available-height,80vh));overflow-y:auto}
+
+/* One right-hand track for all navigation counts. Editable rows overlay the
+   action on that same track, never shrink the selected navigation surface. */
+.v2 .sidebar .sidebar-row{position:relative;display:block;min-width:0;gap:0}
+.v2 .sidebar .sidebar-row>.nav-row{width:100%;padding-inline-end:10px;min-width:0}
+.v2 .sidebar .sidebar-row .sidebar-row-label{flex:1;min-width:0}
+.v2 .sidebar .sidebar-row .sidebar-row-meta{display:flex;flex:0 0 auto;align-items:center;justify-content:flex-end;gap:6px;overflow:visible;color:var(--muted);font-weight:400}
+.v2 .sidebar .sidebar-row .sidebar-row-count{display:block;min-width:32px;max-width:48px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.v2 .sidebar .sidebar-color-dot{width:7px;height:7px;flex:none;border-radius:50%}
+.v2 .sidebar .sidebar-row>.sidebar-row-actions{position:absolute;inset-inline-end:4px;top:50%;translate:0 -50%;width:38px;height:calc(100% - 4px);opacity:0;z-index:1;background:transparent;pointer-events:auto}
+.v2 .sidebar .sidebar-row[data-editable=true]:is(:hover,:focus-within,:has(>.sidebar-row-actions[data-state=open])) .sidebar-row-count{opacity:0}
+.v2 .sidebar .sidebar-row[data-editable=true]:is(:hover,:focus-within,:has(>.sidebar-row-actions[data-state=open]))>.sidebar-row-actions{opacity:1}
+.v2 .sidebar .sidebar-row>.sidebar-row-actions:hover{background:var(--hover)}
+.v2 .sidebar .section-label>.icon-button{opacity:0}
+.v2 .sidebar .section-label:is(:hover,:focus-within)>.icon-button,.v2 .sidebar .section-label>.icon-button[data-state=open]{opacity:1}
+@media(prefers-reduced-motion:no-preference){.v2 .sidebar .sidebar-row-count,.v2 .sidebar .sidebar-row>.sidebar-row-actions,.v2 .sidebar .section-label>.icon-button{transition:opacity var(--ui-fast)}}
+/* Touch: keep both count and a discoverable action; reserve the same track
+   on noneditable rows so counts do not zigzag. */
+.v2.compact-mobile .sidebar .sidebar-row>.nav-row{padding-inline-end:48px}
+.v2.compact-mobile .sidebar .sidebar-row[data-editable=true] .sidebar-row-count{opacity:1}
+.v2.compact-mobile .sidebar .sidebar-row>.sidebar-row-actions,.v2.compact-mobile .sidebar .section-label>.icon-button{opacity:1}
+.v2.compact-mobile .sidebar .sidebar-row>.sidebar-row-actions{width:44px;height:44px;inset-inline-end:0}
+@media(hover:none),(pointer:coarse){
+ .v2 .sidebar .sidebar-row>.nav-row{padding-inline-end:48px}
+ .v2 .sidebar .sidebar-row[data-editable=true] .sidebar-row-count{opacity:1}
+ .v2 .sidebar .sidebar-row>.sidebar-row-actions,.v2 .sidebar .section-label>.icon-button{opacity:1}
+ .v2 .sidebar .sidebar-row>.sidebar-row-actions{width:44px;inset-inline-end:0}
+}
+
+/* Subtle row separators and a single compact trailing metadata cluster.
+   Do not reserve empty date/list columns or change virtual row heights. */
+.v2 .task-row::after{content:"";position:absolute;inset-inline:34px 8px;bottom:0;height:1px;background:color-mix(in srgb,var(--line) 48%,transparent);pointer-events:none}
+.v2 .task-row:is(.selected,.checked,:hover,[data-dragging=true])::after{opacity:0}
+.v2 .task-row .task-row-meta{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex:0 1 auto;min-width:0;max-width:58%;white-space:nowrap}
+.v2 .task-row-meta>.row-tags{flex-wrap:nowrap;min-width:0;overflow:hidden}
+.v2 .task-row-meta>.row-tags .tag-chip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.v2 .task-row-meta>.task-date{flex:none;text-align:right}
+.v2 .task-row-meta>svg,.v2 .task-row-meta>.task-warning,.v2 .task-row-meta>.task-points{flex:none}
+.v2 .task-body .task-title-text{display:inline;cursor:default}
+.v2:not(.compact-mobile) .task-body .task-title-text[data-editable=true]{cursor:text}
+.v2 .task-body>span{max-width:100%}
+.v2 .inline-title-editor input:focus{border:0;outline:none;box-shadow:none;background:transparent}
+@container work-area (max-width:540px){.v2 .task-row .task-row-meta{gap:4px;max-width:48%}}
+@container work-area (max-width:340px){.v2 .task-row .task-row-meta{gap:3px;max-width:54%}.v2 .task-row-meta>.task-warning,.v2 .task-row-meta>.task-points{font-size:10px}}

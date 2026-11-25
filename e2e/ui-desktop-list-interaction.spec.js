@@ -213,3 +213,72 @@ test('月份年份导航及时间提醒重复统一暂存确认',async({page})=>
  await dialog.getByRole('button',{name:'确定',exact:true}).click();
  await expect.poll(async()=>{const t=await stored();return [t.date,t.time,t.reminderAt,t.repeat,t.seriesStart]}).toEqual(['2028-02-20','10:00','2028-02-20T09:55','weekly','2028-02-20']);
 });
+
+test('清单归属右对齐与图标颜色编辑刷新保留',async({page})=>{
+ const state=initialState();state.tasks=[newTask('工作任务','work',dayKey()),newTask('个人任务','personal',dayKey()),newTask('收集任务','inbox','')];
+ state.lists[1].icon='emoji:💼';state.lists[2].icon='icon:home';
+ await page.addInitScript(d=>{if(!localStorage.getItem('todo-workbench-v1'))localStorage.setItem('todo-workbench-v1',JSON.stringify(d))},state);
+ await page.setViewportSize({width:1440,height:900});await page.goto('/');await page.locator('[data-view-key=all]').click();
+ const row=page.locator('.task-row').filter({hasText:'工作任务'});
+ await expect(row.locator('.task-list-identity')).toHaveText('💼工作');
+ await expect(row.locator('.task-body')).not.toContainText('工作任务工作');
+ const body=await row.locator('.task-body').boundingBox(),identity=await row.locator('.task-list-identity').boundingBox();
+ expect(identity.x).toBeGreaterThanOrEqual(body.x+body.width-1);
+ await expect(page.locator('[data-view-key=work] .list-icon-emoji')).toHaveText('💼');
+ await page.screenshot({path:'test-results/list-identity-desktop.png',animations:'disabled'});
+ const nav=page.locator('[data-view-key=work]');await nav.hover();await nav.locator('..').getByRole('button',{name:'更多操作'}).click();await page.getByRole('menuitem',{name:'编辑清单',exact:true}).click();
+ const dialog=page.getByRole('dialog',{name:'编辑清单'});await dialog.getByRole('button',{name:'Emoji',exact:true}).click();await dialog.getByRole('textbox',{name:'自定义 Emoji'}).fill('🧑‍💻');await dialog.getByRole('button',{name:'应用',exact:true}).click();
+ await dialog.getByRole('button',{name:'颜色',exact:true}).click();await page.getByRole('button',{name:'#4d9a79',exact:true}).click();
+ await page.screenshot({path:'test-results/list-icon-picker.png',animations:'disabled'});await dialog.getByRole('button',{name:'保存',exact:true}).click();
+ await expect(row.locator('.task-list-identity')).toHaveText('🧑‍💻工作');
+ await expect(row.locator('.task-list-identity')).toHaveCSS('--list-color','#4d9a79');
+ await page.reload();await page.locator('[data-view-key=all]').click();await expect(row.locator('.task-list-identity')).toHaveText('🧑‍💻工作');
+ await page.setViewportSize({width:390,height:900});await expect(row.locator('.task-list-identity')).toBeVisible();
+ await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.screenshot({path:'test-results/list-identity-mobile.png',animations:'disabled'});
+});
+
+test('侧栏数量共线、悬停操作替换及触控保留入口',async({page})=>{
+ const state=initialState();state.folders=[{id:'test-folder',name:'测试文件夹',color:'#6784da'}];state.lists[1].folderId='test-folder';state.lists[1].icon='emoji:💼';
+ state.tasks=[...Array.from({length:12},(_,i)=>newTask('收集 '+i,'inbox',dayKey())),newTask('工作','work',dayKey()),newTask('个人','personal',dayKey())];
+ state.tags=[{id:'test-tag',name:'测试标签',color:'#6784da'}];state.tasks[0].tags=['test-tag'];
+ await page.addInitScript(d=>localStorage.setItem('todo-workbench-v1',JSON.stringify(d)),state);
+ await page.setViewportSize({width:1440,height:900});await page.goto('/');
+ const sidebar=page.locator('.sidebar'),nav=key=>sidebar.locator('[data-view-key="'+key+'"]'),count=key=>nav(key).locator('.sidebar-row-count');
+ const action=key=>nav(key).locator('..').locator('.sidebar-row-actions');
+ await page.mouse.move(900,10);
+ const keys=['inbox','today','all','work','personal','tag:test-tag'];
+ await expect(count('inbox')).toHaveText('12');await expect(count('all')).toHaveText('14');
+ await expect.poll(async()=>{const boxes=await Promise.all(keys.map(k=>count(k).boundingBox()));if(boxes.some(b=>!b))return 1000;const right=boxes.map(b=>b.x+b.width);return Math.max(...right)-Math.min(...right)}).toBeLessThan(2);
+ await expect(nav('work').locator('.sidebar-color-dot')).toHaveCSS('background-color','rgb(103, 132, 218)');
+ await expect(nav('today').locator('.sidebar-color-dot')).toHaveCount(0);
+ await expect(action('work')).toHaveCSS('opacity','0');
+ const initial=await nav('work').boundingBox();
+ const slot=await count('work').boundingBox();await page.mouse.move(slot.x+slot.width/2,slot.y+slot.height/2);await expect(action('work')).toHaveCSS('opacity','1');await expect(count('work')).toHaveCSS('opacity','0');
+ expect(await nav('work').boundingBox()).toEqual(initial);
+ await action('work').click();await page.getByRole('menuitem',{name:'编辑清单',exact:true}).click();
+ await expect(page.getByRole('dialog',{name:'编辑清单'})).toBeVisible();await page.getByRole('button',{name:'取消',exact:true}).click();
+ const plus=sidebar.getByRole('button',{name:'新建分类',exact:true});
+ await page.mouse.move(900,10);await expect(plus).toHaveCSS('opacity','0');await plus.locator('..').hover();await expect(plus).toHaveCSS('opacity','1');
+ await page.mouse.move(900,10);await plus.focus();await expect(plus).toHaveCSS('opacity','1');
+ await page.mouse.move(900,10);await nav('today').focus();await page.screenshot({path:'test-results/sidebar-aligned-desktop.png',animations:'disabled'});
+ await page.setViewportSize({width:390,height:900});await page.getByRole('button',{name:'打开导航',exact:true}).click();
+ await expect(action('work')).toHaveCSS('opacity','1');await expect(count('work')).toHaveCSS('opacity','1');await expect(plus).toHaveCSS('opacity','1');
+ await page.screenshot({path:'test-results/sidebar-aligned-mobile.png',animations:'disabled'});
+});
+
+test('任务标题单击原位编辑及右侧元信息紧凑排列',async({page})=>{
+ await seed(page);
+ const rows=page.locator('.task-row'),row=rows.first(),title=row.locator('.task-title-text'),input=page.getByRole('textbox',{name:'行内任务标题'});
+ await page.mouse.move(900,10);
+ await expect.poll(()=>rows.nth(1).evaluate(el=>getComputedStyle(el,'::after').height)).toBe('1px');
+ const prior=await row.boundingBox(),body=await row.locator('.task-body').boundingBox(),meta=await row.locator('.task-row-meta').boundingBox(),identity=await row.locator('.task-list-identity').boundingBox(),date=await row.locator('.task-date').boundingBox();
+ expect(meta.x).toBeGreaterThanOrEqual(body.x+body.width-1);expect(date.x-identity.x-identity.width).toBeLessThan(10);
+ await title.click();await expect(input).toBeFocused();await expect(input).toHaveCSS('border-top-width','0px');expect(Math.abs((await row.boundingBox()).height-prior.height)).toBeLessThan(2);
+ await input.fill('取消原位');await input.press('Escape');await expect(title).toHaveText('任务3');
+ await title.click();await input.fill('直接编辑');await input.press('Enter');await expect(title).toHaveText('直接编辑');
+ await title.click();await input.fill('失焦保存');await rows.nth(1).locator('.task-body').click();await expect(title).toHaveText('失焦保存');
+ await expect(input).toHaveCount(0);await expect(rows.nth(1)).toHaveClass(/selected/);
+ await page.screenshot({path:'test-results/task-row-compact.png',animations:'disabled'});
+ await title.click();await page.screenshot({path:'test-results/task-inline-edit.png',animations:'disabled'});await input.press('Escape');
+});

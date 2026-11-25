@@ -201,3 +201,51 @@ html[data-focus-mode=enhanced] .shared-search:focus-within{box-shadow:0 0 0 2px 
 .time-picker-inline .time-picker-grid button{min-height:32px}
 .time-inline-clear{justify-self:stretch}
 @media(max-width:860px){.time-picker-inline .time-picker-grid button{min-height:40px}}
+
+/* List identity and icon customization: list color never owns the selection marker. */
+.list-icon-symbol,.list-icon-emoji{flex:none;display:inline-flex;align-items:center;justify-content:center}
+.list-icon-emoji{font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.v2 .nav-row>.list-icon-emoji{flex:none;overflow:visible}
+.task-list-identity{display:inline-flex;align-items:center;gap:5px;flex:0 1 auto;min-width:0;max-width:128px;justify-content:flex-end;color:var(--muted);font-size:11px;white-space:nowrap}
+.task-list-name{overflow:hidden;text-overflow:ellipsis;min-width:0;color:color-mix(in srgb,var(--list-color) 55%,var(--text))}
+.task-list-identity .list-icon-symbol{color:var(--list-color)}
+.entity-list-icon{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;align-items:start;margin:12px 0;font-size:12px}
+.list-icon-picker{min-width:0;display:grid;gap:8px}
+.list-icon-preview{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.list-icon-tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--panel);border-radius:var(--radius-control);padding:3px;gap:3px}
+.list-icon-tabs button{padding:6px;border-radius:6px;color:var(--muted)}
+.list-icon-tabs button[aria-pressed=true]{background:var(--bg);color:var(--text)}
+.list-icon-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px}
+.list-icon-grid button{display:grid;place-items:center;min-width:0;min-height:34px;border-radius:var(--radius-control)}
+.list-icon-grid button:hover{background:var(--hover)}
+.list-icon-grid button[aria-pressed=true]{background:var(--active);outline:1px solid var(--accent)}
+.list-custom-emoji{display:flex;gap:6px}
+.list-custom-emoji input{min-width:0;width:100%;border:1px solid var(--line);border-radius:var(--radius-control);padding:6px}
+.list-custom-emoji button{white-space:nowrap}
+@container work-area (max-width:540px){.task-list-identity{flex-basis:auto;max-width:78px;font-size:10px;gap:3px}.task-row .row-tags{display:none}}
+@container work-area (max-width:340px){.task-list-identity{flex-basis:auto;max-width:54px}.task-list-identity .list-icon-emoji,.task-list-identity .list-icon-symbol{width:13px!important;height:13px!important;font-size:13px!important}}
+@media(max-width:860px){.entity-list-icon{grid-template-columns:1fr;gap:6px}.list-icon-grid button{min-height:44px}}
+
+/* Stable right-hand metadata columns on spacious task lists. */
+
+/* Common information hint: optional explanatory copy, not actionable warnings. */
+.info-tip-trigger{display:inline-grid;place-items:center;flex:none;width:20px;height:24px;min-width:20px;padding:0;border:0;border-radius:5px;background:transparent;color:var(--muted);cursor:help;vertical-align:middle}
+.info-tip-trigger:is(:hover,:focus-visible,[aria-expanded=true]){background:var(--hover);color:var(--accent-text)}
+.info-tip-content{position:fixed;width:max-content;box-sizing:border-box;max-width:min(280px,calc(100vw - 24px));padding:9px 11px;border:var(--surface-border);border-radius:var(--popup-radius);background:var(--bg);color:var(--text);font-size:12px;line-height:1.55;box-shadow:var(--shadow);z-index:var(--popup-z-date);overflow-wrap:anywhere}
+@media(max-width:860px),(pointer:coarse){.info-tip-trigger{width:44px;height:44px;min-width:44px}}
+
+/* Searchable variant shares select tokens and Radix popup geometry. */
+.search-select-value{display:flex;align-items:center;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.search-select-value .property-list-value{overflow:hidden;text-overflow:ellipsis}
+.search-select-trigger>svg{flex:none}
+.smart-select-content.search-select-content{width:min(320px,calc(100vw - 24px));min-width:min(160px,calc(100vw - 24px));max-height:min(360px,var(--radix-popover-content-available-height,360px));display:flex;flex-direction:column;overflow:hidden;transform-origin:var(--radix-popover-content-transform-origin)}
+.search-select-input{display:flex;align-items:center;gap:7px;margin:3px;padding:6px 8px;border-bottom:1px solid var(--line);color:var(--muted)}
+.search-select-input svg{flex:none}
+.search-select-input input{min-width:0;width:100%;border:0;background:transparent;outline:none;color:var(--text);font:inherit;box-shadow:none}
+.search-select-options{min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.search-select-options .smart-select-option[data-active=true]{background:var(--hover);color:var(--text)}
+.search-select-options .smart-select-option[aria-selected=true]{color:var(--accent-text)}
+.search-select-options .smart-select-option[aria-disabled=true]{opacity:.5;cursor:not-allowed}
+.search-select-options .smart-select-option>span{min-width:0;overflow-wrap:anywhere}
+.search-select-empty{padding:9px;color:var(--muted);font-size:12px}
+@media(max-width:860px),(pointer:coarse){.search-select-input input{font-size:16px}.search-select-input{min-height:44px}}

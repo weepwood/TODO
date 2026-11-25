@@ -11,8 +11,8 @@ test('移动详情分区导航保持全部编辑功能',async({page})=>{
  await page.setViewportSize({width:390,height:844});await seed(page);
  await page.locator('.task-body').filter({hasText:'工作任务'}).click();
  const nav=page.getByRole('navigation',{name:'任务详情分区'});
- await expect(nav).toBeVisible();await nav.getByRole('button',{name:'提醒',exact:true}).click();
- await expect(page.getByRole('button',{name:'独立提醒',exact:true})).toBeInViewport();
+ await expect(nav).toBeVisible();await nav.getByRole('button',{name:'计划',exact:true}).click();
+ await expect(page.locator('[data-detail-section=plan]').getByRole('button',{name:'提醒',exact:true})).toBeInViewport();
  await nav.getByRole('button',{name:'备注',exact:true}).click();
  await expect(page.getByRole('button',{name:'展开编辑'})).toBeInViewport();
  await page.screenshot({path:'test-results/business-mobile-detail.png',animations:'disabled'});

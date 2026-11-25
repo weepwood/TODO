@@ -1,4 +1,5 @@
 import {canonical,digest} from './cloud-core.js';
+import {mergeActivity} from '../core/task-activity.js';
 import {migrateState} from '../core/domain.js';
 const eq=(a,b)=>canonical(a)===canonical(b);
 const simple=t=>!t||t.repeat==='none'&&!t.seriesId&&!t.previousId&&!t.seriesHold&&!t.parentId&&!(t.dependsOn||[]).length&&!t.deletedAt;
@@ -6,7 +7,7 @@ const SAFE_FIELDS=new Set(['title','notes','priority','points']);
 const changed=(a,b)=>[...new Set([...Object.keys(a||{}),...Object.keys(b||{})])].filter(k=>!eq(a?.[k],b?.[k]));
 // Only task-only, nonstructural concurrent edits are eligible. No guessing on deletion,
 // order, generated instances, timer state, or cross-entity dependencies.
-export function mergeTasks(base,local,remote,resolveField){
+function mergeBusinessTasks(base,local,remote,resolveField){
  const other=s=>Object.fromEntries(Object.entries(s).filter(([k])=>k!=='tasks'));
  if(!eq(other(base),other(local))||!eq(other(base),other(remote)))return null;
  const maps=[base,local,remote].map(s=>new Map(s.tasks.map(t=>[t.id,t])));
@@ -41,6 +42,12 @@ export function mergeTasks(base,local,remote,resolveField){
  }
  const merged={...base,tasks:result};
  try{const valid=migrateState(merged);return eq(valid,merged)?valid:null}catch{return null}
+}
+export function mergeTasks(base,local,remote,resolveField){
+ const strip=s=>({...s,tasks:s.tasks.map(({activity,...t})=>t)});
+ const merged=mergeBusinessTasks(strip(base),strip(local),strip(remote),resolveField);if(!merged)return null;
+ const maps=[base,local,remote].map(s=>new Map(s.tasks.map(t=>[t.id,t.activity])));
+ return {...merged,tasks:merged.tasks.map(t=>{const activity=mergeActivity(...maps.map(m=>m.get(t.id)));return activity.length?{...t,activity}:t})};
 }
 export function manualMergePlan(base,local,remote){
  if(!base||!local||!remote)return null;const conflicts=[];

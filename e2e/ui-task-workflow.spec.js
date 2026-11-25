@@ -3,24 +3,31 @@ import {initialState,newTask,dayKey} from '../src/domain.js';
 import {chooseOption} from './select-helper.js';
 async function seed(page){
  const d=initialState(),today=dayKey(),a={...newTask('专注目标','work',today),duration:60};
- d.tasks=[a];d.sessions=[{id:'session-a',taskId:a.id,mode:'focus',seconds:1800,startedAt:today+'T10:00:00'}];
+ d.focusConfig.ignoreShortSessions=false;d.tasks=[a];d.sessions=[{id:'session-a',taskId:a.id,mode:'focus',seconds:1800,startedAt:today+'T10:00:00'}];
  d.templates=[{id:'template-a',name:'日常模板',task:{...a,repeat:'daily',checklist:[{id:'old-item',text:'阅读',done:true}]}}];
  await page.addInitScript(d=>{if(!localStorage.getItem('todo-workbench-v1'))localStorage.setItem('todo-workbench-v1',JSON.stringify(d))},d);
  await page.setViewportSize({width:1440,height:900});await page.goto('/');return {a,today};
 }
-test('任务专注预绑定、原计时保护及预计实际对比',async({page})=>{
+test('任务内计时胶囊、跨工作台联动与预计实际对比',async({page})=>{
  const {a}=await seed(page);await page.locator('[data-view-key=work]').click();await page.locator('.task-body').filter({hasText:'专注目标'}).click();
  await expect(page.locator('.task-time-comparison')).toContainText('剩余预计 30 分钟');
- await page.getByRole('button',{name:'前往专注',exact:true}).click();
- await expect(page.getByRole('combobox',{name:'绑定任务'})).toContainText('专注目标');
- await expect(page.getByRole('spinbutton',{name:'专注分钟'})).toHaveValue('60');
- await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('todo-workbench-v1')).timer)).toBeNull();
- await page.getByRole('button',{name:'开始',exact:true}).click();
- await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('todo-workbench-v1')).timer?.taskId)).toBe(a.id);
- await page.getByRole('button',{name:'任务',exact:true}).click();await page.locator('[data-view-key=work]').click();await page.locator('.task-body').filter({hasText:'专注目标'}).click();
- await page.getByRole('button',{name:'查看当前计时'}).click();await expect(page.getByRole('button',{name:'暂停',exact:true})).toBeVisible();
- await expect(page.getByRole('combobox',{name:'绑定任务'})).toBeDisabled();
+ const focus=page.getByRole('group',{name:'任务内专注'}),stored=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('todo-workbench-v1')));
+ await expect(focus.getByRole('button',{name:'开始正计时'})).toContainText('00:00');
+ await expect(focus.getByRole('button',{name:'开始番茄钟'})).toContainText('30:00');
+ await focus.getByRole('button',{name:'开始正计时'}).click();await expect.poll(async()=>(await stored()).timer?.taskId).toBe(a.id);
+ await expect(focus.getByRole('button',{name:'暂停当前专注'})).toBeVisible();
+ await expect.poll(async()=>(await focus.locator('.focus-capsule-time').textContent())).not.toBe('00:00');
+ await focus.getByRole('button',{name:'暂停当前专注'}).click();await expect.poll(async()=>(await stored()).timer?.startedAt).toBeNull();
+ await page.reload();await page.locator('[data-view-key=work]').click();await page.locator('.task-body').filter({hasText:'专注目标'}).click();
+ await expect(focus.getByRole('button',{name:'继续当前专注'})).toBeVisible();await focus.getByRole('button',{name:'继续当前专注'}).click();
  await page.screenshot({path:'test-results/task-focus-workflow.png',animations:'disabled'});
+ await page.locator('.rail').getByRole('button',{name:'专注',exact:true}).click();
+ await expect(page.getByRole('combobox',{name:'绑定任务'})).toContainText('专注目标');await expect(page.getByRole('combobox',{name:'绑定任务'})).toBeDisabled();
+ await page.getByRole('button',{name:'暂停',exact:true}).click();await page.locator('.rail').getByRole('button',{name:'任务',exact:true}).click();await page.locator('[data-view-key=work]').click();await page.locator('.task-body').filter({hasText:'专注目标'}).click();
+ await expect(focus.getByRole('button',{name:'继续当前专注'})).toBeVisible();await focus.getByRole('button',{name:'结束并保存专注'}).click();
+ await expect.poll(async()=>(await stored()).sessions.length).toBe(2);await expect.poll(async()=>(await stored()).timer).toBeNull();
+ const remaining=3600-(await stored()).sessions.filter(s=>s.taskId===a.id).reduce((n,s)=>n+s.seconds,0);await focus.getByRole('button',{name:'开始番茄钟'}).click();await expect.poll(async()=>(await stored()).timer?.target).toBe(remaining);
+ await expect(focus.getByRole('button',{name:'暂停当前专注'})).toContainText('番茄钟');
 });
 test('模板创建前配置标题清单日期，检查项重置',async({page})=>{
  const {today}=await seed(page);await page.getByRole('button',{name:/任务模板/}).click();await page.getByRole('button',{name:'日常模板',exact:true}).click();
@@ -47,4 +54,53 @@ test('收藏清单独立持久化，不重复显示或改变归属',async({page}
  await page.getByRole('menuitem',{name:'取消收藏',exact:true}).click();
  await expect(page.locator('.section-label').getByText('收藏清单',{exact:true})).toHaveCount(0);
  await expect(work).toHaveCount(1);
+});
+
+for(const ignore of [true,false])test('不足一分钟专注设置与结算 '+(ignore?'默认忽略':'关闭后保存'),async({page})=>{
+ const state=initialState(),task=newTask('短时专注验收','inbox',dayKey());
+ state.tasks=[task];state.timer={mode:'stopwatch',target:0,elapsed:59,startedAt:null,createdAt:new Date().toISOString(),taskId:task.id};
+ await page.addInitScript(d=>{if(!localStorage.getItem('todo-workbench-v1'))localStorage.setItem('todo-workbench-v1',JSON.stringify(d))},state);
+ await page.setViewportSize({width:1440,height:900});await page.goto('/');
+ await page.locator('.rail').getByRole('button',{name:'设置',exact:true}).click();
+ await page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'专注',exact:true}).click();
+ const preference=page.getByRole('switch',{name:'忽略不足 1 分钟的专注'});
+ await expect(preference).toHaveAttribute('aria-checked','true');
+ if(!ignore)await preference.click();
+ await expect(preference).toHaveAttribute('aria-checked',String(ignore));
+ const stored=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('todo-workbench-v1')));
+ await expect.poll(async()=>(await stored()).focusConfig.ignoreShortSessions).toBe(ignore);
+ await page.reload();await page.locator('.rail').getByRole('button',{name:'设置',exact:true}).click();
+ await page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'专注',exact:true}).click();
+ await expect(preference).toHaveAttribute('aria-checked',String(ignore));
+ await page.getByRole('dialog',{name:'设置与数据管理'}).getByRole('button',{name:'关闭',exact:true}).click();
+ await page.locator('[data-view-key=inbox]').click();await page.locator('.task-body').filter({hasText:'短时专注验收'}).click();
+ await page.getByRole('button',{name:'结束并保存专注'}).click();
+ await expect.poll(async()=>(await stored()).timer).toBeNull();
+ await expect.poll(async()=>(await stored()).sessions.length).toBe(ignore?0:1);
+ if(!ignore)expect((await stored()).sessions[0].seconds).toBe(59);
+});
+
+test('智能番茄规划三种策略、设置持久化及运行目标稳定',async({page})=>{
+ const state=initialState(),task={...newTask('智能计划验收','inbox',dayKey()),duration:80};
+ state.tasks=[task];
+ await page.addInitScript(d=>{if(!localStorage.getItem('todo-workbench-v1'))localStorage.setItem('todo-workbench-v1',JSON.stringify(d))},state);
+ await page.setViewportSize({width:1440,height:900});await page.goto('/');await page.locator('[data-view-key=inbox]').click();await page.locator('.task-body').filter({hasText:'智能计划验收'}).click();
+ const focus=page.getByRole('group',{name:'任务内专注'}),budget=focus.getByRole('group',{name:'专注时间预算'}),stored=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('todo-workbench-v1')));
+ await expect(budget).toContainText('3 个待执行番茄');await expect(focus.getByRole('button',{name:'开始番茄钟'})).toContainText('25:00');
+ await budget.getByRole('button',{name:'查看番茄计划'}).click();const pop=page.getByRole('dialog',{name:'查看番茄计划设置'});await expect(pop).toContainText('30 分钟');await expect(pop).toContainText('预计合计 90 分钟');await pop.getByRole('button',{name:'关闭',exact:true}).click();
+ async function settings(){await page.locator('.rail').getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'专注',exact:true}).click()}
+ async function close(){await page.getByRole('dialog',{name:'设置与数据管理'}).getByRole('button',{name:'关闭',exact:true}).click()}
+ await settings();await expect(page.getByRole('switch',{name:'根据预计时长规划番茄钟'})).toHaveAttribute('aria-checked','true');
+ await expect(page.getByRole('switch',{name:'自动扣除已专注时长'})).toHaveAttribute('aria-checked','true');
+ await chooseOption(page.getByRole('combobox',{name:'尾段番茄处理'}),'strict');await close();await expect(budget).toContainText('4 个待执行番茄');
+ await settings();await chooseOption(page.getByRole('combobox',{name:'尾段番茄处理'}),'balanced');await close();await expect(focus.getByRole('button',{name:'开始番茄钟'})).toContainText('20:00');
+ await focus.getByRole('button',{name:'开始番茄钟'}).click();await expect.poll(async()=>(await stored()).timer?.target).toBe(1200);
+ const duration=page.locator('[data-detail-section=plan]').getByRole('spinbutton',{name:'预计分钟'});await duration.fill('40');await duration.press('Enter');await expect.poll(async()=>(await stored()).tasks[0].duration).toBe(40);
+ await expect.poll(async()=>(await stored()).timer.target).toBe(1200);
+ await expect(budget).toContainText('1 个待执行番茄');
+ await focus.getByRole('button',{name:'暂停当前专注'}).click();
+ await page.screenshot({path:'test-results/pomodoro-plan-desktop.png',animations:'disabled'});
+ await page.reload();await page.locator('[data-view-key=inbox]').click();await page.locator('.task-body').filter({hasText:'智能计划验收'}).click();
+ await expect(focus.getByRole('button',{name:'继续当前专注'})).toBeVisible();await expect.poll(async()=>(await stored()).timer.target).toBe(1200);await expect.poll(async()=>(await stored()).focusConfig.planStrategy).toBe('balanced');
+ await focus.getByRole('button',{name:'结束并保存专注'}).click();await settings();await page.getByRole('switch',{name:'根据预计时长规划番茄钟'}).click();await close();await expect(focus.getByRole('button',{name:'开始番茄钟'})).toContainText('25:00');await expect(budget).not.toContainText('智能番茄规划');
 });

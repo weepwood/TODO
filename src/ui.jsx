@@ -30,13 +30,19 @@ export function Field({label,children,...feedback}){if(Object.keys(feedback).len
 export function ContextMenu({items,children,disabled=false,className=''}){const [open,setOpen]=useState(false);useTransientPopover(open,()=>setOpen(false));return <Context.Root open={open} onOpenChange={setOpen}><Context.Trigger asChild disabled={disabled}>{children}</Context.Trigger><Context.Portal><Context.Content className={'dropdown '+className} collisionPadding={12}><MenuItems api={Context} items={items}/></Context.Content></Context.Portal></Context.Root>}
 
 export function ActionButton({variant='secondary',compact=false,icon:Icon,children,className='',type='button',...props}){return <button type={type} className={[variant,compact?'compact':'',className].filter(Boolean).join(' ')} {...props}>{Icon&&<Icon size={16} aria-hidden="true"/>}{children}</button>}
-export function InlineTitle({value,onCommit,onClose}){
- const [draft,setDraft]=useState(value),[error,setError]=useState('');const initial=useRef(value),input=useRef(null),errorId=useId();
- useEffect(()=>{input.current?.focus();input.current?.select()},[]);
- function save(){const title=draft.trim();if(!title){setError('标题不能为空');return}if(value!==initial.current){setError('标题已发生变化，请取消后重新编辑');return}onCommit(title,initial.current)}
- return <form className="inline-title-editor" onSubmit={e=>{e.preventDefault();save()}} onClick={e=>e.stopPropagation()} onKeyDown={e=>{if(e.key==='Escape'&&!e.nativeEvent.isComposing){e.preventDefault();e.stopPropagation();onClose()}}}>
- <input ref={input} aria-label="行内任务标题" value={draft} onChange={e=>{setDraft(e.target.value);setError('')}} aria-invalid={!!error} aria-describedby={error?errorId:undefined} onKeyDown={e=>{if(e.key==='Enter'&&e.nativeEvent.isComposing)e.preventDefault()}}/>
- <ActionButton compact type="submit" variant="primary">保存</ActionButton><ActionButton compact onClick={onClose}>取消</ActionButton><FieldMessage id={errorId} error={error}/>
+export function InlineTitle({value,onCommit,onClose,caret=null}){
+ const [draft,setDraft]=useState(value),[error,setError]=useState('');const initial=useRef(value),input=useRef(null),done=useRef(false),errorId=useId();
+ useEffect(()=>{const el=input.current;if(!el)return;el.focus({preventScroll:true});if(caret===null)el.select();else el.setSelectionRange(caret,caret)},[]);
+ function cancel(restoreFocus=true){if(done.current)return;done.current=true;onClose(restoreFocus)}
+ function save(restoreFocus=true){
+  if(done.current)return;
+  const title=(input.current?.value??draft).trim();
+  if(!title||value!==initial.current){if(!restoreFocus){cancel(false);return}setError(!title?'标题不能为空':'标题已发生变化，请取消后重新编辑');return}
+  done.current=true;if(title===initial.current)onClose(restoreFocus);else onCommit(title,initial.current,restoreFocus);
+ }
+ return <form className="inline-title-editor" onSubmit={e=>{e.preventDefault();save()}} onClick={e=>e.stopPropagation()}>
+ <input ref={input} aria-label="行内任务标题" value={draft} onChange={e=>{setDraft(e.target.value);setError('')}} aria-invalid={!!error} aria-describedby={error?errorId:undefined} onBlur={()=>save(false)} onKeyDown={e=>{if(e.nativeEvent.isComposing||e.keyCode===229){if(e.key==='Enter')e.preventDefault();return}if(e.key==='Enter'){e.preventDefault();e.stopPropagation();save()}else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();cancel()}}}/>
+ <FieldMessage id={errorId} error={error}/>
  </form>
 }
 
