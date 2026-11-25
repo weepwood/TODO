@@ -7,16 +7,24 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
  const expires=Math.floor(Date.now()/1000)+3600;
  const token=encode({alg:'HS256',typ:'JWT'})+'.'+encode({sub:uid,exp:expires,role:'authenticated'})+'.mock';
  const session={access_token:token,refresh_token:'mock-refresh',token_type:'bearer',expires_in:3600,expires_at:expires,user:{id:uid,email:'test@example.invalid',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{},created_at:new Date().toISOString()}};
- let row=null;
+ let row=null,deltaWrites=0,metadataReads=0;
  const contexts=[];
  async function device(){
   const ctx=await browser.newContext();contexts.push(ctx);
+  await ctx.routeWebSocket("**/realtime/v1/websocket**",ws=>ws.close());
   await ctx.addInitScript(({key,session})=>{if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify(session))},{key,session});
   await ctx.route(host+'/**',async route=>{
    const req=route.request(),url=new URL(req.url());
    if(url.pathname==='/auth/v1/user')return route.fulfill({json:session.user});
+   if(url.pathname.endsWith('/rpc/todo_apply_task_delta')){
+    const {p_revision,p_tasks}=req.postDataJSON();
+    if(!row||row.revision!==p_revision)return route.fulfill({json:null});
+    const changes=new Map(p_tasks.map(t=>[t.id,t])),existing=new Set(row.state.tasks.map(t=>t.id));
+    row={...row,revision:row.revision+1,state:{...row.state,tasks:[...row.state.tasks.map(t=>changes.get(t.id)||t),...p_tasks.filter(t=>!existing.has(t.id))]},updated_at:new Date().toISOString()};deltaWrites++;
+    return route.fulfill({json:{revision:row.revision,updated_at:row.updated_at}});
+   }
    if(!url.pathname.endsWith('/todo_workspaces'))return route.fulfill({status:404,json:{message:'mock route'}});
-   if(req.method()==='GET')return route.fulfill({json:row?[row]:[]});
+   if(req.method()==='GET'){if(url.searchParams.get('select')==='revision,updated_at'){metadataReads++;return route.fulfill({json:row?[{revision:row.revision,updated_at:row.updated_at}]:[]})}return route.fulfill({json:row?[row]:[]})}
    const body=req.postDataJSON();
    if(req.method()==='POST'){if(row)return route.fulfill({status:409,json:{code:'23505',message:'duplicate'}});row={...body,updated_at:new Date().toISOString()}}
    else if(req.method()==='PATCH'){if(!row||url.searchParams.get('revision')!=='eq.'+row.revision)return route.fulfill({status:406,json:{code:'PGRST116',details:'The result contains 0 rows',message:'Cannot coerce the result to a single JSON object'}});row={...row,...body,updated_at:new Date().toISOString()}}
@@ -32,7 +40,7 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
   await b.ctx.setOffline(true);await add(b.page,'设备 B 离线修改');await expect(b.page.locator('.sync-footer')).toContainText('离线');
   await add(a.page,'设备 A 在线修改');await expect.poll(()=>row?.state.tasks.some(t=>t.title==='设备 A 在线修改')).toBe(true);
   await b.ctx.setOffline(false);await expect.poll(()=>row.state.tasks.some(t=>t.title==='设备 B 离线修改'),{timeout:20000}).toBe(true);
-  expect(row.state.tasks.some(t=>t.title==='设备 A 在线修改')).toBe(true);
+  expect(row.state.tasks.some(t=>t.title==='设备 A 在线修改')).toBe(true);expect(deltaWrites).toBeGreaterThan(0);expect(metadataReads).toBeGreaterThan(0);
   await expect(b.page.locator('.sync-footer')).toContainText('已同步',{timeout:12000});
   // Wait for A to receive the merged revision before creating a genuine conflict.
   await a.page.getByRole('button',{name:'设置',exact:true}).click();

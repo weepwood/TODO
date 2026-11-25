@@ -1,0 +1,20 @@
+import {test,expect} from '@playwright/test';
+import {dayKey} from '../src/domain.js';
+test('保存订阅、重启刷新且不将 URL 写入工作空间',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const date=dayKey().replaceAll('-','');let count=0;
+ await page.route('https://calendar.example.invalid/private.ics?token=local-only',route=>{count++;return route.fulfill({contentType:'text/calendar',headers:{'access-control-allow-origin':'*'},body:'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:calendar-test\r\nDTSTART:'+date+'T090000Z\r\nDTEND:'+date+'T100000Z\r\nSUMMARY:Subscription test\r\nEND:VEVENT\r\nEND:VCALENDAR'})});
+ await page.goto('/');await page.getByRole('button',{name:'日历',exact:true}).click();await page.getByRole('button',{name:'外部日历 / ICS'}).click({timeout:6000});
+ await page.getByRole('textbox',{name:'日历名称'}).fill('测试订阅');await page.getByRole('textbox',{name:'日历 URL'}).fill('https://calendar.example.invalid/private.ics?token=local-only');
+ await page.getByRole('button',{name:'保存订阅'}).click();await expect(page.getByText('订阅已保存并更新')).toBeVisible();
+ await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('todo-workbench-v1')).calendarEvents.length)).toBe(1);
+ expect(await page.evaluate(()=>localStorage.getItem('todo-workbench-v1'))).not.toContain('local-only');
+ await page.reload();await expect.poll(()=>count,{timeout:8000}).toBeGreaterThan(1);
+ await page.getByRole('button',{name:'日历',exact:true}).click();await page.getByRole('button',{name:'外部日历 / ICS'}).click({timeout:6000});await page.getByRole('button',{name:'取消订阅'}).click();
+ await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('todo-calendar-feeds-v1')).length)).toBe(0);
+ await page.getByRole('button',{name:'关闭',exact:true}).click();
+ await page.locator('.calendar-wrap button').filter({hasText:/^周$/}).click({timeout:6000});
+ await page.locator('.calendar-wrap button').filter({hasText:/^日$/}).click({timeout:6000});
+ await page.locator('.calendar-wrap button').filter({hasText:/^月$/}).click({timeout:6000});
+ expect(errors).toEqual([]);
+});

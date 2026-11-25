@@ -22,11 +22,58 @@ fn save_with_store(c:&mut Connection,scope:&str,body:&str,store:Option<&str>)->R
  tx.execute("INSERT OR IGNORE INTO backups SELECT scope,body,?2 FROM snapshots WHERE scope=?1 AND NOT EXISTS(SELECT 1 FROM backups WHERE scope=?1 AND saved_at>?2-3600)",params![scope,now]).map_err(|e|e.to_string())?;
  tx.execute("DELETE FROM backups WHERE scope=?1 AND saved_at NOT IN (SELECT saved_at FROM backups WHERE scope=?1 ORDER BY saved_at DESC LIMIT 24)",[scope]).map_err(|e|e.to_string())?;
  tx.execute("INSERT INTO snapshots VALUES(?1,?2,?3) ON CONFLICT(scope) DO UPDATE SET body=excluded.body,updated_at=excluded.updated_at",params![scope,body,now]).map_err(|e|e.to_string())?;
- tx.execute("DELETE FROM task_search WHERE scope=?1",[scope]).map_err(|e|e.to_string())?;
- {let mut stmt=tx.prepare("INSERT INTO task_search VALUES(?1,?2,?3,?4)").map_err(|e|e.to_string())?;for t in state["tasks"].as_array().unwrap(){if t["deletedAt"].is_null(){stmt.execute(params![scope,t["id"].as_str().unwrap_or(""),t["title"].as_str().unwrap_or(""),t["notes"].as_str().unwrap_or("")]).map_err(|e|e.to_string())?;}}}
+ let prior_state=prior.as_ref().and_then(|x|serde_json::from_str::<serde_json::Value>(x).ok());
+ update_index(&tx,scope,prior_state.as_ref(),&state).map_err(|e|e.to_string())?;
  }
  if let Some(store)=store{tx.execute("INSERT INTO workspace_store VALUES(?1,?2) ON CONFLICT(scope) DO UPDATE SET body=excluded.body",params![scope,store]).map_err(|e|e.to_string())?;}
  tx.commit().map_err(|e|e.to_string())
+}
+fn index_values(state:&serde_json::Value)->std::collections::BTreeMap<String,(String,String)>{
+ let mut out=std::collections::BTreeMap::new();
+ if let Some(tasks)=state["tasks"].as_array(){for t in tasks{if t["deletedAt"].is_null(){if let Some(id)=t["id"].as_str(){out.insert(id.to_owned(),(t["title"].as_str().unwrap_or("").to_owned(),t["notes"].as_str().unwrap_or("").to_owned()));}}}}
+ out
+}
+fn update_index(c:&Connection,scope:&str,prior:Option<&serde_json::Value>,state:&serde_json::Value)->rusqlite::Result<()>{
+ let next=index_values(state);
+ let old=prior.map(index_values).unwrap_or_default();
+ let changed:Vec<_>=old.keys().chain(next.keys()).collect::<std::collections::BTreeSet<_>>().into_iter().filter(|id|old.get(*id)!=next.get(*id)).collect();
+ if prior.is_none()||changed.len()>100{
+  c.execute("DELETE FROM task_search WHERE scope=?1",[scope])?;
+  let mut q=c.prepare("INSERT INTO task_search VALUES(?1,?2,?3,?4)")?;
+  for (id,(title,notes)) in next{q.execute(params![scope,id,title,notes])?;}
+ }else{
+  let mut del=c.prepare("DELETE FROM task_search WHERE scope=?1 AND task_id=?2")?;
+  let mut put=c.prepare("INSERT INTO task_search VALUES(?1,?2,?3,?4)")?;
+  for id in changed{del.execute(params![scope,id])?;if let Some((title,notes))=next.get(id){put.execute(params![scope,id,title,notes])?;}}
+ }
+ Ok(())
+}
+#[derive(serde::Serialize)]
+struct BackupInfo { saved_at:i64, bytes:i64 }
+#[tauri::command]
+fn native_list_backups(scope:String,db:tauri::State<Database>)->Result<Vec<BackupInfo>,String>{
+ if !valid_scope(&scope){return Err("invalid scope".into())}
+ let c=db.0.lock().map_err(|e|e.to_string())?;
+ let mut stmt=c.prepare("SELECT saved_at,length(CAST(body AS BLOB)) FROM backups WHERE scope=?1 ORDER BY saved_at DESC LIMIT 24").map_err(|e|e.to_string())?;
+ stmt.query_map([scope],|r|Ok(BackupInfo{saved_at:r.get(0)?,bytes:r.get(1)?})).map_err(|e|e.to_string())?.collect::<Result<Vec<_>,_>>().map_err(|e|e.to_string())
+}
+#[tauri::command]
+fn native_read_backup(scope:String,saved_at:i64,db:tauri::State<Database>)->Result<Option<String>,String>{
+ if !valid_scope(&scope){return Err("invalid scope".into())}
+ db.0.lock().map_err(|e|e.to_string())?.query_row("SELECT body FROM backups WHERE scope=?1 AND saved_at=?2",params![scope,saved_at],|r|r.get(0)).optional().map_err(|e|e.to_string())
+}
+fn create_backup(c:&mut Connection,scope:&str)->Result<(),String>{
+ if !valid_scope(scope){return Err("invalid scope".into())}
+ let now=Local::now().timestamp();
+ let tx=c.transaction().map_err(|e|e.to_string())?;
+ let count=tx.execute("INSERT INTO backups(scope,body,saved_at) SELECT scope,body,MAX(?2,COALESCE((SELECT MAX(saved_at)+1 FROM backups WHERE scope=?1),?2)) FROM snapshots WHERE scope=?1",params![scope,now]).map_err(|e|e.to_string())?;
+ if count!=1{return Err("没有可备份的工作空间".into())}
+ tx.execute("DELETE FROM backups WHERE scope=?1 AND saved_at NOT IN (SELECT saved_at FROM backups WHERE scope=?1 ORDER BY saved_at DESC LIMIT 24)",[scope]).map_err(|e|e.to_string())?;
+ tx.commit().map_err(|e|e.to_string())
+}
+#[tauri::command]
+fn native_create_backup(scope:String,db:tauri::State<Database>)->Result<(),String>{
+ let mut c=db.0.lock().map_err(|e|e.to_string())?;create_backup(&mut c,&scope)
 }
 #[tauri::command]
 fn native_load(scope:String,db:tauri::State<Database>)->Result<Option<String>,String>{
@@ -75,7 +122,7 @@ fn native_notify(scope:String,task_id:String,at:String,title:String,db:tauri::St
  let c=db.0.lock().map_err(|e|e.to_string())?;
  let key=format!("{}:{}",task_id,at);
  if c.execute("INSERT OR IGNORE INTO delivered VALUES(?1,?2)",params![scope,key]).map_err(|e|e.to_string())?==1{
-  app.notification().builder().title("TODO").body(&title).show().map_err(|e|e.to_string())?;
+  if let Err(e)=app.notification().builder().title("TODO").body(&title).show(){let _=c.execute("DELETE FROM delivered WHERE scope=?1 AND reminder=?2",params![scope,key]);return Err(e.to_string())}
  }
  Ok(())
 }
@@ -94,7 +141,7 @@ fn schedule(app:tauri::AppHandle){
    let mut dates=vec![];if let Some(at)=t["reminderAt"].as_str(){if t["remindedAt"].is_null(){dates.push(at)}}
    if let Some(extra)=t["extraReminders"].as_array(){for r in extra{if r["sentAt"].is_null(){if let Some(at)=r["at"].as_str(){dates.push(at)}}}}
    for at in dates {if at.is_empty()||at>now.as_str(){continue}let key=format!("{}:{}",t["id"].as_str().unwrap_or(""),at);
-    if c.execute("INSERT OR IGNORE INTO delivered VALUES(?1,?2)",params![scope,key]).unwrap_or(0)==1{let _=app.notification().builder().title("TODO").body(t["title"].as_str().unwrap_or("任务提醒")).show();}
+    if c.execute("INSERT OR IGNORE INTO delivered VALUES(?1,?2)",params![scope,key]).unwrap_or(0)==1{if app.notification().builder().title("TODO").body(t["title"].as_str().unwrap_or("任务提醒")).show().is_err(){let _=c.execute("DELETE FROM delivered WHERE scope=?1 AND reminder=?2",params![scope,key]);}}
    }
   }
  });
@@ -105,7 +152,7 @@ pub fn run(){
  .plugin(tauri_plugin_single_instance::init(|app,_,_|show(app)))
  .plugin(tauri_plugin_notification::init())
  .plugin(tauri_plugin_global_shortcut::Builder::new().with_handler(|app,_,event|{if event.state()==ShortcutState::Pressed{show(app);let _=app.emit("todo-quick-add",());}}).build())
- .invoke_handler(tauri::generate_handler![native_load,native_save,native_load_store,native_write_store,native_activate,native_search,native_notify,native_exit])
+ .invoke_handler(tauri::generate_handler![native_load,native_save,native_load_store,native_write_store,native_activate,native_search,native_list_backups,native_read_backup,native_create_backup,native_notify,native_exit])
  .setup(|app|{
   let path=app.path().app_data_dir()?;std::fs::create_dir_all(&path)?;let c=Connection::open(path.join("todo.sqlite3"))?;schema(&c)?;
   app.manage(Database(Mutex::new(c)));app.manage(ActiveScope(Mutex::new(None)));
@@ -131,6 +178,17 @@ pub fn run(){
   assert_eq!(c.query_row("SELECT body FROM workspace_store WHERE scope='guest'",[],|r|r.get::<_,String>(0)).unwrap(),store);
   assert_eq!(c.query_row("SELECT body FROM snapshots WHERE scope='guest'",[],|r|r.get::<_,String>(0)).unwrap(),body);
   assert_eq!(c.query_row("SELECT count(*) FROM workspace_store WHERE scope!='guest'",[],|r|r.get::<_,i32>(0)).unwrap(),0);
+ }
+
+ #[test]fn index_updates_and_backups(){
+ let mut c=Connection::open_in_memory().unwrap();schema(&c).unwrap();
+ let a=r#"{"version":2,"tasks":[{"id":"one","title":"alpha","notes":""},{"id":"two","title":"bravo","notes":""}]}"#;
+ let b=r#"{"version":2,"tasks":[{"id":"one","title":"gamma","notes":""},{"id":"two","title":"bravo","notes":""}]}"#;
+ save(&mut c,"guest",a).unwrap();create_backup(&mut c,"guest").unwrap();save(&mut c,"guest",b).unwrap();
+ let n=|s:&str|c.query_row("SELECT count(*) FROM task_search WHERE task_search MATCH ?1",[s],|r|r.get::<_,i32>(0)).unwrap();
+ assert_eq!(n("alpha"),0);assert_eq!(n("bravo"),1);assert_eq!(n("gamma"),1);
+ for _ in 0..30{create_backup(&mut c,"guest").unwrap();}
+ assert_eq!(c.query_row("SELECT count(*) FROM backups WHERE scope='guest'",[],|r|r.get::<_,i32>(0)).unwrap(),24);
  }
 
 }

@@ -11,6 +11,10 @@ test('桌面 IPC 模拟：旧存储迁移、SQLite 优先与保存失败重试',
    invoke:async(cmd,args)=>{
     if(cmd==='native_load_store')return localStorage.getItem('test-sqlite-'+args.scope);
     if(cmd==='native_load')return JSON.stringify(mirror);
+    if(cmd==='native_search'){window.__testSearch=(window.__testSearch||0)+1;const store=JSON.parse(localStorage.getItem('test-sqlite-'+args.scope));return JSON.parse(store['todo-workbench-v1']).tasks.filter(t=>(t.title+' '+t.notes).includes(args.query)).map(t=>t.id)}
+    if(cmd==='native_list_backups')return [{saved_at:1760000000,bytes:1234}];
+    if(cmd==='native_read_backup')return JSON.stringify(legacy);
+    if(cmd==='native_create_backup')return null;
     if(cmd==='native_write_store'){if(window.__testFail)throw Error('模拟磁盘写入失败');localStorage.setItem('test-sqlite-'+args.scope,args.store);return null}
     if(cmd==='plugin:event|listen')return 1;
     return null
@@ -32,4 +36,15 @@ test('桌面 IPC 模拟：旧存储迁移、SQLite 优先与保存失败重试',
  await page.reload();
  await expect(page.locator('.task-body').filter({hasText:'等待保存的任务'})).toBeVisible();
  expect(JSON.parse(await page.evaluate(()=>localStorage.getItem('todo-workbench-v1'))).tasks.length).toBe(1);
+ await page.getByPlaceholder('搜索所有任务').fill('等待保存');
+ await expect.poll(()=>page.evaluate(()=>window.__testSearch||0)).toBeGreaterThan(0);
+ await expect(page.locator('.task-body').filter({hasText:'等待保存的任务'})).toBeVisible();
+ await page.getByRole('button',{name:'设置',exact:true}).click();
+ await page.getByRole('button',{name:'SQLite 备份历史',exact:true}).click();
+ await expect(page.getByRole('dialog',{name:'SQLite 备份历史'})).toBeVisible();
+ await page.getByRole('button',{name:'恢复',exact:true}).click();
+ await expect(page.getByRole('dialog',{name:'确认恢复工作空间'})).toBeVisible();
+ await page.getByRole('button',{name:'确认恢复'}).click();
+ await page.getByPlaceholder('搜索所有任务').fill('');
+ await expect(page.locator('.task-body').filter({hasText:'等待保存的任务'})).toHaveCount(0);
 });

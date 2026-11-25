@@ -57,3 +57,15 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - 首次迁移保留旧 WebView 原始数据；旧镜像与 WebView 不一致时以旧 WebView 为迁移来源，完整保留 SQLite 镜像副本供导出；已迁移后只读取 SQLite 主存储。读取异常不覆盖，提供原始恢复数据导出。Supabase Auth 会话仍由 SDK 保存在 WebView。
 - sync-merge.js 保存上次确认的基线（Web IndexedDB，桌面 SQLite），校验版本与 SHA-256；仅自动合并无关联普通任务新增、标题/备注/优先级非冲突修改。删除、重复、依赖、其他工作空间字段或重排有冲突时维持手动保护。合并先保存本地和云端基线，再走原有 revision CAS 上传，仍非逐实体增量传输。未改变 Supabase 表或 RLS。Windows Tauri 注册确认回调修正为 Pages 地址。
 - 本轮保持轻量交付，继续直接 main；真实账号注册邮件、生产 Auth 重定向配置、原生通知/托盘实际交互及长期驻留仍待验收。
+
+## V0.4.2 增量传输、日历与桌面数据工具
+
+- 基于 5136957 开发。上一版 Pages 45539448829 的构建和上传成功，但部署阶段查询到 0 个 github-pages 产物；本版增加最多 60 秒的 REST 产物可见性检查，保留原工作流。
+- Supabase 已应用 20261125032539_todo_task_delta.sql。RPC todo_apply_task_delta 为 SECURITY INVOKER，以 auth.uid 和 revision CAS 约束，仅更新指定任务并保持现有顺序；新增任务按顺序追加。真实数据库临时事务验证更新、顺序、非任务字段保留、过期版本、重复 ID、跨用户及匿名拒绝并回滚。安全/性能顾问均无告警。
+- src/task-delta.js 仅在非任务状态未变、任务未删除或重排、差量有实际体积收益且在 500 条/900KB 内时使用 RPC。其他情况仍走完整快照 CAS，旧客户端兼容。不改变现有数据表和 RLS。读取在有可信基线且 revision 未变时仅探测元数据；远端变更仍下载完整快照，非双向逐实体日志。
+- supabase_realtime publication 只发布 user_id/revision/updated_at，客户端按账号订阅 INSERT/UPDATE，通知仅触发重新校验，不信任事件正文；15 秒轮询保底。已核实线上 publication 和 RLS，尚无真实认证 WebSocket 端到端验收。
+- 原生 FTS5 索引只更新变化的标题/备注记录；大量变化回退全量重建。工作台查询接入 SQLite，未提交或查询失败时回退内存搜索，标签仍在前端过滤。
+- SQLite 备份历史支持手动快照、最近 24 份、导出、恢复前备份与确认。系统通知返回错误时撤销本机投递标记，但尚未完成原生权限/休眠/跨设备调度实测。
+- 专注自动继续默认关闭，可配置长短休息；结束记录使用确定性 ID，超过计划结束 60 秒不补记连续周期。外部日历订阅地址按账号保存于本机 WebView/浏览器 LocalStorage，未加密且不上传云端或纳入任务快照；运行时启动、联网、每小时尝试刷新，最多 20 个订阅、单响应 1MB；事件内容仍随工作空间同步。任意第三方 URL 受 CORS 与原生 CSP 限制，桌面不能保证自动刷新，仍支持 ICS 文件导入。取消订阅不会自动删除已导入日程。
+- 修复 FullCalendar React v7 + v6 插件混用导致实际日历崩溃；锁定 v7.1.5/temporal-polyfill 1.0.8，使用 v7 子路径与 Classic CSS 主题。新增实际月/周/日切换及订阅测试，避免仅检查页面标题。
+- 真实邮箱注册、正式 Auth 重定向与邮件配置、原生窗口/托盘/通知完整验收、正式签名及公证仍未完成。未增加费用或额外 CI 工作流。

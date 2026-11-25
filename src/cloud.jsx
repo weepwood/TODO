@@ -4,6 +4,7 @@ import {isTauri} from '@tauri-apps/api/core';
 import {CLOUD_URL,CLOUD_KEY} from './cloud-config.js';
 import {initialState,migrateState,readState,saveState,STORAGE_KEY} from './domain.js';
 import {mergeTasks,saveBaseline,loadBaseline} from './sync-merge.js';
+import {buildTaskDelta} from './task-delta.js';
 import {scopedStorage,canonical,digest,readMeta,META_KEY,decideSync,readRemote,preserveConflict} from './cloud-core.js';
 export const cloud=createClient(CLOUD_URL,CLOUD_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const TABLE='todo_workspaces';
@@ -17,9 +18,24 @@ export function useAccountLock(uid){
  useEffect(()=>{if(!uid){setState('ready');return}if(!navigator.locks){setState('unsupported');return}let cancelled=false,release;const hold=new Promise(r=>release=r);navigator.locks.request('todo-account-'+uid,{ifAvailable:true},async lock=>{if(cancelled)return;setState(lock?'ready':'busy');if(lock)await hold}).catch(()=>{if(!cancelled)setState('unsupported')});return()=>{cancelled=true;release()}},[uid]);
  return state
 }
-async function getRow(uid){const {data,error}=await cloud.from(TABLE).select('revision,state,updated_at').eq('user_id',uid).abortSignal(AbortSignal.timeout(12000)).maybeSingle();if(error)throw error;return readRemote(data)}
-async function writeRow(uid,state,revision){
+async function getRow(uid,meta,base){
+ if(meta&&base){
+  const {data,error}=await cloud.from(TABLE).select('revision,updated_at').eq('user_id',uid).abortSignal(AbortSignal.timeout(12000)).maybeSingle();
+  if(error)throw error;
+  if(!data)return null;
+  if(data.revision===meta.revision)return {...data,state:base};
+ }
+ const {data,error}=await cloud.from(TABLE).select('revision,state,updated_at').eq('user_id',uid).abortSignal(AbortSignal.timeout(12000)).maybeSingle();if(error)throw error;return readRemote(data)}
+async function writeRow(uid,state,revision,remoteState){
  const body=JSON.stringify(state);if(new TextEncoder().encode(body).length>3500000)throw Error('工作空间超过 3.5 MB，请导出备份并整理历史记录');
+ const delta=revision!==null?buildTaskDelta(remoteState,state):null;
+ if(delta){
+  const {data,error}=await cloud.rpc('todo_apply_task_delta',{p_revision:revision,p_tasks:delta}).abortSignal(AbortSignal.timeout(12000));
+  if(!error)return data;
+  if(error.code==='40001')return null;
+  // Alternate Supabase deployments may not yet have the migration.
+  if(!['PGRST202','42883'].includes(error.code))throw error;
+ }
  const q=revision===null?cloud.from(TABLE).insert({user_id:uid,state,revision:1}):cloud.from(TABLE).update({state,revision:revision+1}).eq('user_id',uid).eq('revision',revision);
  const {data,error}=await q.select('revision,updated_at').abortSignal(AbortSignal.timeout(12000)).maybeSingle();
  if(error){if(error.code==='23505'||error.code==='40001')return null;throw error}return data
@@ -34,9 +50,10 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked}){
   if(!navigator.onLine){setStatus('离线，修改保存在本机');return}
   busy.current=true;setStatus('同步中');setError('');
   try{
-   const snapshot=latest.current.data;const [hash,emptyHash,remote]=await Promise.all([digest(snapshot),digest(initialState()),getRow(uid)]);
+   const snapshot=latest.current.data,meta=readMeta(storage);const base=await loadBaseline(uid,storage,meta);
+   const [hash,emptyHash,remote]=await Promise.all([digest(snapshot),digest(initialState()),getRow(uid,meta,base)]);
    if(!active.current)return;
-   const meta=readMeta(storage),remoteHash=remote?await digest(remote.state):null;
+   const remoteHash=remote?await digest(remote.state):null;
    if(!active.current)return;
    if(latest.current.data!==snapshot){setStatus('等待本地保存');return}
    let decision=decideSync({localHash:hash,remoteHash,remoteRevision:remote?.revision??null,meta,emptyHash});
@@ -47,7 +64,6 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked}){
     else if(resolution==='local'){if(remote)preserveConflict(storage,remote.state);decision=remote?'push':'insert'}
    }
    if(decision==='conflict'&&!resolution&&remote){
-    const base=await loadBaseline(uid,storage,meta);
     if(!active.current||latest.current.data!==snapshot){setStatus('等待本地保存');return}
     const merged=base?mergeTasks(base,snapshot,remote.state):null;
     if(merged){
@@ -64,7 +80,7 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked}){
     saveState(storage,remote.state);writeMeta(remote.revision,remoteHash,remote.state);
     latest.current={...latest.current,data:remote.state};setData(remote.state)
    }else if(decision==='push'||decision==='insert'){
-    const row=await writeRow(uid,snapshot,decision==='insert'?null:remote.revision);
+    const row=await writeRow(uid,snapshot,decision==='insert'?null:remote.revision,remote?.state);
     if(!active.current)return;
     if(!row){setStatus('检测到并发更新，等待重试');return}
     writeMeta(row.revision,hash,snapshot)
@@ -77,6 +93,10 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked}){
  useEffect(()=>{active.current=true;return()=>{active.current=false}},[]);
  useEffect(()=>{if(!uid||blocked)return;const t=setTimeout(()=>sync(),800);return()=>clearTimeout(t)},[data,uid,blocked,sync]);
  useEffect(()=>{if(!uid)return;const run=()=>sync();const t=setInterval(run,15000);window.addEventListener('online',run);window.addEventListener('focus',run);return()=>{clearInterval(t);window.removeEventListener('online',run);window.removeEventListener('focus',run)}},[uid,sync]);
+ useEffect(()=>{if(!uid)return;const channel=cloud.channel('todo-revision:'+uid);const wake=()=>sync();
+ for(const event of ['INSERT','UPDATE'])channel.on('postgres_changes',{event,schema:'public',table:TABLE,filter:'user_id=eq.'+uid},wake);
+ channel.subscribe();return()=>{cloud.removeChannel(channel).catch(()=>{})}
+ },[uid,sync]);
  return {status,error,conflict,lastSync,sync}
 }
 export function AccountPanel({session,sync,importGuest,exportConflict,storageError,beforeSignOut}){

@@ -14,3 +14,8 @@
 @media(max-width:1150px){.app.v2{grid-template-columns:44px 185px minmax(0,1fr) auto}.v2 .details{width:300px}.v2 .heading{gap:10px}}
 @media(max-width:860px){.app.v2{grid-template-columns:44px minmax(0,1fr)}.v2 .details{width:min(330px,calc(100vw - 44px));top:48px}.v2 .task-content{padding:20px 14px}.v2 .sidebar{left:44px}.v2 .rail{padding:10px 3px}.date-popover{max-width:calc(100vw - 10px)}}
 @media(prefers-reduced-motion:no-preference){.date-popover{animation:fade-in 130ms ease-out}.task-check{transition:background-color 130ms,border-color 130ms}.v2 .nav-row{transition:background-color 120ms,color 120ms}}
+
+.backup-size{color:var(--muted);font-size:11px}.v2 .task-row .task-body{min-width:0}.v2 .task-body span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.v2 .search:focus-within{outline:1px solid var(--accent);outline-offset:1px}
+
+/* FullCalendar v7 Classic theme follows the workbench palette. */
+.calendar-wrap{--fc-classic-background:var(--bg);--fc-classic-faint:var(--panel);--fc-classic-muted:var(--hover);--fc-classic-strong:var(--active);--fc-classic-foreground:var(--text);--fc-classic-faint-foreground:var(--muted);--fc-classic-muted-foreground:var(--muted);--fc-classic-border:var(--line);--fc-classic-strong-border:var(--line);--fc-classic-button:var(--panel);--fc-classic-button-border:var(--line);--fc-classic-button-strong:var(--active);--fc-classic-button-strong-border:var(--accent);--fc-classic-button-foreground:var(--text);--fc-classic-button-outline:var(--accent);--fc-classic-primary:var(--accent);--fc-classic-today:var(--active);--fc-classic-highlight:var(--active)}
