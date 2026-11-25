@@ -1,20 +1,6 @@
 name: Android ARM64 基础验收（测试 APK）
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/android.yml'
-      - 'package.json'
-      - 'src-tauri/brand/**'
-      - 'scripts/android-icons.mjs'
-      - 'package-lock.json'
-      - 'tests/android-build.test.js'
-      - 'src-tauri/tauri.android.conf.json'
-      - 'src-tauri/plugins/todo-mobile/**'
-      - 'src-tauri/capabilities/android-native.json'
-      - 'src/platform/android/**'
-      - 'src/layouts/mobile/**'
 permissions:
   contents: read
 concurrency:

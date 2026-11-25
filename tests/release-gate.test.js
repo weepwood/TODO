@@ -43,3 +43,14 @@ test('桌面更新插件的 npm 与 Rust 锁定版本保持相同 major/minor',(
   assert.equal(js.split('.').slice(0,2).join('.'),rust.split('.').slice(0,2).join('.'),plugin);
  }
 });
+
+test('敏捷开发不自动构建安装包，正式发布保留手动门禁',()=>{
+ for(const file of ['android.yml','android-runtime.yml','desktop.yml','signed-release.yml','promote-release.yml']){
+  const trigger=read('.github/workflows/'+file).split('\non:\n')[1].split('\npermissions:')[0];
+  assert.match(trigger,/^  workflow_dispatch:/m);
+  assert.doesNotMatch(trigger,/^  (push|pull_request|schedule|workflow_run):/m,file);
+ }
+ assert.match(read('.github/workflows/pages.yml'),/^  push:/m);
+ assert.match(read('.github/workflows/ui-review.yml'),/^  pull_request:/m);
+ assert.match(read('.github/workflows/promote-release.yml'),/if: inputs.verified/);
+});
