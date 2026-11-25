@@ -6,7 +6,7 @@ export function seriesOverview(tasks,id,today){
  const live=rows.filter(t=>!t.deletedAt&&t.status==='pending'),active=live.filter(t=>t.repeat!=='none');
  let next=null,reason='没有运行中的重复实例';
  if(active.length===1){
-  const t=active[0];if(validDate(t.date)){
+  const t=active[0];if(t.seriesHold)reason='系列已暂停，恢复后才继续生成';else if(validDate(t.date)){
    let date=nextOccurrence(t,t.repeat==='completion'?today:t.date),index=(t.occurrenceIndex||1)+1;
    if(t.miss==='skip')({next:date,index}=advanceOccurrence(t,date,index,today));
    if(!validDate(date)||(t.repeatUntil&&date>t.repeatUntil)||(t.repeatCount>0&&index>t.repeatCount))reason='已达到重复结束条件';

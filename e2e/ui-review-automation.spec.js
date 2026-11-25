@@ -1,0 +1,60 @@
+import {test,expect} from '@playwright/test';
+import {initialState,newTask,dayKey,shiftDay} from '../src/domain.js';
+import {chooseOption} from './select-helper.js';
+async function seed(page){
+ const today=dayKey(),d=initialState();
+ const a={...newTask('积压普通任务','work',shiftDay(today,-1)),points:5},b={...newTask('重复日常','inbox',today),repeat:'daily',repeatCount:5},c={...newTask('已完成任务','work',today),status:'completed',stage:'done',completedAt:today+'T12:00:00',points:3};
+ const ordinary=newTask("今日普通任务","personal",today);d.tasks=[a,b,c,ordinary];d.sessions=[{id:'session',taskId:c.id,startedAt:today+'T09:00:00',seconds:1800,mode:'focus'}];
+ await page.addInitScript(d=>{if(!localStorage.getItem('todo-workbench-v1'))localStorage.setItem('todo-workbench-v1',JSON.stringify(d))},d);
+ await page.setViewportSize({width:1440,height:900});await page.goto('/');return {today,a,b,c,ordinary};
+}
+const savedTask=(page,id)=>page.evaluate(id=>JSON.parse(localStorage.getItem('todo-workbench-v1')).tasks.find(t=>t.id===id),id);
+test('规则配置、预览、显式执行及每日自动执行不重复',async({page})=>{
+ const {a,b,today,ordinary}=await seed(page);
+ await page.locator('[data-view-key=today]').click();await page.getByRole('button',{name:'自动化',exact:true}).click();
+ const dialog=page.getByRole('dialog',{name:'任务工作流自动化'});
+ await dialog.getByRole('button',{name:'添加规则'}).click();
+ await dialog.getByRole('textbox',{name:'规则名称 1'}).fill('积压转明天');
+ await expect(dialog).toContainText('执行预览 · 1 项');await dialog.getByRole('button',{name:'保存规则'}).click();
+ await expect(dialog.getByRole('status')).toContainText('规则已保存');
+ await page.screenshot({path:'test-results/workflow-rules.png',animations:'disabled'});
+ page.once('dialog',d=>d.accept());await dialog.getByRole('button',{name:'执行规则'}).click();
+ await expect.poll(async()=>(await savedTask(page,a.id)).date).toBe(shiftDay(today,1));
+ await expect.poll(async()=>(await savedTask(page,b.id)).date).toBe(today);
+ await page.getByRole('button',{name:'自动化',exact:true}).click();await dialog.getByRole('button',{name:'添加规则'}).click();
+ await dialog.getByRole('textbox',{name:'规则名称 2'}).fill('今日高优先级');
+ await chooseOption(dialog.getByRole('combobox',{name:'触发条件 2'}),'today');
+ await chooseOption(dialog.getByRole('combobox',{name:'规则操作 2'}),'high');
+ await dialog.getByRole('checkbox',{name:/每天首次打开/}).check();await dialog.getByRole('button',{name:'保存规则'}).click();
+ await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('todo-workflow-rules-v1')).lastRun)).toBe(today);
+ await expect.poll(async()=>(await savedTask(page,ordinary.id)).priority).toBe(3);
+ await page.keyboard.press('Escape');
+ await page.evaluate(id=>{const d=JSON.parse(localStorage.getItem('todo-workbench-v1'));d.tasks.find(t=>t.id===id).priority=0;localStorage.setItem('todo-workbench-v1',JSON.stringify(d))},ordinary.id);
+ await page.reload();await expect(page.locator('[data-view-key=today]')).toBeVisible();
+ await expect.poll(async()=>(await savedTask(page,ordinary.id)).priority).toBe(0);
+ await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('todo-workflow-rules-v1')).lastRun)).toBe(today);
+});
+test('重复暂停、恢复及结束，完成后不再生成',async({page})=>{
+ const {b}=await seed(page);await page.locator('[data-view-key=inbox]').click();await page.locator('.task-body').filter({hasText:'重复日常'}).click();
+ await page.getByRole('button',{name:'查看重复系列'}).click();const dialog=page.getByRole('dialog',{name:'重复任务系列'});
+ page.once('dialog',d=>d.accept());await dialog.getByRole('button',{name:'暂停系列'}).click();
+ await expect(dialog).toContainText('系列已暂停');await expect.poll(async()=>(await savedTask(page,b.id)).repeatCount).toBe(1);
+ await page.screenshot({path:'test-results/series-paused.png',animations:'disabled'});
+ await dialog.getByRole('button',{name:'恢复系列'}).click();await expect.poll(async()=>(await savedTask(page,b.id)).repeatCount).toBe(5);
+ page.once('dialog',d=>d.accept());await dialog.getByRole('button',{name:'结束系列'}).click();await expect(dialog).toContainText('当前实例为最后一次');
+ await page.keyboard.press('Escape');await page.getByRole('button',{name:'完成 重复日常',exact:true}).click();
+ await expect.poll(async()=>(await savedTask(page,b.id)).status).toBe('completed');
+ await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('todo-workbench-v1')).tasks.filter(t=>t.title==='重复日常').length)).toBe(1);
+});
+test('回顾趋势与快照对照，旧版原文仍可读取',async({page})=>{
+ await seed(page);await page.getByRole('button',{name:'统计',exact:true}).click();await page.getByRole('button',{name:'任务回顾'}).click();
+ const dialog=page.getByRole('dialog',{name:'任务回顾'});await dialog.getByRole('button',{name:'每周',exact:true}).click();
+ await expect(dialog.getByRole('group',{name:'完成任务每日趋势'})).toBeVisible();
+ await expect(dialog.locator('.review-comparison')).toContainText('实际专注');
+ await dialog.getByRole('button',{name:'保存快照'}).click();await expect(dialog.locator('.markdown-preview')).toContainText('已完成任务');
+ await chooseOption(dialog.getByRole('combobox',{name:'回顾记录'}),'');
+ await dialog.getByRole('button',{name:'保存快照'}).click();const select=dialog.getByRole('combobox',{name:'比较快照'});
+ await select.click();await page.getByRole('listbox').getByRole('option').last().click();
+ await expect(dialog.locator('.review-comparison')).toContainText('完成任务');
+ await dialog.locator('.review-scroll').evaluate(el=>el.scrollTop=0);await page.screenshot({path:'test-results/review-visual-comparison.png',animations:'disabled'});
+});
