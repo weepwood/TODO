@@ -181,3 +181,9 @@
 .review-toolbar .shared-segment>button{padding:6px 12px;border-radius:var(--radius-small);color:var(--muted);min-height:32px}
 .review-toolbar .shared-segment>button.chosen{background:var(--active);color:var(--accent-text);font-weight:600}
 @media(max-width:860px){.review-toolbar .shared-segment>button{min-height:44px}}
+.list-defaults{display:grid;gap:10px;margin-bottom:20px}.list-defaults .field{min-width:0}.postpone-preview{max-height:36dvh;overflow:auto}.task-focus-summary{display:flex;align-items:center;gap:6px;margin-top:12px;color:var(--muted);font-size:var(--control-font)}
+
+.bulk-postpone-dialog .shared-segment,.list-defaults .shared-segment{display:inline-flex;gap:3px;padding:3px;background:var(--panel);border-radius:var(--radius-control)}
+.bulk-postpone-dialog .shared-segment>button{padding:6px 12px;min-height:var(--control-height);color:var(--muted)}
+.bulk-postpone-dialog .shared-segment>button.chosen{background:var(--active);color:var(--accent-text);font-weight:600}
+@media(max-width:860px){.bulk-postpone-dialog .shared-segment>button{min-height:44px}}
