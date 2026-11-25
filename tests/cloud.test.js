@@ -1,0 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {decideSync,canonical,digest,scopedStorage,readMeta,META_KEY} from '../src/cloud-core.js';
+import {initialState,STORAGE_KEY,newTask} from '../src/domain.js';
+const base={localHash:'a',remoteHash:'a',remoteRevision:1,meta:{revision:1,hash:'a'},emptyHash:'empty'};
+test('同步首次下载、空空间与访客数据显式隔离',()=>{assert.equal(decideSync({...base,localHash:'empty',meta:null}),'pull');assert.equal(decideSync({...base,localHash:'changed',meta:null}),'conflict');assert.equal(decideSync({...base,localHash:'empty',remoteRevision:null,meta:null}),'empty');assert.equal(decideSync({...base,localHash:'changed',remoteRevision:null,meta:null}),'insert')});
+test('本地编辑推送、云端单独编辑拉取、双端编辑冲突',()=>{assert.equal(decideSync({...base,localHash:'b'}),'push');assert.equal(decideSync({...base,remoteHash:'b',remoteRevision:2}),'pull');assert.equal(decideSync({...base,localHash:'b',remoteHash:'c',remoteRevision:2}),'conflict');assert.equal(decideSync({...base,localHash:'b',remoteHash:'b',remoteRevision:2}),'ack');assert.equal(decideSync({...base,remoteRevision:null}),'conflict')});
+test('JSONB 字段重排不产生错误冲突，数组顺序仍保留',async()=>{assert.equal(await digest({b:2,a:1}),await digest({a:1,b:2}));assert.notEqual(await digest([1,2]),await digest([2,1]));assert.equal(canonical({b:undefined,a:1}),'{"a":1}')});
+test('不同账号缓存与访客缓存独立',()=>{const m=new Map();const store={getItem:k=>m.get(k)||null,setItem:(k,v)=>m.set(k,v),removeItem:k=>m.delete(k)};const a=scopedStorage(store,'a'),b=scopedStorage(store,'b');store.setItem(STORAGE_KEY,'guest');a.setItem(STORAGE_KEY,'account-a');b.setItem(STORAGE_KEY,'account-b');assert.equal(a.getItem(STORAGE_KEY),'account-a');assert.equal(b.getItem(STORAGE_KEY),'account-b');assert.equal(store.getItem(STORAGE_KEY),'guest');a.setItem(META_KEY,'bad');assert.throws(()=>readMeta(a));assert.equal(readMeta(b),null)});

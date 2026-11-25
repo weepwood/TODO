@@ -26,3 +26,13 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 3. 周期引擎：工作日、指定星期、终止条件、多提醒、时区/DST、系列编辑、完整可撤销历史。
 4. 专注/习惯：更多目标、提醒、统计区间、时间冲突提示。
 5. 原生桌面迁移、系统通知、全局快捷键、同步服务。
+
+## V0.3.0 Supabase 在线同步（2026-11-25）
+
+- 独立项目 TODO，东京 ap-northeast-1，项目 ref xepkhnatnpvopnlqnrrz。组织 Free，新建项目报价 $0/月；未升级套餐。项目空闲可能被暂停。
+- src/cloud-config.js 仅含公开 URL、Publishable Key；可用 VITE_SUPABASE_URL 与 VITE_SUPABASE_PUBLISHABLE_KEY 覆盖。严禁将 secret/service_role、数据库密码或用户令牌写入仓库。
+- src/cloud.jsx 实现 Auth 注册/登录/会话恢复/退出、同步状态与冲突处理；src/cloud-core.js 实现按账号缓存隔离、稳定序列化与 SHA-256、同步决策。原访客存储键不变，登录不会自动上传访客数据。用户可从设置显式导入访客数据（确认替换当前账号空间）。
+- 云端表 public.todo_workspaces：每个 Auth 用户一行，JSONB 保存完整 V2 工作空间、revision 乐观并发版本、updated_at。适合快速开发，尚非规范化任务表或逐条增量同步。RLS 仅允许所有者读/插入/更新，无匿名访问、无直接删除权限。迁移文件与远端已应用版本一致。
+- 离线缓存仍基于 LocalStorage；账号工作空间由 Web Locks 避免同浏览器多标签覆盖。编辑后防抖同步、15 秒轮询、恢复联网/聚焦后尝试同步。版本冲突时停止自动覆盖，用户可选择云端或本地，并先保存另一份冲突备份。不是字段级自动合并，不保证多设备重复任务调度或通知恰好一次。
+- 当前最大客户端上传快照 3.5 MB，受浏览器存储与备份容量约束。后续迁移 IndexedDB/SQLite、逐实体增量同步、Realtime 与后台调度。尚未部署 Pages；生产域名确定后应配置 Supabase Auth Site URL、Redirect URLs、SMTP 邮件确认。
+- 验证：真实数据库使用临时事务验证 RLS 与版本竞争，回滚无残留；安全/性能顾问均无告警；浏览器双设备使用模拟 API（非真实账号登录）。npm test、npm run build、npm run test:e2e。未创建用户真实账号，需用户自行注册并确认邮件。

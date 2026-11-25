@@ -23,6 +23,8 @@ test('任务创建、持久化、完成、右键回收站及各模块',async({pa
 
 test('数据导入、自动备份及异常数据保护',async({page})=>{
  await page.goto('/');
+ await page.getByRole('textbox',{name:'新任务名称'}).waitFor();
+ await expect.poll(()=>page.evaluate(()=>localStorage.getItem('todo-workbench-v1'))).not.toBeNull();
  const payload=await page.evaluate(()=>JSON.parse(localStorage.getItem('todo-workbench-v1')));
  await page.getByRole('textbox',{name:'新任务名称'}).fill('导入前任务');
  await page.getByRole('button',{name:'添加',exact:true}).click();
