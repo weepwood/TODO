@@ -337,3 +337,8 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - PR #3 c83ff01 全量浏览器CI 45594408088成功，已合并d17367a、本地main同步，Pages 45594891620实际成功。独立worktree v12-controls-gestures 已快进该合并提交。
 - 实施五处TimeControl、ColorControl、手机横滑方向判定与跟手反馈、同日时间轴目标预览、公共浮层和实体表单布局精修。无新增依赖或安装包构建，提醒datetime-local、数据库及签名不变。
 - 本机资源门禁下Web构建成功；首轮19项专项17通过，两项仅因旧getByLabel部分匹配输入与按钮，改为精确名称，保留业务断言。最终重测13/13通过；首轮v118六项全部通过（含真实触摸跨午夜/日周拖放和双主题八模块）。已审阅真实时间浮层、左滑菜单及颜色截图，最终截图位于test-results，日志artifacts/TODO/controls-{targeted,final}.log。新增三项浏览器专项；同日目标预览的独立视觉断言、完整最新CI及真实设备验收仍待完成。
+
+### V1.2 第五轮提醒控件与工作台精修
+- PR #4 6c9cf15 浏览器CI 45595296988通过，已合并22dfe4a、本地main同步；Pages 45595732620成功。独立worktree v12-reminder-workspace，未触发安装包。
+- 实施DateTimeControl（独立/附加提醒、显式应用、取消、清除、外部冲突保护、既有TimeControl），NumberField加减、桌面工作台选中态/详情字段、批量操作栏。提醒引擎、存储格式、签名、权限及业务计算不变。
+- 本机预算门禁下Web构建及11项专项Edge浏览器测试（ui-reminder、advanced、points、v114）全部通过，人工审阅真实提醒、数字步进、工作台截图；日志artifacts/TODO/reminder-ui.log。此后补充提醒可展开月历、批量日期复用、选中栏布局及同日拖动预览断言；最新构建因内存压力2门禁拒绝，未绕过，最后改动仅完成脚本语法及diff检查。新PR完整浏览器CI、最新截图、真实原生运行待验收，原生按敏捷发布门禁延期。无新增依赖、不生成安装包。

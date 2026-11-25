@@ -2,7 +2,7 @@ import React,{useEffect,useRef,useState} from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Dropdown from '@radix-ui/react-dropdown-menu';
 import * as Context from '@radix-ui/react-context-menu';
-import {X,MoreHorizontal} from 'lucide-react';
+import {X,MoreHorizontal,Minus,Plus} from 'lucide-react';
 export function Modal({open,onClose,title,children,description,className=''}){return <Dialog.Root open={open} onOpenChange={v=>!v&&onClose()}><Dialog.Portal><Dialog.Overlay className="overlay"/><Dialog.Content className={'dialog '+className} {...(!description?{'aria-describedby':undefined}:{})}><div className="dialog-head"><Dialog.Title>{title}</Dialog.Title><Dialog.Close className="icon-button" aria-label="关闭"><X size={18}/></Dialog.Close></div>{description&&<Dialog.Description className="dialog-description">{description}</Dialog.Description>}{children}</Dialog.Content></Dialog.Portal></Dialog.Root>}
 export function Menu({items,trigger,open,onOpenChange}){
  const [local,setLocal]=useState(false),shown=open??local,change=onOpenChange??setLocal;
@@ -28,5 +28,6 @@ export function NumberField({label,value,min,max,onCommit}){
  const [draft,setDraft]=useState(String(value)),[editing,setEditing]=useState(false),original=useRef(value);
  useEffect(()=>{if(!editing)setDraft(String(value))},[value,editing]);
  function commit(){setEditing(false);if(value!==original.current||!draft.trim()||!Number.isFinite(Number(draft))){setDraft(String(value));return}const next=Math.max(min,Math.min(max,Math.round(Number(draft))));setDraft(String(next));if(next!==value)onCommit(next)}
- return <input className="number-field" inputMode="numeric" aria-label={label} type="number" min={min} max={max} step="1" value={draft} onFocus={()=>{original.current=value;setEditing(true)}} onChange={e=>setDraft(e.target.value)} onBlur={commit} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();e.currentTarget.blur()}else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();original.current=NaN;setDraft(String(value));e.currentTarget.blur()}}}/>
+ function step(delta){const current=editing&&value===original.current&&draft.trim()&&Number.isFinite(Number(draft))?Number(draft):value;const next=Math.max(min,Math.min(max,Math.round(current)+delta));original.current=next;setEditing(false);setDraft(String(next));if(next!==value)onCommit(next)}
+ return <div className="number-control"><button type="button" className="number-step" aria-label={label+'减少'} disabled={value<=min} onPointerDown={e=>e.preventDefault()} onClick={()=>step(-1)}><Minus size={14}/></button><input className="number-field" inputMode="numeric" aria-label={label} type="number" min={min} max={max} step="1" value={draft} onFocus={()=>{original.current=value;setEditing(true)}} onChange={e=>setDraft(e.target.value)} onBlur={commit} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();e.currentTarget.blur()}else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();original.current=NaN;setDraft(String(value));e.currentTarget.blur()}}}/><button type="button" className="number-step" aria-label={label+'增加'} disabled={value>=max} onPointerDown={e=>e.preventDefault()} onClick={()=>step(1)}><Plus size={14}/></button></div>
 }
