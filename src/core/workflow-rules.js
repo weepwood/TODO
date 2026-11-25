@@ -5,7 +5,10 @@ const actions=['today','tomorrow','high','low','clear-date','doing','todo','clos
 const triggers=['daily','created','completed','changed','time','manual'];
 export function validRule(r){return !!r&&typeof r.id==='string'&&typeof r.name==='string'&&r.name.trim().length>0&&r.name.length<=80&&typeof r.list==='string'&&conditions.includes(r.condition)&&actions.includes(r.action)&&typeof r.enabled==='boolean'&&(r.extra===undefined||conditions.includes(r.extra))&&(r.match===undefined||['all','any'].includes(r.match))&&(r.trigger===undefined||triggers.includes(r.trigger))&&(r.trigger!=='time'||validTime(r.at))&&(r.tag===undefined||typeof r.tag==='string')}
 export function readRules(storage){const raw=storage.getItem(RULE_KEY);if(!raw)return {rules:[],auto:false,lastRun:'',snapshot:'none',snapshotAt:'21:00'};const s=JSON.parse(raw);if(!Array.isArray(s.rules)||s.rules.length>20||!s.rules.every(validRule)||new Set(s.rules.map(r=>r.id)).size!==s.rules.length||typeof s.auto!=='boolean'||typeof s.lastRun!=='string'||s.receipts!==undefined&&(!s.receipts||typeof s.receipts!=='object'||Array.isArray(s.receipts)||Object.keys(s.receipts).length>20||Object.values(s.receipts).some(v=>!validDate(v)))||s.snapshot!==undefined&&!['none','day','week','month'].includes(s.snapshot)||s.snapshotAt!==undefined&&!validTime(s.snapshotAt))throw Error('规则存储异常，保留原数据');return {snapshot:'none',snapshotAt:'21:00',...s}}
-export function writeRules(storage,state){storage.setItem(RULE_KEY,JSON.stringify(state));return state}
+export function writeRules(storage,state){
+ const receipts=Object.fromEntries(Object.entries(state.receipts||{}).filter(([key,date])=>state.rules.some(r=>r.id===key)&&validDate(date)));
+ const next={...state,receipts};storage.setItem(RULE_KEY,JSON.stringify(next));return next
+}
 export const newRule=()=>({id:id(),name:'新规则',list:'all',condition:'overdue',action:'tomorrow',enabled:true,trigger:'daily'});
 const ordinary=t=>!t.deletedAt&&t.status==='pending'&&t.repeat==='none'&&!t.seriesId&&!t.previousId&&!t.seriesHold;
 function condition(c,t,today,byId){switch(c){case 'overdue':return validDate(t.date)&&t.date<today;case 'unscheduled':return !t.date;case 'today':return t.date===today;case 'high':return t.priority===3;case 'doing':return t.stage==='doing';case 'todo':return t.stage==='todo';case 'unblocked':return !!t.dependsOn?.length&&t.dependsOn.every(i=>byId.get(i)?.status==='completed'&&!byId.get(i)?.deletedAt);default:return true}}
@@ -32,7 +35,7 @@ export function applyRules(data,rows,rules,today){
 }
 const fields=['date','anchor','priority','stage'];
 export function validRun(r){return !!r&&typeof r.id==='string'&&typeof r.at==='string'&&Number.isFinite(Date.parse(r.at))&&['event','scheduled','manual'].includes(r.trigger)&&Array.isArray(r.changes)&&r.changes.length<=500&&new Set(r.changes.map(c=>c?.id)).size===r.changes.length&&r.changes.every(c=>c&&typeof c.id==='string'&&typeof c.title==='string'&&c.before&&c.after&&Object.keys(c.before).length>0&&Object.keys(c.before).every(k=>fields.includes(k)&&Object.hasOwn(c.after,k)&&validField(k,c.before[k])&&validField(k,c.after[k]))&&Object.keys(c.after).every(k=>Object.hasOwn(c.before,k)))}
-function validField(k,v){return k==='date'?v===''||validDate(v):k==='anchor'?v===null||Number.isInteger(v)&&v>=1&&v<=31:k==='priority'?[0,1,2,3].includes(v):['todo','doing'].includes(v)}
+function validField(k,v){return k==='date'?v===''||validDate(v):k==='anchor'?v===null||Number.isInteger(v)&&v>=1&&v<=31:k==='priority'?[0,1,2,3].includes(v):['todo','doing','done'].includes(v)}
 export function recordRun(data,rows,rules,today,meta){
  if(!rows.length||rows.length>500)return data;
  const next=applyRules(data,rows,rules,today);if(next===data)return data;

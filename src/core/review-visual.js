@@ -20,7 +20,7 @@ export function validVisual(v){
 }
 
 export function listTime(data,{since,until}){
- const tasks=new Map(data.tasks.map(t=>[t.id,t])),lists=new Map(data.lists.map(l=>[l.id,{id:l.id,name:l.name,planned:0,seconds:0}]));
+ const tasks=new Map(data.tasks.filter(t=>!t.deletedAt).map(t=>[t.id,t])),lists=new Map(data.lists.map(l=>[l.id,{id:l.id,name:l.name,planned:0,seconds:0}]));
  lists.set('unknown',{id:'unknown',name:'未绑定或已移除任务',planned:0,seconds:0});
  const range=d=>d&&d>=since&&d<=until;
  for(const t of data.tasks)if(!t.deletedAt&&t.status!=='skipped'&&range(t.date))(lists.get(t.listId)||lists.get('unknown')).planned+=t.duration;

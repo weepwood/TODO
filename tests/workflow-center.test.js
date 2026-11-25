@@ -57,3 +57,18 @@ test('基线暂停保护丢失进入同步冲突；显式恢复或结束兼容',
  assert.equal(unsafeSeriesPull(base,{tasks:seriesControl(p,a.id,'end')}),false);
  assert.equal(unsafeSeriesPull(base,{tasks:[]}),true);
 });
+
+test('删除定时规则时同步清理已失效回执，避免重新配置后无法读取',async()=>{
+ const {readRules,writeRules}=await import('../src/core/workflow-rules.js');
+ const store=new Map(),storage={getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v)};
+ const receipts=Object.fromEntries(Array.from({length:20},(_,i)=>['old-'+i,today]));
+ const next=writeRules(storage,{rules:[rule({id:'new'})],auto:true,lastRun:today,receipts});
+ assert.deepEqual(next.receipts,{});assert.deepEqual(readRules(storage).receipts,{});
+});
+test('回顾仅在对应周期末运行，已删除任务专注归入未知',async()=>{
+ const {isSnapshotDay}=await import('../src/core/review-schedule.js');
+ assert.equal(isSnapshotDay('2026-11-25','week'),false);assert.equal(isSnapshotDay('2026-11-29','week'),true);
+ assert.equal(isSnapshotDay('2028-02-29','month'),true);assert.equal(isSnapshotDay('2028-02-28','month'),false);
+ const d=initialState(),t={...newTask('已删除','work',today),deletedAt:today};d.tasks=[t];d.sessions=[{taskId:t.id,mode:'focus',seconds:600,startedAt:today+'T10:00:00'}];
+ assert.equal(makeVisual(d,buildReview(d,{since:today,until:today})).lists.find(r=>r.id==='unknown').actual,10);
+});
