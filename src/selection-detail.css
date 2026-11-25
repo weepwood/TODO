@@ -1,0 +1,124 @@
+/* Visual refinement: semantic selection markers, intentional whitespace and
+   compact inspector layout. No imported illustration or font assets. */
+:root{
+ --row-gap:4px;
+ --nav-gap:4px;
+ --marker-idle:5px;
+ --marker-active:19px;
+ --marker-width:3px;
+ --marker-duration:200ms;
+ --inspector-gap:12px;
+ --inspector-radius:12px;
+}
+.v2 .sidebar{gap:var(--nav-gap)}
+.v2 .sidebar nav,.v2 .sidebar .nested{display:flex;flex-direction:column;gap:var(--nav-gap)}
+.v2 .sidebar .section-label{padding-top:14px;padding-bottom:3px}
+.v2 .sidebar .nav-row[data-view-key],.v2 .task-row,.v2:not(.compact-mobile) .rail>button{position:relative}
+.v2 .sidebar .nav-row[data-view-key]{padding-inline-start:14px}
+.v2 .sidebar .nav-row[data-view-key]::before,.v2 .task-row::before,.v2:not(.compact-mobile) .rail>button::before{
+ content:"";position:absolute;pointer-events:none;inset-inline-start:4px;top:50%;transform:translateY(-50%);
+ width:var(--marker-width);height:var(--marker-idle);border-radius:10px;background:var(--muted);opacity:.28;
+}
+.v2 .sidebar .nav-row[data-view-key].active::before,.v2 .task-row.selected::before,.v2:not(.compact-mobile) .rail>button.active::before{
+ height:var(--marker-active);background:var(--accent);opacity:1
+}
+.v2 .sidebar .nav-row[data-view-key]:hover::before,.v2 .task-row:hover::before{background:var(--accent);opacity:.8}
+.v2 .sidebar .nav-row[data-view-key].active,.v2 .task-row.selected{box-shadow:none}
+.v2 .task-row,.v2 .task-row:not(.selected):not(.checked){border-radius:9px;border-bottom:0;margin-bottom:var(--row-gap);padding-inline-start:13px}
+.v2 .task-row:not(.selected):not(.checked){background:transparent}
+.v2 .task-row:not(.selected):not(.checked):hover{background:var(--hover)}
+.v2 .task-row.selected{background:var(--active)}
+.v2 .task-row::before{opacity:.16}
+.v2 .task-row:hover::before{opacity:.42}
+.v2 .task-row.selected::before{opacity:1}
+.v2 .task-group{margin-top:10px}
+.v2 .list-caption{padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.v2 .task-content{container-type:inline-size}
+.v2 .task-content>.heading{align-items:center;gap:12px;padding-bottom:4px}
+.v2 .task-content>.heading .view-toolbar{gap:8px;justify-content:flex-end}
+.v2 .task-content>.heading .sort{gap:6px}
+.v2 .task-content .quick-add{margin-bottom:10px}
+.v2 .bulk-bar:not([data-has-selection=true]){min-height:28px;gap:14px;margin-bottom:10px}
+.v2 .bulk-select-all{padding:5px 8px;border-radius:6px}
+.v2 .bulk-select-all:hover{background:var(--hover);text-decoration:none}
+.task-shortcuts{position:relative;color:var(--muted);font-size:11px}
+.task-shortcuts summary{cursor:pointer;list-style:none;padding:6px;border-radius:6px}
+.task-shortcuts summary:hover{background:var(--hover)}
+.v2 .task-shortcuts .task-shortcut-hint{position:absolute;z-index:20;top:100%;left:0;width:max-content;max-width:240px;margin:4px 0 0;display:grid;gap:9px;padding:12px;background:var(--bg);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}
+.v2 .detail-content{container-type:inline-size;padding:18px clamp(12px,1.5vw,24px) 26px}
+.v2 .detail-content fieldset{display:grid;gap:var(--inspector-gap)}
+.v2 .detail-content .detail-group,.v2 .detail-content .detail-group+.detail-group{
+ border:0;border-radius:var(--inspector-radius);background:var(--bg);padding:14px 14px 12px;margin:0;
+}
+.v2 .detail-content .detail-group:first-child{padding-top:14px}
+.v2 .detail-content .detail-title{margin-bottom:18px;align-items:flex-start}
+.v2 .detail-content .detail-title textarea{font-size:20px;line-height:1.4}
+.v2 .detail-content .detail-kicker{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:650;margin-bottom:12px}
+.v2 .detail-content .detail-kicker svg{color:var(--muted)}
+.detail-field-grid{display:grid;gap:8px}
+.v2 .detail-content .detail-group .field{margin:0;min-height:36px;grid-template-columns:minmax(75px,1fr) minmax(0,1.65fr);gap:8px}
+.v2 .detail-content .detail-group .field>span{color:var(--muted);font-size:12px;font-weight:500;line-height:1.45}
+.v2 .detail-content .detail-group .field>:last-child{max-width:100%;width:100%}
+.v2 .detail-content .detail-group .points-hint{margin-top:10px;padding:0;font-size:11px}
+.v2 .detail-content .detail-group .smart-select-trigger,.v2 .detail-content .detail-group .date-trigger,.v2 .detail-content .detail-group .datetime-trigger{min-height:36px;border-radius:8px;background:var(--panel);border-color:transparent}
+.v2 .detail-content .detail-group .smart-select-trigger:focus-visible,.v2 .detail-content .detail-group .date-trigger:focus-visible,.v2 .detail-content .detail-group .datetime-trigger:focus-visible{border-color:var(--accent)}
+.v2 .detail-content .detail-group .smart-select-trigger:hover,.v2 .detail-content .detail-group .date-trigger:hover,.v2 .detail-content .detail-group .datetime-trigger:hover{border-color:var(--line)}
+.time-control,.number-control{background:var(--panel);border-color:transparent;border-radius:8px;height:36px;padding:3px;gap:3px}
+.time-control>input,.v2 .detail-content .field .time-control>input{flex:1 1 72px;max-width:none;width:0;min-width:0;padding:0 8px;color:var(--text)}
+.time-control .time-picker-trigger,.number-control .number-step{height:100%;width:30px;border:0;border-radius:6px;background:var(--bg);color:var(--muted)}
+.number-control .number-step:first-child,.number-control .number-step:last-child{border:0}
+.number-control .number-value{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;height:100%;gap:3px}
+.number-control .number-value>.number-field{max-width:none;min-width:0;width:0;flex:1;color:var(--text);font-weight:550;font-variant-numeric:tabular-nums;appearance:textfield}
+.number-control .number-value>.number-field::-webkit-inner-spin-button,.number-control .number-value>.number-field::-webkit-outer-spin-button{appearance:none;margin:0}
+.number-unit{flex:none;color:var(--muted);font-size:10px;padding-inline-end:4px}
+.time-control:focus-within,.number-control:focus-within{border-color:var(--accent)}
+.time-control .time-picker-trigger:hover,.number-control .number-step:not(:disabled):hover{background:var(--active);color:var(--accent-text)}
+.v2 .detail-content .detail-group .reminder-fields{display:grid;gap:8px}
+.v2 .detail-content .detail-group h3:first-child{margin-top:0}
+.v2 .detail-content .detail-group .detail-tags{gap:6px}
+@container (max-width:490px){
+ .v2 .task-content>.heading{align-items:flex-start;flex-direction:column}
+ .v2 .task-content>.heading .view-toolbar{justify-content:flex-start;width:100%;gap:8px}
+}
+@container (min-width:430px){
+ .detail-field-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
+ .v2 .detail-content .detail-field-grid>.field{grid-template-columns:minmax(0,1fr);gap:6px}
+}
+@media(prefers-reduced-motion:no-preference){
+ .v2 .sidebar .nav-row[data-view-key]::before,.v2 .task-row::before,.v2:not(.compact-mobile) .rail>button::before{transition:height var(--marker-duration) var(--ui-ease),background-color var(--marker-duration) ease,opacity var(--marker-duration) ease}
+}
+@media(max-width:860px){
+ .v2.compact-mobile .task-row,.v2.compact-mobile .task-row:not(.selected):not(.checked){padding-inline-start:11px;border-radius:9px}
+ .v2.compact-mobile .detail-content{padding:14px 12px}
+ .v2.compact-mobile .detail-content .detail-group{padding:12px}
+ .v2.compact-mobile .detail-content .detail-group .field{min-height:48px}
+ .v2.compact-mobile .detail-content .detail-group .field>span{font-size:13px}
+ .v2.compact-mobile .detail-content .detail-group .smart-select-trigger,.v2.compact-mobile .detail-content .detail-group .date-trigger,.v2.compact-mobile .detail-content .detail-group .datetime-trigger,.time-control,.number-control{min-height:44px}
+ .time-control .time-picker-trigger,.number-control .number-step{width:40px}
+ .v2.compact-mobile .task-content>.heading .view-toolbar{gap:8px}
+}
+.virtual-task-item{padding-bottom:var(--row-gap)}
+.v2 .virtual-task-item>.task-row{margin-bottom:0}
+@media(max-width:860px){
+ .time-control,.number-control{height:50px;padding:2px}
+ .time-control .time-picker-trigger,.number-control .number-step{width:44px;min-height:44px}
+}
+.v2 .detail-content .field .number-control .number-field{max-width:none}
+@media(max-width:860px){.v2.compact-mobile .task-row:not(.checked).selected{background:var(--active)}}
+/* A standalone time editor needs an intrinsic width; inspectors and date-time
+   popovers instead stretch to their allocated field width. */
+.planner .planner-hours .time-control{flex:0 1 132px;min-width:112px}
+.planner .planner-hours .time-control>input{min-width:0;border:0;background:transparent;border-radius:0;padding:0 6px}
+.v2 .detail-content .field .time-control{width:100%}
+.v2 .sidebar .nav-row[data-view-key]{flex-shrink:0}
+.v2 .sidebar .nav-wrap{gap:4px;flex-shrink:0}
+.v2 .detail-content .detail-group .smart-select-trigger{color:var(--text)}
+.v2 .detail-content .detail-group .smart-select-trigger .smart-select-chevron{color:var(--muted)}
+.v2 .detail-content .detail-group .smart-select-trigger[data-state=open]{border-color:var(--accent);background:var(--active)}
+.v2 .detail-content .detail-group .date-trigger[data-state=open],.v2 .detail-content .detail-group .datetime-trigger[data-state=open]{border-color:var(--accent)}
+@media(max-width:860px){
+ .planner .planner-hours .time-control{flex-basis:142px;min-width:126px}
+ .v2.compact-mobile .detail-title{margin-bottom:8px}
+ .v2.compact-mobile .detail-content fieldset{gap:8px}
+ .v2.compact-mobile .detail-content .detail-group .field{margin-bottom:2px}
+}

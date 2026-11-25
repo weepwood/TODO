@@ -15,6 +15,7 @@ test('手机规划日程与待安排独立分区，设置保持可编辑',async(
  await expect(page.getByLabel('工作开始时间',{exact:true})).toBeHidden();
  await page.getByRole('button',{name:/^规划设置/}).click();
  await page.getByLabel('工作开始时间',{exact:true}).fill('09:30');
+ await expect(page.getByLabel('工作开始时间',{exact:true})).toHaveValue('09:30');
  await page.getByRole('button',{name:/^收起规划设置/}).click();
  await nav.getByRole('button',{name:/待安排任务/}).click();
  await expect(page.locator('.planner .timeline')).toBeHidden();

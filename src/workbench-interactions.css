@@ -8,7 +8,7 @@
 .v2 .quick-add:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 12%,transparent)}
 .v2 .task-shortcut-hint{display:flex;align-items:center;gap:13px;flex-wrap:wrap;color:var(--muted);font-size:11px;margin:8px 0 2px}
 .v2 .task-shortcut-hint kbd{font:inherit;padding:1px 4px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--text)}
-.v2 .task-row.selected{box-shadow:inset 2px 0 var(--accent)}
+
 .v2 .task-body:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:5px}
 .v2 .list-caption{font-weight:600;letter-spacing:.01em}
 .v2 .nav-row.active{font-weight:600}
