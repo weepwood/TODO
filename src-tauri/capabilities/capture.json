@@ -1,0 +1,14 @@
+{
+  "identifier": "capture",
+  "description": "Dedicated draft entry, no workspace or auth commands",
+  "windows": [
+    "capture"
+  ],
+  "permissions": [
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "allow-native-capture-generation",
+    "allow-native-capture-handoff",
+    "allow-native-capture-cancel"
+  ]
+}

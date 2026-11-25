@@ -20,3 +20,10 @@ export function InlineTitle({value,onCommit,onClose}){
  <ActionButton compact type="submit" variant="primary">保存</ActionButton><ActionButton compact onClick={onClose}>取消</ActionButton>{error&&<small role="alert">{error}</small>}
  </form>
 }
+
+export function NumberField({label,value,min,max,onCommit}){
+ const [draft,setDraft]=useState(String(value)),[editing,setEditing]=useState(false),original=useRef(value);
+ useEffect(()=>{if(!editing)setDraft(String(value))},[value,editing]);
+ function commit(){setEditing(false);if(value!==original.current||!draft.trim()||!Number.isFinite(Number(draft))){setDraft(String(value));return}const next=Math.max(min,Math.min(max,Math.round(Number(draft))));setDraft(String(next));if(next!==value)onCommit(next)}
+ return <input aria-label={label} type="number" min={min} max={max} step="1" value={draft} onFocus={()=>{original.current=value;setEditing(true)}} onChange={e=>setDraft(e.target.value)} onBlur={commit} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();e.currentTarget.blur()}else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();original.current=NaN;setDraft(String(value));e.currentTarget.blur()}}}/>
+}

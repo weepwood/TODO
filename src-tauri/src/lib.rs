@@ -1,4 +1,4 @@
-use std::{sync::{Mutex,atomic::{AtomicBool,Ordering}}, time::Duration};
+use std::{sync::Mutex, time::Duration};
 use chrono::Local;
 use rusqlite::{params, Connection, OptionalExtension};
 use tauri::{Emitter, Manager, WindowEvent, menu::{Menu, MenuItem}, tray::TrayIconBuilder};
@@ -7,14 +7,64 @@ use tauri_plugin_notification::NotificationExt;
 
 struct Database(Mutex<Connection>);
 struct ActiveScope(Mutex<Option<String>>);
-struct QuickCapture(AtomicBool);
+// The secondary window owns no workspace. It can hand a bounded draft to the
+// main window only while the same active scope and capture generation remain valid.
+#[derive(Default)]
+struct CaptureState{generation:u64,scope:Option<String>,pending:Option<(String,String)>,open_main:bool}
+impl CaptureState{
+ fn begin(&mut self,scope:&str)->u64{self.generation=self.generation.wrapping_add(1);self.scope=Some(scope.into());self.generation}
+ fn invalidate(&mut self){self.generation=self.generation.wrapping_add(1);self.scope=None;self.pending=None}
+ fn handoff(&mut self,scope:&str,generation:u64,text:&str)->Result<(),String>{
+  let text=text.trim();
+  if self.scope.as_deref()!=Some(scope)||self.generation!=generation{return Err("录入会话已失效，请重新打开".into())}
+  if text.is_empty()||text.chars().count()>500{return Err("请输入 1–500 字的任务草稿".into())}
+  if self.pending.is_some(){return Err("主窗口尚有待确认草稿".into())}
+  self.pending=Some((scope.into(),text.into()));self.scope=None;Ok(())
+ }
+ fn take(&mut self,scope:&str)->Option<String>{
+  if self.pending.as_ref().is_some_and(|(owner,_)|owner==scope){self.open_main=false;return self.pending.take().map(|(_,text)|text)}
+  if self.open_main{self.open_main=false;return Some(String::new())}None
+ }
+}
+struct QuickCapture(Mutex<CaptureState>);
 struct ShortcutStatus(Mutex<String>);
 #[tauri::command]
-fn native_take_quick_capture(pending:tauri::State<QuickCapture>)->bool{pending.0.swap(false,Ordering::AcqRel)}
+fn native_take_quick_capture(scope:String,pending:tauri::State<QuickCapture>,active:tauri::State<ActiveScope>)->Result<Option<String>,String>{
+ let current=active.0.lock().map_err(|e|e.to_string())?;
+ if current.as_deref()!=Some(&scope){return Ok(None)}
+ Ok(pending.0.lock().map_err(|e|e.to_string())?.take(&scope))
+}
 #[tauri::command]
 fn native_shortcut_status(status:tauri::State<ShortcutStatus>)->String{status.0.lock().map(|v|v.clone()).unwrap_or_else(|_|"unknown".into())}
+fn reset_capture_window(app:&tauri::AppHandle){if let Some(w)=app.get_webview_window("capture"){let _=w.hide();let _=app.emit_to("capture","todo-capture-reset",());}}
 fn request_quick_capture(app:&tauri::AppHandle){
- app.state::<QuickCapture>().0.store(true,Ordering::Release);show(app);let _=app.emit("todo-quick-add",());
+ let active=app.state::<ActiveScope>();let capture=app.state::<QuickCapture>();
+ let opened=if let (Ok(current),Ok(mut state))=(active.0.lock(),capture.0.lock()){
+  if let (Some(scope),Some(w))=(current.as_deref(),app.get_webview_window("capture")){
+   if state.pending.is_none(){
+    if state.scope.as_deref()!=Some(scope){state.begin(scope);let _=app.emit_to("capture","todo-capture-reset",());}
+    w.show().and_then(|_|w.unminimize()).and_then(|_|w.set_focus()).is_ok()
+   }else{false}
+  }else{false}
+ }else{false};
+ if !opened{if let Ok(mut state)=capture.0.lock(){state.open_main=true;}show(app);let _=app.emit_to("main","todo-quick-add",());}
+}
+#[tauri::command]
+fn native_open_capture(app:tauri::AppHandle){request_quick_capture(&app)}
+#[tauri::command]
+fn native_capture_generation(pending:tauri::State<QuickCapture>)->Option<u64>{
+ let state=pending.0.lock().ok()?;state.scope.as_ref().map(|_|state.generation)
+}
+#[tauri::command]
+fn native_capture_handoff(generation:u64,text:String,pending:tauri::State<QuickCapture>,active:tauri::State<ActiveScope>,app:tauri::AppHandle)->Result<(),String>{
+ {let current=active.0.lock().map_err(|e|e.to_string())?;let scope=current.as_deref().ok_or("工作空间尚未就绪")?;
+ pending.0.lock().map_err(|e|e.to_string())?.handoff(scope,generation,&text)?;}
+ reset_capture_window(&app);show(&app);let _=app.emit_to("main","todo-quick-add",());Ok(())
+}
+#[tauri::command]
+fn native_capture_cancel(pending:tauri::State<QuickCapture>,app:tauri::AppHandle)->Result<(),String>{
+ {let mut state=pending.0.lock().map_err(|e|e.to_string())?;state.scope=None;state.generation=state.generation.wrapping_add(1);}
+ reset_capture_window(&app);Ok(())
 }
 
 fn valid_scope(s:&str)->bool { s=="guest" || (s.len()==36 && s.chars().all(|c|c.is_ascii_hexdigit()||c=='-')) }
@@ -112,9 +162,9 @@ fn native_write_store(scope:String,store:String,db:tauri::State<Database>)->Resu
  persist_store(&mut conn,&scope,&store)
 }
 #[tauri::command]
-fn native_activate(scope:Option<String>,active:tauri::State<ActiveScope>)->Result<(),String>{
+fn native_activate(scope:Option<String>,active:tauri::State<ActiveScope>,pending:tauri::State<QuickCapture>,app:tauri::AppHandle)->Result<(),String>{
  if scope.as_deref().is_some_and(|s|!valid_scope(s)){return Err("invalid scope".into())}
- *active.0.lock().map_err(|e|e.to_string())?=scope;Ok(())
+ let changed={let mut current=active.0.lock().map_err(|e|e.to_string())?;let changed=*current!=scope;if changed{pending.0.lock().map_err(|e|e.to_string())?.invalidate();}*current=scope;changed};if changed{reset_capture_window(&app)}Ok(())
 }
 #[tauri::command]
 fn native_search(scope:String,query:String,db:tauri::State<Database>)->Result<Vec<String>,String>{
@@ -221,10 +271,10 @@ pub fn run(){
  .plugin(tauri_plugin_single_instance::init(|app,_,_|show(app)))
  .plugin(tauri_plugin_notification::init())
  .plugin(tauri_plugin_global_shortcut::Builder::new().with_handler(|app,_,event|{if event.state()==ShortcutState::Pressed{request_quick_capture(app);}}).build())
- .invoke_handler(tauri::generate_handler![native_load,native_save,native_load_store,native_write_store,native_activate,native_search,native_list_backups,native_read_backup,native_create_backup,native_notify,native_exit,native_test_notification,native_take_quick_capture,native_shortcut_status])
+ .invoke_handler(tauri::generate_handler![native_load,native_save,native_load_store,native_write_store,native_activate,native_search,native_list_backups,native_read_backup,native_create_backup,native_notify,native_exit,native_test_notification,native_take_quick_capture,native_shortcut_status,native_open_capture,native_capture_generation,native_capture_handoff,native_capture_cancel])
  .setup(|app|{
   let path=app.path().app_data_dir()?;std::fs::create_dir_all(&path)?;let c=Connection::open(path.join("todo.sqlite3"))?;schema(&c)?;
-  app.manage(Database(Mutex::new(c)));app.manage(ActiveScope(Mutex::new(None)));app.manage(QuickCapture(AtomicBool::new(false)));app.manage(ShortcutStatus(Mutex::new("not-registered".into())));
+  app.manage(Database(Mutex::new(c)));app.manage(ActiveScope(Mutex::new(None)));app.manage(QuickCapture(Mutex::new(CaptureState::default())));app.manage(ShortcutStatus(Mutex::new("not-registered".into())));
   let open=MenuItem::with_id(app,"open","打开 TODO",true,None::<&str>)?;let quit=MenuItem::with_id(app,"quit","退出 TODO",true,None::<&str>)?;
   let quick=MenuItem::with_id(app,"quick","快速新建任务",true,None::<&str>)?;let hide=MenuItem::with_id(app,"hide","隐藏主窗口",true,None::<&str>)?;let menu=Menu::with_items(app,&[&open,&quick,&hide,&quit])?;
   let mut tray=TrayIconBuilder::new().menu(&menu).tooltip("TODO").on_menu_event(|app,event|match event.id.as_ref(){"open"=>show(app),"quick"=>request_quick_capture(app),"hide"=>{if let Some(w)=app.get_webview_window("main"){save_window(&w);let _=w.hide();}},"quit"=>{let active=app.state::<ActiveScope>();if active.0.lock().ok().and_then(|s|s.clone()).is_some(){let _=app.emit("todo-quit-request",());}else{app.exit(0)}},_=>{}});
@@ -235,11 +285,18 @@ pub fn run(){
   }
   if let Some(w)=app.get_webview_window("main"){restore_window(&w);}schedule(app.handle().clone());Ok(())
  })
- .on_window_event(|window,event|{if let WindowEvent::CloseRequested{api,..}=event{api.prevent_close();if let Some(w)=window.app_handle().get_webview_window("main"){save_window(&w);}let _=window.hide();}})
+ .on_window_event(|window,event|{if let WindowEvent::CloseRequested{api,..}=event{api.prevent_close();if window.label()=="capture"{let app=window.app_handle();if let Ok(mut state)=app.state::<QuickCapture>().0.lock(){state.scope=None;state.generation=state.generation.wrapping_add(1);}reset_capture_window(app);}else if window.label()=="main"{if let Some(w)=window.app_handle().get_webview_window("main"){save_window(&w);}let _=window.hide();}}})
  .run(tauri::generate_context!()).expect("TODO native application failed")
 }
 #[cfg(test)]mod tests{
  use super::*;
+ #[test]fn capture_handoff_rejects_wrong_scope_stale_generation_and_overflow(){
+ let mut c=CaptureState::default();let generation=c.begin("guest");
+ assert!(c.handoff("other",generation,"hello").is_err());assert!(c.handoff("guest",generation,&"x".repeat(501)).is_err());
+ assert!(c.handoff("guest",generation,"   ").is_err());c.handoff("guest",generation," hello ").unwrap();
+ assert!(c.handoff("guest",generation,"duplicate").is_err());assert!(c.take("other").is_none());assert_eq!(c.take("guest"),Some("hello".into()));assert!(c.take("guest").is_none());
+ let generation=c.begin("guest");c.invalidate();assert!(c.handoff("guest",generation,"stale").is_err());
+ }
  #[test]fn reminder_retry_persists_backoff_and_deduplicates(){
   let c=Connection::open_in_memory().unwrap();schema(&c).unwrap();
   assert!(deliver_reminder(&c,"guest","task:at",100,||Err("test failure".into())).is_err());

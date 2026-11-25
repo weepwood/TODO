@@ -28,7 +28,7 @@ export function useNativeHydration(uid){
 }
 export async function nativeGuestState(){const raw=await invoke('native_load_store',{scope:'guest'});if(raw)return JSON.parse(raw)[STORAGE_KEY]||null;return window.localStorage.getItem(STORAGE_KEY)||await invoke('native_load',{scope:'guest'})}
 export function nativeNotify(uid,event){return native?invoke('native_notify',{scope:uid||'guest',taskId:event.taskId,at:event.at,title:event.title}):Promise.resolve()}
-export function useNativeShortcut(callback){useEffect(()=>{if(!native)return;let disposed=false,unlisten;const consume=()=>invoke('native_take_quick_capture').then(pending=>{if(!disposed&&pending)callback()}).catch(()=>{});listen('todo-quick-add',consume).then(fn=>{if(disposed)fn();else{unlisten=fn;consume()}}).catch(()=>{});return()=>{disposed=true;unlisten?.()}},[callback])}
+export function useNativeShortcut(uid,callback){useEffect(()=>{if(!native)return;let disposed=false,unlisten;const consume=()=>invoke('native_take_quick_capture',{scope:uid||'guest'}).then(pending=>{if(!disposed&&pending!==null)callback(pending)}).catch(()=>{});listen('todo-quick-add',consume).then(fn=>{if(disposed)fn();else{unlisten=fn;consume()}}).catch(()=>{});return()=>{disposed=true;unlisten?.()}},[uid,callback])}
 export function useNativeShortcutStatus(){const [status,setStatus]=useState('unknown');useEffect(()=>{if(!native)return;let alive=true;invoke('native_shortcut_status').then(v=>{if(alive)setStatus(v)}).catch(()=>{});return()=>{alive=false}},[]);return status}
 export function useNativeQuit(storage,onError){useEffect(()=>{if(!native||!storage)return;let disposed=false,unlisten;listen('todo-quit-request',async()=>{if(await storage.flush())await invoke('native_exit');else onError('SQLite 保存失败，已取消退出。请重试保存或导出数据。')}).then(fn=>{if(disposed)fn();else unlisten=fn}).catch(()=>{});return()=>{disposed=true;unlisten?.()}},[storage,onError])}
 
@@ -39,3 +39,5 @@ export async function nativeRecoveryPayload(uid){
 }
 
 export function nativeTestNotification(){return invoke("native_test_notification")}
+
+export function nativeOpenCapture(){return invoke('native_open_capture')}

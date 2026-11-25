@@ -3,14 +3,14 @@ import * as Popover from '@radix-ui/react-popover';
 import {DayPicker} from 'react-day-picker';
 import {zhCN} from 'react-day-picker/locale';
 import {CalendarDays,ChevronDown,Plus,X} from 'lucide-react';
-import {dayKey,shiftDay,id} from './domain.js';
+import {dayKey,shiftDay,id,validDate} from './domain.js';
 import {blockers,canLink,descendants} from './advanced.js';
 import {Field} from './ui.jsx';
 import 'react-day-picker/style.css';
 export function DatePicker({value,onChange,label='计划日期'}){
- const [open,setOpen]=useState(false);const today=dayKey();
+ const [open,setOpen]=useState(false),[draft,setDraft]=useState(value||''),[error,setError]=useState(false);const today=dayKey();
  const choose=date=>{onChange(date);setOpen(false)};
- return <Popover.Root open={open} onOpenChange={setOpen}><Popover.Trigger asChild><button type="button" className="date-trigger" aria-label={label}><CalendarDays size={15}/>{value||'设置日期'}<ChevronDown size={13}/></button></Popover.Trigger><Popover.Portal><Popover.Content className="date-popover" align="end" sideOffset={6} collisionPadding={12}><div className="date-presets">{[['今天',today],['明天',shiftDay(today,1)],['下周',shiftDay(today,7)],['清除','']].map(([n,d])=><button type="button" key={n} onClick={()=>choose(d)}>{n}</button>)}</div><DayPicker mode="single" locale={zhCN} defaultMonth={value?new Date(value+'T12:00:00'):new Date()} selected={value?new Date(value+'T12:00:00'):undefined} onSelect={date=>choose(date?dayKey(date):'')} showOutsideDays weekStartsOn={1}/></Popover.Content></Popover.Portal></Popover.Root>
+ return <Popover.Root open={open} onOpenChange={v=>{setOpen(v);if(v){setDraft(value||'');setError(false)}}}><Popover.Trigger asChild><button type="button" className="date-trigger" aria-label={label}><CalendarDays size={15}/>{value||'设置日期'}<ChevronDown size={13}/></button></Popover.Trigger><Popover.Portal><Popover.Content className="date-popover" align="end" sideOffset={6} collisionPadding={12}><form className="date-direct" onSubmit={e=>{e.preventDefault();if(!draft||validDate(draft))choose(draft);else setError(true)}}><input aria-label={label+'直接输入'} type="date" value={draft} onChange={e=>{setDraft(e.target.value);setError(false)}}/><button type="submit" className="secondary compact">应用</button>{error&&<small role="alert">日期无效</small>}</form><div className="date-presets">{[['今天',today],['明天',shiftDay(today,1)],['下周',shiftDay(today,7)],['清除','']].map(([n,d])=><button type="button" key={n} onClick={()=>choose(d)}>{n}</button>)}</div><DayPicker mode="single" locale={zhCN} defaultMonth={value?new Date(value+'T12:00:00'):new Date()} selected={value?new Date(value+'T12:00:00'):undefined} onSelect={date=>choose(date?dayKey(date):'')} showOutsideDays weekStartsOn={1}/></Popover.Content></Popover.Portal></Popover.Root>
 }
 export function RecurrenceFields({task,patch,seriesEdit}){
  const rules=['daily','weekly','monthly','weekdays','workdays','completion'];
