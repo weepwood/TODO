@@ -357,3 +357,8 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - PR #7 3a263c2 的完整浏览器CI 45601863080成功，合并e97ab4b，本机正式main快进同步。独立worktree v12-mobile-capture-stats 以PR #7提交为基础开发，保持合并提交内容一致。
 - 新增共享CapturePreview及显式属性建议，手机月历选择日期与新建分离、统计分布条及聚合扫描优化。保留桌面日历、原日期拖放、连续录入、积分口径、数据模型、原生提醒及签名配置。无新增运行时依赖。
 - 本机资源门禁下 npm ci、Web生产构建及16项专项Edge浏览器测试全部通过（ui-mobile-capture、v112、v113、v118、points），包含真实触摸跨午夜/日周拖放、虚拟列表键盘、八模块双主题。实际审阅mobile-capture-preview、mobile-calendar-selected、stats-distribution截图；随后补充快捷录入标签宽度和按钮布局CSS，最新细节待PR完整CI复验。日志artifacts/TODO/mobile-capture.log。未构建安装包，未做真实设备性能或大型数据基准，不宣称完整八项长期规划全部完成。
+
+### V1.2 第九轮规划工作台与连续动画
+- PR #8 a8e2fac 完整浏览器CI 45602435185成功，合并038891c，正式本地main同步；Pages 45603314537成功。新独立worktree v12-planner-layout。
+- 新增手机规划时间轴/待安排分区、可折叠工作设置、按容器宽度响应的桌面规划布局、隐藏详情时解除侧栏宽度预留、看板跨列动画当前位移继承与宽度快照刷新。无新依赖、无安装包、不改数据模型、计时/排程/提醒/签名。
+- 本机资源门禁因Swap I/O 20.999 MiB/s拒绝npm ci及Web构建，未绕过。低开销productivity/command-search单测15/15通过；首次附带advanced.test.js因新worktree尚无ical.js依赖无法加载（不是业务断言失败）。复用上一工作树已安装的Babel解析器只读解析本次5个JS/JSX文件通过，git diff --check通过。新增3项浏览器专项，覆盖手机分区安排与设置保持、动画中途重定向坐标、桌面宽窄布局；实际运行、截图及最新全量CI待验收。日志artifacts/TODO/planner-layout.log。

@@ -58,6 +58,7 @@ import './workspace-ui.css';
 import './business-views.css';
 import './visual-system.css';
 import './mobile-capture.css';
+import './planner-layout.css';
 const CalendarView=lazy(()=>import('./calendar.jsx'));
 const WorkspaceBackup=lazy(()=>import('./workspace-backup.jsx'));
 const loadViews=()=>import('./views.jsx');
@@ -92,7 +93,7 @@ function App({session,hydration}){
  const [detail,setDetail]=useState(true),[detailClosing,setDetailClosing]=useState(false),[sidebar,setSidebar]=useState(false),[dialog,setDialog]=useState(null),[toast,setToast]=useState(''),[now,setNow]=useState(Date.now()),[collapsed,setCollapsed]=useState([]);
  const [importCandidate,setImportCandidate]=useState(null);
  const [legacySmartLists]=useState(()=>readSmartLists(browserStorage)),[smartEditor,setSmartEditor]=useState(null),[quickDraft,setQuickDraft]=useState(''),[quickList,setQuickList]=useState('inbox');
- const smartLists=data.smartLists??legacySmartLists;const layout=usePanelLayout(browserStorage);const appearance=useAppearance(browserStorage);const [planningDate,setPlanningDate]=useState(()=>dayKey());
+ const smartLists=data.smartLists??legacySmartLists;const layout=usePanelLayout(browserStorage,{detailVisible:detail&&!!selected});const appearance=useAppearance(browserStorage);const [planningDate,setPlanningDate]=useState(()=>dayKey());
  const matchView=(t,v)=>matchingTask(t,v,smartLists,today,matches);
  function saveSmart(items){if(blocked||items.length>100){setToast('无法保存智能清单，请检查存储或数量限制');return false}setData(d=>({...d,smartLists:items}));return true}
  useNativeQuit(hydration.storage,setToast);
@@ -207,7 +208,7 @@ function App({session,hydration}){
  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={dragEnd}><SortableContext items={buckets.flatMap(b=>b.items.map(t=>t.id))} strategy={verticalListSortingStrategy}>{buckets.filter(b=>b.items.length||b.section||visible.length).map(b=><SectionGroup id={b.id} enabled={manual&&group==='section'&&!!currentList} key={b.id}><div className="list-caption"><ChevronDown size={14}/><span>{b.name}</span><small>{b.items.length}</small>{b.section&&<Menu items={[{label:'添加任务到分组',run:()=>{setDialog({kind:'add-section-task',parent:currentList.id,section:b.id})}},{label:'编辑分组',run:()=>editEntity('section',b.section,currentList.id)},{label:'删除分组',run:()=>deleteEntity('section',b.section,currentList.id),danger:true}]}/>}</div>{large&&b.items.length>150?<VirtualTaskList key={appearance.value.density+":"+appearance.value.font} items={b.items} render={renderTask} focusRequest={focusRequest} rowHeight={compactLayout?62:appearance.value.density==="compact"?42:appearance.value.density==="relaxed"?56:48}/>:b.items.map(renderTask)}</SectionGroup>)}</SortableContext></DndContext>{large&&<p className="muted small">大型清单已启用虚拟滚动；可使用批量编辑，暂不支持全列表拖拽。</p>}{!visible.length&&<Empty Icon={CheckCircle2} title={query?'没有匹配结果':'这里很清爽'}/>}</>}
  {module==='calendar'&&<Suspense fallback={<p className="muted">加载日历…</p>}><CalendarView compactLayout={compactLayout} planningDate={planningDate} setPlanningDate={setPlanningDate} openPlanner={date=>{setPlanningDate(date);changeModule("planner")}} data={data} patch={patch} select={select} today={today} conflicts={conflicts} update={setData} feeds={calendarFeeds} add={(date,time)=>setDialog({kind:'calendar-task',date,time})}/></Suspense>}
  <Suspense fallback={<p className="muted">加载工作视图…</p>}>{['board','matrix'].includes(module)&&<BoardView data={data} select={select} patch={patch} complete={complete} mode={module} today={today}/>}
- {module==='planner'&&<PlannerView preferencesStorage={browserStorage} planningDate={planningDate} setPlanningDate={setPlanningDate} openCalendar={date=>{setPlanningDate(date);changeModule("calendar")}} data={data} select={select} patch={patch} today={today} applyPlan={items=>setData(d=>({...d,tasks:d.tasks.map(t=>{const p=items.find(x=>x.id===t.id);return p?{...t,...p}:t})}))}/>}
+ {module==='planner'&&<PlannerView compactLayout={compactLayout} preferencesStorage={browserStorage} planningDate={planningDate} setPlanningDate={setPlanningDate} openCalendar={date=>{setPlanningDate(date);changeModule("calendar")}} data={data} select={select} patch={patch} today={today} applyPlan={items=>setData(d=>({...d,tasks:d.tasks.map(t=>{const p=items.find(x=>x.id===t.id);return p?{...t,...p}:t})}))}/>}
  {module==='focus'&&<FocusView data={data} update={update} now={now}/>}
  {module==='habits'&&<HabitsView data={data} update={update} today={today}/>}
  {module==='stats'&&<StatsView data={data} today={today} edit={setData} blocked={blocked||!!storageError||!!nativeError||hydration.pending}/>}</Suspense>
