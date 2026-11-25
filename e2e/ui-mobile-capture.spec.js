@@ -1,0 +1,47 @@
+import {test,expect} from '@playwright/test';
+import {dayKey,shiftDay,initialState,newTask} from '../src/domain.js';
+import {chooseOption} from './select-helper.js';
+test('快速录入属性建议与原解析保存一致',async({page})=>{
+ await page.setViewportSize({width:390,height:844});await page.goto('/');
+ await page.getByRole('button',{name:'新建任务',exact:true}).click();
+ const d=page.getByRole('dialog',{name:'快速新建任务'}),input=d.getByRole('textbox',{name:'快速任务名称'});
+ await input.fill('阅读');
+ const preview=d.getByLabel('录入解析预览');
+ await preview.getByRole('button',{name:'明天',exact:true}).click();
+ await preview.getByRole('button',{name:'高优先级',exact:true}).click();
+ await expect(input).toHaveValue('阅读 明天 !3');
+ await expect(preview).toContainText(shiftDay(dayKey(),1));await expect(preview).toContainText('高优先级');
+ await page.screenshot({path:'test-results/mobile-capture-preview.png',animations:'disabled'});
+ await d.getByRole('button',{name:'创建任务',exact:true}).click();
+ await expect(page.getByRole('textbox',{name:'任务标题'})).toHaveValue('阅读');
+ await page.getByRole('button',{name:'关闭详情'}).click();await expect(page.locator('.details')).toHaveCount(0);
+ await page.getByRole('textbox',{name:'新任务名称'}).fill('下一项 明天 09:30');
+ await expect(page.getByLabel('录入解析预览')).toContainText('09:30');
+});
+test('手机月历选择日期不弹出编辑器，显式新增并保存',async({page})=>{
+ await page.setViewportSize({width:390,height:844});await page.goto('/');
+ await page.getByRole('button',{name:'日历',exact:true}).click();
+ await page.getByLabel('联动日期',{exact:true}).fill('2026-12-12');
+ await page.locator('.calendar-main [data-date="2026-12-13"]').first().click();
+ await expect(page.getByRole('dialog')).toHaveCount(0);
+ await expect(page.getByLabel('联动日期',{exact:true})).toHaveValue('2026-12-13');
+ await page.getByRole('button',{name:'新建选定日期任务'}).click();
+ const d=page.getByRole('dialog',{name:'新建任务'});
+ await d.getByRole('textbox',{name:'名称'}).fill('月历新增');
+ await d.getByRole('button',{name:'保存',exact:true}).click();await expect(d).toHaveCount(0);
+ await expect(page.getByRole('textbox',{name:'任务标题'})).toHaveValue('月历新增');
+ await page.getByRole('button',{name:'关闭详情'}).click();await expect(page.locator('.details')).toHaveCount(0);
+ await expect(page.getByRole('complementary',{name:'日历任务栏'})).toContainText('月历新增');
+ await page.screenshot({path:'test-results/mobile-calendar-selected.png',animations:'disabled'});
+});
+test('统计清单完成分布和比例与筛选一致',async({page})=>{
+ const data=initialState(),today=dayKey(),completedAt=new Date(today+'T12:00:00').toISOString(),list=data.lists[0].id;
+ data.tasks=[{...newTask('完成任务1',list,today),status:'completed',completedAt},{...newTask('完成任务2',list,today),status:'completed',completedAt}];
+ await page.addInitScript(state=>localStorage.setItem('todo-workbench-v1',JSON.stringify(state)),data);
+ await page.goto('/');await page.getByRole('button',{name:'统计',exact:true}).click();
+ const row=page.locator('.stat-distribution').filter({hasText:data.lists[0].name});
+ await expect(row).toContainText('2 项');await expect(row.locator('i')).toHaveCSS('width',await row.locator('.stat-distribution-track').evaluate(el=>getComputedStyle(el).width));
+ await chooseOption(page.getByRole('combobox',{name:'统计清单'}),list);
+ await expect(page.locator('.stat-distribution')).toHaveCount(1);
+ await page.screenshot({path:'test-results/stats-distribution.png',animations:'disabled'});
+});
