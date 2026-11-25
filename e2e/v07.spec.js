@@ -1,3 +1,4 @@
+import {chooseOption} from './select-helper.js';
 import {test,expect} from '@playwright/test';
 test('富文本可视化编辑保留 Markdown，复杂源文拒绝转换',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');
@@ -19,7 +20,7 @@ test('时间块时长键盘调整、真实指针拉伸及密度切换',async({pa
  await page.goto('/');await page.getByRole('textbox',{name:'新任务名称'}).fill('拉伸任务 今天 09:00');await page.getByRole('button',{name:'添加',exact:true}).click();await page.getByRole('button',{name:'每日规划',exact:true}).click();
  const block=page.locator('button.time-block').filter({hasText:'拉伸任务'}),handle=page.getByRole('button',{name:'调整时长 拉伸任务'});
  await expect(block).toHaveAttribute('aria-label',/09:00–09:30/);await handle.focus();await page.keyboard.press('ArrowDown');await expect(block).toHaveAttribute('aria-label',/09:00–09:45/);
- await page.getByRole('combobox',{name:'时间轴密度'}).selectOption('112');const rect=await handle.boundingBox();
+ await chooseOption(page.getByRole('combobox',{name:'时间轴密度'}),'112');const rect=await handle.boundingBox();
  await page.mouse.move(rect.x+rect.width/2,rect.y+3);await page.mouse.down();await page.mouse.move(rect.x+rect.width/2,rect.y+31,{steps:5});await page.mouse.up();
  await expect(block).toHaveAttribute('aria-label',/09:00–10:00/);
  await page.screenshot({path:'test-results/v07-resize.png'});

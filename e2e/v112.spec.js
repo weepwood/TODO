@@ -1,3 +1,4 @@
+import {chooseOption} from './select-helper.js';
 import {test,expect} from '@playwright/test';
 import {initialState,newTask,dayKey} from '../src/domain.js';
 test('快速录入保留草稿与连续创建，任务方向键导航',async({page})=>{
@@ -13,10 +14,10 @@ test('快速录入保留草稿与连续创建，任务方向键导航',async({pa
 });
 test('工作时段与时间轴密度切换模块后保持',async({page})=>{
  await page.goto('/');await page.getByRole('button',{name:'每日规划',exact:true}).click();
- await page.getByLabel('工作开始时间').fill('08:30');await page.getByLabel('工作结束时间').fill('17:30');await page.getByLabel('时间轴密度').selectOption('112');
+ await page.getByLabel('工作开始时间').fill('08:30');await page.getByLabel('工作结束时间').fill('17:30');await chooseOption(page.getByLabel('时间轴密度'),'112');
  await page.getByRole('button',{name:'日历',exact:true}).click();await page.getByRole('button',{name:'每日规划',exact:true}).click();
  await expect(page.getByLabel('工作开始时间')).toHaveValue('08:30');await expect(page.getByLabel('工作结束时间')).toHaveValue('17:30');
- await page.reload();await page.getByRole('button',{name:'每日规划',exact:true}).click();await expect(page.getByLabel('时间轴密度')).toHaveValue('112');
+ await page.reload();await page.getByRole('button',{name:'每日规划',exact:true}).click();await expect(page.getByLabel('时间轴密度')).toHaveAttribute('data-value','112');
 });
 test('日历待安排任务拖放到指定日期，不重复创建事件',async({page})=>{
  await page.goto('/');await page.getByRole('button',{name:'新建任务',exact:true}).click();

@@ -1,3 +1,4 @@
+import {chooseOption} from './select-helper.js';
 import {test,expect} from '@playwright/test';
 test('日期浮层、快捷录入、依赖、撤销重做与范围选择',async({page})=>{
  await page.goto('/');
@@ -8,7 +9,7 @@ test('日期浮层、快捷录入、依赖、撤销重做与范围选择',async(
  await expect(page.locator('.date-popover')).toBeVisible();
  await page.getByRole('button',{name:'明天',exact:true}).click();
  await expect(page.getByRole('button',{name:'计划日期',exact:true})).toHaveText(/\d{4}-\d{2}-\d{2}/);
- await page.getByRole('combobox',{name:'重复规则'}).selectOption('weekdays');
+ await chooseOption(page.getByRole('combobox',{name:'重复规则'}),'weekdays');
  await expect(page.locator('.weekdays')).toBeVisible();
  await page.getByRole('button',{name:'添加提醒'}).click();
  await expect(page.getByLabel('提醒 2')).toBeVisible();
@@ -18,7 +19,7 @@ test('日期浮层、快捷录入、依赖、撤销重做与范围选择',async(
  await page.locator('.nav-row').filter({hasText:'所有任务'}).click();
  await add('前置工作');
  await add('后置工作');
- await page.getByRole('combobox',{name:'前置任务'}).selectOption({label:'前置工作'});
+ await chooseOption(page.getByRole('combobox',{name:'前置任务'}),{label:'前置工作'});
  await expect(page.getByRole('button',{name:'完成 后置工作'})).toBeDisabled();
  await page.getByRole('button',{name:'撤销',exact:true}).click();
  await expect(page.getByRole('button',{name:'完成 后置工作'})).toBeEnabled();

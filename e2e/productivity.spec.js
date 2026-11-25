@@ -1,3 +1,4 @@
+import {chooseOption} from './select-helper.js';
 import {test,expect} from '@playwright/test';
 test('快速录入、智能清单、备注链接及批量规划',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');
@@ -14,7 +15,7 @@ test('快速录入、智能清单、备注链接及批量规划',async({page})=>
  await expect(page.getByRole('link',{name:'打开 参考文档'})).toHaveAttribute('href','https://example.com/guide');
  await page.getByRole('button',{name:'新建智能清单'}).click();
  await page.getByRole('textbox',{name:'智能清单名称'}).fill('高优先级');
- await page.getByRole('combobox',{name:'筛选优先级'}).selectOption('3');
+ await chooseOption(page.getByRole('combobox',{name:'筛选优先级'}),'3');
  await expect(page.locator('.smart-preview')).toContainText('匹配 1 项');
  await page.getByRole('button',{name:'保存智能清单'}).click();
  await expect(page.locator('.task-body').filter({hasText:'高优任务'})).toBeVisible();

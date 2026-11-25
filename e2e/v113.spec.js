@@ -1,3 +1,4 @@
+import {chooseOption} from './select-helper.js';
 import {test,expect} from '@playwright/test';
 test('行内标题编辑、取消、复制与跨清单移动',async({page})=>{
  await page.goto('/');await page.getByRole('textbox',{name:'新任务名称'}).fill('原任务');
@@ -10,7 +11,7 @@ test('行内标题编辑、取消、复制与跨清单移动',async({page})=>{
  const edited=page.locator('.task-body').filter({hasText:'行内已保存'});
  await expect(edited).toBeVisible();await edited.click({button:'right'});await page.getByRole('menuitem',{name:'复制任务'}).click();
  const copy=page.locator('.task-body').filter({hasText:'行内已保存（副本）'});await expect(copy).toBeVisible();
- await copy.click({button:'right'});await page.getByRole('menuitem',{name:'移动到清单'}).click();await page.getByLabel('移动目标清单').selectOption('work');await page.getByRole('button',{name:'确认移动'}).click();await expect(copy).toBeVisible();await expect(page.locator('.nav-row.active')).toContainText('工作');
+ await copy.click({button:'right'});await page.getByRole('menuitem',{name:'移动到清单'}).click();await chooseOption(page.getByLabel('移动目标清单'),'work');await page.getByRole('button',{name:'确认移动'}).click();await expect(copy).toBeVisible();await expect(page.locator('.nav-row.active')).toContainText('工作');
 });
 test('快速录入解析预览与语义弹窗',async({page})=>{
  await page.goto('/');await page.getByRole('button',{name:'新建任务',exact:true}).click();

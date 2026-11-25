@@ -304,3 +304,8 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 
 ### V1.2 模拟器系统干扰收口
 - 基线 fbfc2de，ARM64 45583860215 与 Pages 45583858456 成功；模拟器 45583858442 实际通过安装、WebView、任务积分 SQLite，但 Back 失败。下载真实证据到本机外置 artifacts/TODO/runtime-45583858442，人工核对创建及失败截图均被 Pixel Launcher isn't responding 系统弹窗遮挡，非 TODO ANR 的证据。隔离 emulator 测试前停止无关后台 Pixel Launcher，并在启动/重启/真实 Back 前核验 native window focus；仅允许恢复已识别的启动器 ANR，不隐藏系统错误、不绕过 TODO 自身 ANR、实际 Back 或详情关闭断言。若 IME 可见先独立关闭并验证详情保留；失败保留窗口诊断。移动源码路径增加 runtime 触发。定时提醒实际查询/取消仍未到达，待新 CI；此前七项通过是 43ac7e3 的证据，不能替代当前提交。专项 4/4、语法及 diff 检查通过；不提前启动正式签名或推广发布。
+
+### V1.2 UI 与交互集中重构
+- 基线 ca675e0；上轮 Android 原生运行45585302188及Pages 45585302203成功，ARM64 45583860215成功。签名配置此前已核实，未启动正式签名发行或修改密钥。
+- 外置独立 worktree v12-ui-workbench。参考 TickTick、Things、Vikunja、frontend-design、Radix、Apple HIG/Material Design；新增精确锁定 MIT Radix Select 2.2.6，自定义 SmartSelect 替换30处业务原生选择器，保留日期/时间输入与Radix隐藏表单桥接；原测试改为真实点击可见选项。统一产品 CSS、移动导航及全屏设置/详情、分类导航、字段分组、44px主要触控区、动效与减少动效、原生Back先关选择器。保留现有持久化、同步、更新、ACL与任务逻辑。
+- 使用 AI-Development 预算门禁完成 npm test 91/91、生产构建、完整 Edge E2E 59/59（含三种手机宽度、键盘焦点、双主题与八模块截图、模拟原生入口）。修复首轮键盘测试焦点时序、设置重复无障碍标签和旧原生选择器断言，最终全部通过。真实截图保存在本工作树 test-results/ui-workbench-*.png。未完成新版实体设备/各系统WebView验收，不声称完成所有页面的深度视觉重构或性能基准。

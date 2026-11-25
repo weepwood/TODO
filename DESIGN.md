@@ -117,3 +117,13 @@ Android launcher 采用独立蓝色渐变背景、白色单对勾前景和单色
 
 ### V1.2 品牌与跨平台更新
 统一渐变对勾应用品牌（Android 自适应/单色、桌面、PWA）。设置新增软件更新模块，展示安装版本、固定渠道、手动及12小时节流启动检查、更新说明、下载进度、错误及重试；没有正式签名的构建只检查不安装。更新核心严校验 SemVer/渠道、仓库固定资产 URL、大小、摘要及平台签名信息。桌面复用 Tauri Updater requireSignedVersion 及 process relaunch；Android 使用原生 APK 校验、PackageInstaller Session 和用户确认，禁止 QA/降级/异包异签名。更新前暂停新云同步、等待已有请求、保护冲突并 flush/快照备份；实际覆盖升级、原生回调及失败恢复仍待验收。签名构建草稿与手动发布清单分离，公开清单不得先于资产发布。未引入收费服务。
+
+### V1.2 工作台与移动交互设计专项
+
+设计参考：TickTick（https://ticktick.com/）的多端信息架构和任务操作、Things（https://culturedcode.com/things/）的简洁层级、Vikunja（https://vikunja.io/）的多视图组织、Anthropic frontend-design skill（https://github.com/anthropics/skills/tree/main/skills/frontend-design）的视觉一致性、Radix Select（https://www.radix-ui.com/primitives/docs/components/select）的无障碍交互。触控尺寸参考 Apple HIG 与 Material Design；不复制品牌资产。
+
+- 公共 SmartSelect 采用 Radix Select 2.2.6（MIT）及项目自定义样式，统一任务、筛选、时间轴、统计、积分和外观中的30处业务选择器。菜单支持键盘、选中、禁用、空值、焦点恢复及边缘碰撞。Radix 内部隐藏表单桥接不等于原生可见菜单；原生日期时间输入暂保留。
+- 860px及以下采用独立紧凑导航，Web 与 Android 共用布局规则；手机使用底部导航、全屏详情和设置、44px主要触控区域及约62px任务行。桌面保留既有工作台和面板调整。密度偏好不得缩小手机触控区域。
+- 设置按账号、软件更新、外观、本地数据、平台和提醒组织，桌面侧栏分类、移动横向分类及滚动定位，原有功能保持挂载。详情按时间与计划、组织与状态、提醒与重复组织。
+- 公共动效采用约120–180ms的短时透明度/位移/按压反馈，菜单、页面切换、详情、侧栏和底部面板遵循减少动效偏好；不以动画阻塞操作。Android Back 优先关闭选择器。保留既有任务拖动、详情关闭可中断及数据保存逻辑。
+- 验收覆盖320/390/430px、桌面双主题、键盘、实际截图、减少动效；不把浏览器模拟等同实体手机、系统WebView或真实帧率验收。后续深度重构仍需日历、规划、统计、编辑器等单页专项。
