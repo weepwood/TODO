@@ -73,7 +73,7 @@ export function markReminderEvents(tasks,events,at){const grouped=new Map();for(
 export function reopenTask(tasks,taskId){
  const t=tasks.find(x=>x.id===taskId);
  if(!t||t.deletedAt||t.status==='pending')return tasks;
- if(tasks.some(x=>series(x)===series(t)&&x.id!==t.id&&x.date>t.date&&!x.deletedAt))return tasks;
+ if(tasks.some(x=>series(x)===series(t)&&x.id!==t.id&&!x.deletedAt&&(x.date>t.date||x.previousId===t.id||(x.occurrenceIndex||1)>(t.occurrenceIndex||1))))return tasks;
  return tasks.map(x=>x.id===taskId?{...x,status:'pending',stage:'todo',completedAt:null,repeat:'none'}:x)
 }
 export function matches(t,view,today=dayKey()){

@@ -41,7 +41,7 @@ input[type=checkbox]:disabled{opacity:.5;cursor:default}
 .calendar-main .fc .fc-toolbar-title{font-weight:650;letter-spacing:-.02em}
 .calendar-main .fc .fc-daygrid-day-number{padding:8px;font-variant-numeric:tabular-nums}
 .calendar-main .fc .fc-col-header-cell-cushion{padding:9px 3px}
-.calendar-main .fc .fc-event{border-radius:5px}
+
 .calendar-main .fc .fc-event-mirror{opacity:.88;box-shadow:var(--shadow)}
 .calendar-agenda{position:sticky;top:0;padding:14px;gap:10px}
 .calendar-agenda-head h3{margin:0}
