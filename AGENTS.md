@@ -367,3 +367,8 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - PR #9 03fc21f 完整浏览器CI 45603676076成功，合并a11eb3f，本机正式main同步；Pages 45604123884查询时仍在运行。独立worktree v12-command-points 基于PR #9的源码提交。
 - 实施命令面板四种范围、清空搜索和类型图标，积分明细文本/日期筛选及日趋势联动，奖励可兑换筛选和差额提示、手机控件适配。未改积分业务函数、数据库、原生接口或签名，无新增运行时依赖。
 - 资源门禁下 npm ci、Web生产构建、命令单测2/2、专项Edge浏览器15/15通过（ui-command-points、v114、v116、points-program）；人工审阅command-scopes、points-ledger-search、points-mobile-rewards真实截图。旧兑换退款、余额不足、键盘最近使用、模拟IPC录入保存断言保留。日志artifacts/TODO/command-points.log。最终全量PR CI与部署待核实；桌面整体视觉深度重构、编辑器、CSS与大数据性能基准仍未完成；不构建安装包。
+
+### V1.2 第十一轮桌面框架与沉浸编辑
+- PR #10 6b17bf4 完整浏览器CI 45604248580成功，合并97b5830，正式本地main同步；Pages 45607640901成功。独立worktree v12-shell-design。
+- 实施桌面清单栏收起/恢复及快捷搜索恢复、语义框架令牌及面包屑/标题/工具栏/任务区层级、备注沉浸模式、手机导航指示器修正及更多模块当前态。PostCSS按相同媒体/容器上下文清除workbench.css内9条完全重复的旧规则，保留其余级联。无新增依赖、存储结构及签名不变。
+- 资源门禁下npm ci、Web生产构建及15项专项Edge测试（ui-shell-design、v051、v061、ui-visual-system、v118）全部通过；包括面板键盘/指针、完整归档、Markdown安全预览、草稿保持、真实触摸跨午夜/日周拖放、八模块双主题。人工审阅shell-desktop-focus、shell-note-immersive、shell-mobile-navigation截图。日志artifacts/TODO/shell-design.log。完整历史CSS治理、专业图表重构、大型清单及真实设备性能基准尚未完成；最终PR完整CI待验收。未构建安装包。

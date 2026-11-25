@@ -1,0 +1,58 @@
+/* Shell design owns the top-level rhythm. Existing density/font preferences
+   remain authoritative for task rows and controls. */
+:root{
+ --shell-rail:52px;
+ --shell-rail-surface:color-mix(in srgb,var(--panel) 82%,var(--text) 2%,var(--bg));
+ --shell-header:54px;
+ --shell-content-gap:clamp(22px,3vw,40px);
+ --shell-title:clamp(25px,2.3vw,32px);
+ --shell-label:12px;
+}
+.v2 .rail{background:var(--shell-rail-surface)}
+.v2 .breadcrumb{display:flex;align-items:center;gap:6px;min-width:0;font-size:var(--shell-label)}
+.v2 .breadcrumb>span{margin:0;opacity:1;white-space:nowrap}
+.v2 .breadcrumb>strong{color:var(--text);font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.v2 .breadcrumb svg{opacity:.6}
+.v2 .bulk-bar[hidden]{display:none!important}
+.v2 .sidebar .section-label{font-weight:550}
+.v2 .task-content>.heading h1{font-size:var(--shell-title);font-weight:650;line-height:1.2}
+.v2 .task-content>.heading .muted{line-height:1.6}
+.v2 .task-content .quick-add{background:var(--panel);box-shadow:var(--surface-shadow)}
+.v2 .task-content .quick-add:focus-within{background:var(--bg)}
+.v2 .task-row .task-body{line-height:1.45}
+.v2 .detail-header{font-weight:550}
+.v2 .detail-header>span{color:var(--text)}
+.v2 .detail-content .detail-group{padding-top:16px}
+.v2 .detail-content .detail-group:first-child{padding-top:0}
+.note-editor-dialog .note-mode{gap:5px}
+.note-editor-dialog .note-mode .note-immersive-toggle{color:var(--accent-text)}
+.note-editor-dialog.note-immersive{width:calc(100vw - 48px);max-width:1440px;max-height:calc(100dvh - 32px);padding:22px 28px}
+.note-immersive .note-live-preview,.note-immersive .note-reading{height:max(360px,calc(100dvh - 250px));max-height:none}
+.note-immersive .visual-note-content{min-height:max(360px,calc(100dvh - 290px));max-height:calc(100dvh - 220px);overflow:auto}
+.note-workbench .note-reading{max-width:100%}
+@media(min-width:861px){
+ .v2 .toolbar,.v2 .detail-header{height:var(--shell-header)}
+ .v2 .task-content{padding-inline:var(--shell-content-gap)}
+ .v2 .sidebar .brand{padding-top:9px}
+ .v2 .sidebar .section-label{padding-top:18px}
+ .v2 .sidebar .nav-row{gap:9px}
+ .v2 .rail .brand-icon{box-shadow:0 2px 5px color-mix(in srgb,var(--accent) 25%,transparent)}
+ .v2 .rail>button.active{box-shadow:inset 2px 0 var(--accent)}
+ .app.v2[data-sidebar-hidden=true]{grid-template-columns:var(--shell-rail) minmax(0,1fr) auto}
+ .app.v2[data-sidebar-hidden=true]>.sidebar{display:none}
+}
+@media(max-width:860px){
+ .v2.compact-mobile .breadcrumb{display:none}
+ .v2.compact-mobile .task-content>.heading h1{font-size:24px}
+ .v2.compact-mobile .mobile-nav{background:var(--bg);isolation:isolate}
+ .v2.compact-mobile .mobile-nav-indicator{left:6px;width:calc((100% - 12px)/5);transform:translateX(calc(var(--nav-index)*100%));top:5px;height:calc(100% - 10px);z-index:0}
+ .v2.compact-mobile .mobile-nav>button{position:relative;z-index:1;background:transparent}
+ .v2.compact-mobile .mobile-nav>button.active{background:transparent;color:var(--accent-text)}
+ .mobile-more-grid button[aria-pressed=true]{background:var(--active);color:var(--accent-text);border-color:var(--accent)}
+ .note-editor-dialog.note-immersive{width:auto;max-width:none;max-height:none;padding:14px}
+ .note-editor-dialog .note-immersive-toggle{display:none}
+}
+@media(prefers-reduced-motion:no-preference){
+ .v2 .task-content{animation-duration:140ms}
+ .v2.compact-mobile .mobile-nav-indicator{transition:transform 190ms var(--ui-ease)}
+}
