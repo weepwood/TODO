@@ -5,15 +5,16 @@
  .v2:not(.compact-mobile) .task-row .drag-handle{
   position:absolute;left:-21px;top:0;bottom:0;width:21px;min-width:21px;height:auto;
   padding:0;display:flex;align-items:center;justify-content:center;cursor:grab;
-  opacity:0;pointer-events:auto;z-index:2;border-radius:6px
+  opacity:0;pointer-events:auto;z-index:2;border-radius:6px;background:transparent;box-shadow:none
  }
  .v2:not(.compact-mobile) .task-row .drag-handle:hover,
  .v2:not(.compact-mobile) .task-row .drag-handle:focus-visible,
  .v2:not(.compact-mobile) .task-row:hover .drag-handle,
- .v2:not(.compact-mobile) .task-row:focus-within .drag-handle,
  .v2:not(.compact-mobile) .task-row[data-dragging=true] .drag-handle{opacity:1;pointer-events:auto}
- .v2:not(.compact-mobile) .task-row .drag-handle:hover{background:var(--hover);color:var(--accent-text)}
- .v2:not(.compact-mobile) .task-row .drag-handle:active{cursor:grabbing}
+ .v2:not(.compact-mobile) .task-row .drag-handle:hover{background:transparent;color:var(--accent-text)}
+ .v2:not(.compact-mobile) .task-row:not(:hover):not([data-dragging=true]) .drag-handle:not(:focus-visible){opacity:0}
+ html[data-input-modality=pointer] .v2:not(.compact-mobile) .task-row:not(:hover):not([data-dragging=true]) .drag-handle{opacity:0}
+ .v2:not(.compact-mobile) .task-row .drag-handle:active{cursor:grabbing;background:transparent}
  .v2:not(.compact-mobile) .task-row{user-select:none}
  .v2:not(.compact-mobile) .task-row input{user-select:text}
  .v2:not(.compact-mobile) .task-row.checked{background:var(--active)}

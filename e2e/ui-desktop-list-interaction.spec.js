@@ -13,9 +13,9 @@ test('桌面无复选框，Shift范围与Ctrl非连续选择，单击清空批�
  await expect(rows.locator('.multi-toggle')).toHaveCount(0);
  await body(0).click();await body(2).click({modifiers:['Shift']});
  await expect(page.locator('.task-row.checked')).toHaveCount(3);
- await body(1).click({modifiers:['Control']});
+ await body(1).click({modifiers:['ControlOrMeta']});
  await expect(page.locator('.task-row.checked')).toHaveCount(2);
- await body(3).click({modifiers:['Meta']});
+ await body(3).click({modifiers:['ControlOrMeta']});
  await expect(page.locator('.task-row.checked')).toHaveCount(3);
  await page.screenshot({path:'test-results/desktop-multiselect.png',animations:'disabled'});
  await body(0).click();await expect(page.locator('.task-row.checked')).toHaveCount(0);
