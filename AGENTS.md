@@ -145,3 +145,10 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - 安全区域 viewport-fit=cover、100dvh、触摸目标与焦点状态优化。新增 1440×900 浅/深真实浏览器截图与 Pixel 7 Chromium 触摸模拟，实际移动 09:00→09:30，无水平溢出。已人工查看三张截图；参考 Things 任务聚焦 https://culturedcode.com/things/features/ 与 TickTick 日历并排 https://ticktick.com/windows ，非逐像素复刻。真实移动设备安装仍待验收。
 - macOS 可见隔离测试：com.weepwood.todo.qa.rc1、临时 Tauri CLI override（不改正式配置）、example.invalid 测试 API 与占位 key。未签名 debug .app 37.29 MiB；实际启动后 SQLite integrity=ok、guest_workspace=1、other_accounts=0，CGWindowList 确认该进程一个可见 1000×700 窗口，测试进程已退出。未通过完整托盘、快捷键与系统通知交互验收；Windows 设备离线。保留独立测试数据及日志，不影响正式工作空间。
 - 恢复正式生产构建并核实无隔离占位 key。版本暂用 1.0.0-rc.1，更新 CHANGELOG.md、RELEASE.md、README.md、DESIGN.md；正式 Tag/Release 等真实验收通过后收口。不新增 CI、服务费、数据库迁移。
+
+### RC1 交付后验收
+
+- RC1 源码/安装包基线固定为 6b78c9b3e8190cef230dd249b9571781b7d0c57d。Pages 45547695908 第一次 deploy-pages 返回 Found 0 artifact(s)，上传及构建实际成功，确认 github-pages 产物存在后仅重跑失败作业，第 2 次成功。Node HTTPS 实网验证首页、入口 JS 含 v1.0.0-rc.1、所有首页静态资源 HTTP 200、Service Worker 正常。Python 本机 CA 信任链错误，未关闭 TLS 校验，改用 Node 验证。
+- 桌面工作流 45547696373 已通过并实际下载两端安装包；DMG hdiutil verify 成功。两份 SHA-256 与 GitHub Release 资产 digest 一致。已发布明确标记 prerelease、latest=false 的 v1.0.0-rc.1，Tag 指向上述精确 SHA；包含 DMG、NSIS EXE、SHA256SUMS.txt。https://github.com/weepwood/TODO/releases/tag/v1.0.0-rc.1 。不代表正式 v1.0.0 已发布。
+- 隔离 macOS RC1 实际恢复 window-state.json 的 920×640 尺寸，CGWindowList 确认可见；在隔离 guest snapshots 注入单一 QA 合成到期提醒，原生调度提交成功，两个扫描周期 delivered 仅 1 条，SQLite integrity=ok；恢复隔离 mirror 并退出 QA 进程。此项不是用户看到通知的证明。AX_TRUSTED=false、SCREEN_CAPTURE=false，未绕过权限，托盘点击/快捷键/通知可见性待验收。
+- Windows 设备仍离线；真实邮箱/认证后的 Realtime、实体移动端 PWA 安装尚未验证。保持功能冻结，不重编已验证的 RC1 二进制，仅更新文档。正式 v1.0.0 Tag/Release 仍需剩余门禁。

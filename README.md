@@ -97,3 +97,5 @@ npm run desktop:build
 ### V1.0 发布候选
 
 当前为 1.0.0-rc.1，正式版仍需真实邮箱、Realtime 和系统端验收。详见 [更新日志](CHANGELOG.md) 与 [发布门禁及安装说明](RELEASE.md)。未新增收费资源。
+
+RC1 安装包与 SHA-256 校验文件：[GitHub 预发行版](https://github.com/weepwood/TODO/releases/tag/v1.0.0-rc.1)。仅供发布候选试用，尚非正式 V1.0。
