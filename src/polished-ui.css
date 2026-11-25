@@ -1,0 +1,32 @@
+/* Product polish: less repeated information, bounded feedback, one date field. */
+.date-control{gap:0;border:1px solid var(--line);border-radius:8px;background:var(--bg);overflow:hidden}
+.date-control:focus-within{border-color:var(--accent)}
+.date-control[data-invalid=true]{border-color:var(--danger,#c65a5a)}
+.date-control>input{border:0;border-radius:0;width:115px;box-shadow:none;background:transparent;outline-offset:-2px;font-variant-numeric:tabular-nums;font-size:13px;padding:0 10px}
+.date-control>.date-trigger{border:0;border-left:1px solid var(--line);border-radius:0;min-height:0;background:transparent;padding:0;justify-content:center;gap:0;font-size:0;width:36px;min-width:36px}
+.date-control>.date-trigger:hover{background:var(--hover)}
+.date-control>.date-trigger svg:first-child{flex:none}
+.date-direct input[type=text]{min-width:0;flex:1;font-variant-numeric:tabular-nums}
+.chart-empty{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:8px;min-height:108px;padding:16px 12px;color:var(--muted);font-size:12px}
+.chart-empty>svg{opacity:.65}
+.chart-empty>small{font-size:11px;line-height:1.5}
+.chart-empty.compact{min-height:56px}
+.points-chart-grid .chart-empty{min-height:110px}
+.v2 .task-row:focus-within{position:relative;z-index:1}
+@media(max-width:860px){
+ .v2.compact-mobile .workspace-title h1{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+ .v2.compact-mobile .workspace-title .muted{margin:0;font-size:13px}
+ .v2.compact-mobile .heading{padding-bottom:12px;gap:10px}
+ .v2.compact-mobile .task-content{padding-top:14px}
+ .v2.compact-mobile .task-more{touch-action:manipulation}
+ .v2.compact-mobile .bulk-bar{min-height:40px;margin-bottom:4px}
+ .v2.compact-mobile .quick-add{margin-bottom:2px}
+ .v2.compact-mobile .task-group{margin-top:3px}
+ .v2.compact-mobile .task-content>.empty{min-height:180px}
+ .date-control>input{width:120px;font-size:15px}
+ .date-control>.date-trigger{width:44px;min-width:44px;padding:0}
+ .date-direct input[type=text]{min-height:44px;font-size:16px}
+ .chart-empty{min-height:88px}
+ .points-chart-grid .chart-empty{min-height:90px}
+}
+@media(prefers-reduced-motion:reduce){.v2 .task-row{animation:none!important;transition:none!important}}
