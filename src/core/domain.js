@@ -1,3 +1,4 @@
+import {validHold} from './series-control.js';
 import {validPoints} from './points.js';
 import {validPointsProgram} from './points-program.js';
 import {validSmartLists} from './smart-lists.js';
@@ -27,7 +28,7 @@ export function nextOccurrence(task,key){
  return nextDate(key,task.repeat,task.anchor||Number(task.date.slice(-2)),task.interval)
 }
 export function addOccurrence(tasks,task,date,index=(task.occurrenceIndex||1)+1){
- if(!validDate(date)||(task.repeatUntil&&date>task.repeatUntil)||(task.repeatCount>0&&index>task.repeatCount)||tasks.some(t=>series(t)===series(task)&&t.date===date&&(task.repeat!=='completion'||t.status==='pending'||t.previousId===task.id)))return tasks;
+ if(task.seriesHold||!validDate(date)||(task.repeatUntil&&date>task.repeatUntil)||(task.repeatCount>0&&index>task.repeatCount)||tasks.some(t=>series(t)===series(task)&&t.date===date&&(task.repeat!=='completion'||t.status==='pending'||t.previousId===task.id)))return tasks;
  return [...tasks,{...task,id:id(),seriesId:series(task),seriesStart:task.seriesStart||task.date,occurrenceIndex:index,previousId:task.id,date,status:'pending',stage:'todo',deletedAt:null,createdAt:new Date().toISOString(),completedAt:null,remindedAt:null,reminderAt:offsetDate(task.reminderAt,task.date,date),extraReminders:(task.extraReminders||[]).map(r=>({id:id(),at:offsetDate(r.at,task.date,date),sentAt:null})),checklist:task.checklist.map(c=>({...c,id:id(),done:false}))}]
 }
 // Fast-forward fixed daily/weekly series without iterating over years of missed dates.
@@ -46,7 +47,7 @@ export function advanceOccurrence(task,next,index,boundary){
 }
 export function completeTask(tasks,taskId,today=dayKey()){
  const task=tasks.find(t=>t.id===taskId);
- if(!task||task.status!=='pending'||task.deletedAt||blockers(tasks,task).length)return tasks;
+ if(!task||task.status!=='pending'||task.deletedAt||task.seriesHold||blockers(tasks,task).length)return tasks;
  let result=tasks.map(t=>t.id===taskId?{...t,status:'completed',completedAt:new Date().toISOString(),stage:'done'}:t);
  if(task.repeat==='none'||!task.date)return result;
  let next=nextOccurrence(task,task.repeat==='completion'?today:task.date),index=(task.occurrenceIndex||1)+1;
@@ -56,7 +57,7 @@ export function completeTask(tasks,taskId,today=dayKey()){
 export function reconcile(tasks,today=dayKey(),now=null){
  let result=tasks;
  for(const task of tasks){
-  if(task.deletedAt||task.status!=='pending'||!['daily','weekly','monthly','workdays','weekdays'].includes(task.repeat)||task.miss!=='skip'||!validDate(task.date))continue;
+  if(task.deletedAt||task.status!=='pending'||task.seriesHold||!['daily','weekly','monthly','workdays','weekdays'].includes(task.repeat)||task.miss!=='skip'||!validDate(task.date))continue;
   const boundary=now?effectiveDay(now,task.reset||'00:00'):today;if(task.date>=boundary)continue;
   const {next,index}=advanceOccurrence(task,task.date,task.occurrenceIndex||1,boundary);
   result=result.map(t=>t.id===task.id?{...t,status:'skipped'}:t);
@@ -64,7 +65,7 @@ export function reconcile(tasks,today=dayKey(),now=null){
  }
  return result
 }
-export function seriesPatch(tasks,taskId,fields){const task=tasks.find(t=>t.id===taskId);if(!task)return tasks;const allowed=['repeat','seriesStart','interval','weekdays','repeatUntil','repeatCount','miss','reset'];const rules=Object.fromEntries(Object.entries(fields).filter(([k])=>allowed.includes(k)));return tasks.map(t=>series(t)===series(task)&&t.status==='pending'&&!t.deletedAt?{...t,...rules}:t)}
+export function seriesPatch(tasks,taskId,fields){const task=tasks.find(t=>t.id===taskId);if(!task)return tasks;const allowed=['repeat','seriesStart','interval','weekdays','repeatUntil','repeatCount','miss','reset'];const rules=Object.fromEntries(Object.entries(fields).filter(([k])=>allowed.includes(k)));return tasks.map(t=>series(t)===series(task)&&t.status==='pending'&&!t.deletedAt&&!t.seriesHold?{...t,...rules}:t)}
 export function dueReminderEvents(tasks,now=new Date()){
  const events=[];for(const t of tasks){if(t.deletedAt||t.status!=='pending')continue;if(t.reminderAt&&!t.remindedAt&&new Date(t.reminderAt)<=now)events.push({taskId:t.id,id:'primary',at:t.reminderAt,title:t.title});for(const r of t.extraReminders||[])if(!r.sentAt&&new Date(r.at)<=now)events.push({taskId:t.id,id:r.id,at:r.at,title:t.title})}return events
 }
@@ -74,7 +75,7 @@ export function reopenTask(tasks,taskId){
  const t=tasks.find(x=>x.id===taskId);
  if(!t||t.deletedAt||t.status==='pending')return tasks;
  if(tasks.some(x=>series(x)===series(t)&&x.id!==t.id&&!x.deletedAt&&(x.date>t.date||x.previousId===t.id||(x.occurrenceIndex||1)>(t.occurrenceIndex||1))))return tasks;
- return tasks.map(x=>x.id===taskId?{...x,status:'pending',stage:'todo',completedAt:null,repeat:'none'}:x)
+ return tasks.map(x=>x.id===taskId?{...x,status:'pending',stage:'todo',completedAt:null,repeat:'none',...(x.seriesHold?{seriesHold:null}:{})}:x)
 }
 export function matches(t,view,today=dayKey()){
  if(view==='trash')return !!t.deletedAt;
@@ -114,6 +115,7 @@ export function migrateState(input){
   check(Array.isArray(n.tags)&&n.tags.every(str)&&validTime(n.reset)&&(!n.time||validTime(n.time))&&Number.isFinite(n.duration)&&n.duration>=1&&n.duration<=1440&&['todo','doing','done'].includes(n.stage)&&(!n.reminderAt||/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(n.reminderAt)&&validDate(n.reminderAt.slice(0,10))&&validTime(n.reminderAt.slice(11))),'任务时间或扩展字段无效');
   check(n.points===undefined||validPoints(n.points),'任务积分无效');check(n.anchor===null||Number.isInteger(n.anchor)&&n.anchor>=1&&n.anchor<=31,'重复日期锚点无效');check(n.deletedAt===null||str(n.deletedAt),'回收站状态无效');check(n.seriesId===null||str(n.seriesId),'系列标识无效');check(Array.isArray(n.weekdays)&&n.weekdays.every(x=>Number.isInteger(x)&&x>=0&&x<=6)&&(!n.repeatUntil||validDate(n.repeatUntil))&&(!n.seriesStart||validDate(n.seriesStart))&&Number.isInteger(n.repeatCount)&&n.repeatCount>=0&&n.repeatCount<=100000&&Number.isInteger(n.occurrenceIndex)&&n.occurrenceIndex>=1,'扩展周期无效');
   check((n.parentId===null||str(n.parentId))&&Array.isArray(n.dependsOn)&&n.dependsOn.every(str)&&Array.isArray(n.extraReminders)&&n.extraReminders.length<=20&&unique(n.extraReminders)&&n.extraReminders.every(r=>obj(r)&&str(r.id)&&str(r.at)&&validDate(r.at.slice(0,10))&&validTime(r.at.slice(11))&&(r.sentAt===null||str(r.sentAt))),'扩展任务字段无效');
+  if(n.seriesHold!=null)check(validHold(n.seriesHold),'重复暂停记录无效');
   if(n.links!==undefined)check(Array.isArray(n.links)&&n.links.length<=30&&n.links.every(l=>obj(l)&&str(l.name)&&l.name.length<=100&&str(l.url)&&l.url.length<=2048&&(()=>{try{const u=new URL(l.url);return ['http:','https:'].includes(u.protocol)&&!u.username&&!u.password}catch{return false}})()),'关联链接无效');
   n.tags=n.tags.filter(x=>v.tags.some(tag=>tag.id===x));n.interval=intervalOf(n.interval);return n
  });

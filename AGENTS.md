@@ -504,3 +504,9 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - PR #30 ac0a9a7 CI 45648480893成功，复核实际series-overview/daily-closeout/template-create/task-focus-workflow截图。gh合并GraphQL错误、GitHub连接器合并错误；独立查询仍OPEN/CLEAN，未绕过门禁。main ef835fb（#29），Pages最近成功仍4835b27，#29新部署未确认。独立worktree v13-archive-review基于ac0a9a7，若上游仍开放则以feat/v13-task-lifecycle为base。
 - 实现本机导航归档（可恢复，保留收藏/文件夹/任务/统计/提醒；收集箱保护）、新任务默认未来提醒与录入预览、已完成实际日期及标签/清单组合筛选、每日周回顾只读Markdown快照，独立账号本机存储30份/2MiB，明确保存/导出/确认删除，不覆盖损坏数据及不自动淘汰。未修改任务模型、SQLite、同步或发布配置；真正业务归档、跨设备快照、报告比较仍待后续。
 - 126/126单测，Web生产构建3.17s，12/12专项浏览器通过；实际审查history-custom-filter.png、review-snapshot.png，末次优化筛选独立行/起止标签及中文快照时间后JSX解析/diff检查通过，最终视觉待PR CI。无新增依赖，不构建安装包。
+
+### V1.3 回顾可视化、自动化及重复系列
+- PR #30 ac0a9a7 CI 45648480893成功，#31 db312ce CI 45649806648成功，均仍OPEN。Pages 45649882473 build成功，deploy-pages创建部署HTTP 500失败，未宣称线上更新；正式main ef835fb。独立worktree v13-review-automation基于db312ce，依赖#31，按30→31→本轮依次收口。
+- 回顾每日趋势/可比周期六项指标/冻结快照图表/同类等长快照比较/Markdown阅读与原文导出；旧快照无图表保留。规则本机存储最多20条，条件/操作/清单/启停/排序/预览确认，普通待办限定，启用后本机访客每日一次尝试回执，云账号仅手动，不承诺后台或跨窗口原子性。
+- 重复系列暂停、恢复、结束：新增可选seriesHold记录原次数和miss，使用原repeatCount及keep作为旧引擎围栏；单活动且无后续实例，暂停阻止新版完成/自动跳过/规则修改，保留提醒，恢复还原规则，结束保留当前待办。迁移/任务增量/冲突保护测试通过；未改SQLite结构或云端协议，真实旧版混合写入及设备同步未验收，旧客户端主动完成或修改规则不保证兼容。
+- 130/130单测，首轮Web构建3.80s、12/12专项通过，真实复核workflow-rules/series-paused/review-visual-comparison截图；表单对齐、规则排序、自动实际变更及同日刷新保护强化后，Web构建2.28s、主包498.79kB（消除500kB警告）、最终3/3专项通过，复核最终workflow-rules.png。未构建安装包、未新增依赖；完整CI待新PR。

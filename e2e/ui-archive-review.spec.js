@@ -45,12 +45,12 @@ test('回顾快照保存、刷新、只读与实际导出',async({page})=>{
  await page.getByRole('button',{name:'任务回顾',exact:true}).click();
  const dialog=page.getByRole('dialog',{name:'任务回顾'});
  await dialog.getByRole('button',{name:'保存快照',exact:true}).click();
- await expect(dialog.locator('pre')).toContainText('归档待办');await expect(dialog.getByRole('button',{name:'安排明天'})).toHaveCount(0);
+ await expect(dialog.locator('.markdown-preview')).toContainText('归档待办');await dialog.getByRole('button',{name:'Markdown 原文'}).click();await expect(dialog.locator('pre')).toContainText('归档待办');await expect(dialog.getByRole('button',{name:'安排明天'})).toHaveCount(0);
  const original=await dialog.locator('pre').innerText();
  await page.keyboard.press('Escape');await page.reload();
  await page.getByRole('button',{name:'统计',exact:true}).click();await page.getByRole('button',{name:'任务回顾',exact:true}).click();
  const selector=dialog.getByRole('combobox',{name:'回顾记录'});await selector.click();await page.getByRole('listbox').getByRole('option').last().click();
- await expect(dialog.locator('pre')).toHaveText(original);
+ await dialog.getByRole('button',{name:'Markdown 原文'}).click();await expect(dialog.locator('pre')).toHaveText(original);
  await page.screenshot({path:'test-results/review-snapshot.png',animations:'disabled'});
  const waiting=page.waitForEvent('download');await dialog.getByRole('button',{name:'导出 Markdown'}).click();const file=await waiting;
  expect(await fs.readFile(await file.path(),'utf8')).toBe(original);
