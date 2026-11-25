@@ -17,3 +17,15 @@ export function applyTaskDelta(base,delta){
  const edits=new Map(delta.map(t=>[t.id,t])),existing=new Set(base.tasks.map(t=>t.id));
  return {...base,tasks:[...base.tasks.map(t=>edits.get(t.id)||t),...delta.filter(t=>!existing.has(t.id))]};
 }
+
+// A verified base is required. Never accept discontinuous or malformed chains.
+export function replayTaskDeltas(base,revision,response){
+ if(!base||!Number.isSafeInteger(revision)||!response||!Number.isSafeInteger(response.revision)||!Array.isArray(response.patches)||response.patches.length<1||response.patches.length>8)return null;
+ let state=base,expected=revision;
+ for(const patch of response.patches){
+  if(!patch||patch.from!==expected||patch.to!==expected+1||!Array.isArray(patch.tasks)||patch.tasks.length>500)return null;
+  if(patch.tasks.some(t=>!t||typeof t.id!=='string'||!t.id||t.id.length>200)||new Set(patch.tasks.map(t=>t.id)).size!==patch.tasks.length)return null;
+  state=applyTaskDelta(state,patch.tasks);expected++;
+ }
+ return expected===response.revision?state:null;
+}

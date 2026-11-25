@@ -9,3 +9,11 @@ export async function addAttachment(scope,taskId,file){validateAttachment(file);
 export async function readAttachment(scope,id){const db=await open();try{return await transact(db,'readonly',(s,done,fail)=>{const q=s.get(id);q.onsuccess=()=>{if(q.result?.scope!==scope){fail(Error('附件不存在'));return}done(q.result)}})}finally{db.close()}}
 export async function removeAttachment(scope,id){const db=await open();try{return await transact(db,'readwrite',(s,done,fail)=>{const q=s.get(id);q.onsuccess=()=>{if(q.result?.scope!==scope){fail(Error('附件不存在'));return}s.delete(id);done(true)}})}finally{db.close()}}
 export async function downloadAttachment(scope,id){const record=await readAttachment(scope,id);const url=URL.createObjectURL(record.blob);const a=document.createElement('a');a.href=url;a.download=record.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+
+export async function readAllAttachmentRecords(scope){const db=await open();try{return await transact(db,'readonly',(s,done)=>{const q=s.index('scope').getAll(IDBKeyRange.only(scope));q.onsuccess=()=>done(q.result)})}finally{db.close()}}
+export async function appendAttachmentRecords(scope,entries){
+ const db=await open();try{return await transact(db,'readwrite',(s,done,fail)=>{const counts=new Map();let total=0;const q=s.index('scope').openCursor(IDBKeyRange.only(scope));q.onsuccess=()=>{const c=q.result;if(c){total+=c.value.size;counts.set(c.value.taskId,(counts.get(c.value.taskId)||0)+1);c.continue();return}
+  for(const x of entries){total+=x.size;counts.set(x.taskId,(counts.get(x.taskId)||0)+1);if(total>SCOPE_LIMIT||counts.get(x.taskId)>TASK_LIMIT){fail(Error('导入后将超过本机附件容量；未写入任何文件'));return}}
+  for(const x of entries)s.add({...x,id:crypto.randomUUID(),scope});done(entries.length)
+ }})}finally{db.close()}
+}

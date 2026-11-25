@@ -7,7 +7,7 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
  const expires=Math.floor(Date.now()/1000)+3600;
  const token=encode({alg:'HS256',typ:'JWT'})+'.'+encode({sub:uid,exp:expires,role:'authenticated'})+'.mock';
  const session={access_token:token,refresh_token:'mock-refresh',token_type:'bearer',expires_in:3600,expires_at:expires,user:{id:uid,email:'test@example.invalid',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{},created_at:new Date().toISOString()}};
- let row=null,deltaWrites=0,metadataReads=0;
+ let row=null,deltaWrites=0,metadataReads=0,deltaReads=0,deltaMisses=0,patches=[];
  test.setTimeout(90000);const contexts=[];
  async function device(){
   const ctx=await browser.newContext();contexts.push(ctx);
@@ -16,18 +16,23 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
   await ctx.route(host+'/**',async route=>{
    const req=route.request(),url=new URL(req.url());
    if(url.pathname==='/auth/v1/user')return route.fulfill({json:session.user});
+   if(url.pathname.endsWith('/rpc/todo_read_task_deltas')){
+    const {p_revision}=req.postDataJSON(),chain=patches.filter(p=>p.from>=p_revision);
+    if(!row||!chain.length||chain[0].from!==p_revision||chain.at(-1).to!==row.revision){deltaMisses++;return route.fulfill({json:null})}
+    deltaReads++;return route.fulfill({json:{revision:row.revision,updated_at:row.updated_at,patches:chain}});
+   }
    if(url.pathname.endsWith('/rpc/todo_apply_task_delta')){
     const {p_revision,p_tasks}=req.postDataJSON();
     if(!row||row.revision!==p_revision)return route.fulfill({json:null});
     const changes=new Map(p_tasks.map(t=>[t.id,t])),existing=new Set(row.state.tasks.map(t=>t.id));
-    row={...row,revision:row.revision+1,state:{...row.state,tasks:[...row.state.tasks.map(t=>changes.get(t.id)||t),...p_tasks.filter(t=>!existing.has(t.id))]},updated_at:new Date().toISOString()};deltaWrites++;
+    row={...row,revision:row.revision+1,state:{...row.state,tasks:[...row.state.tasks.map(t=>changes.get(t.id)||t),...p_tasks.filter(t=>!existing.has(t.id))]},updated_at:new Date().toISOString()};deltaWrites++;patches=[...patches,{from:p_revision,to:row.revision,tasks:p_tasks}].slice(-8);
     return route.fulfill({json:{revision:row.revision,updated_at:row.updated_at}});
    }
    if(!url.pathname.endsWith('/todo_workspaces'))return route.fulfill({status:404,json:{message:'mock route'}});
    if(req.method()==='GET'){if(url.searchParams.get('select')==='revision,updated_at'){metadataReads++;return route.fulfill({json:row?[{revision:row.revision,updated_at:row.updated_at}]:[]})}return route.fulfill({json:row?[row]:[]})}
    const body=req.postDataJSON();
    if(req.method()==='POST'){if(row)return route.fulfill({status:409,json:{code:'23505',message:'duplicate'}});row={...body,updated_at:new Date().toISOString()}}
-   else if(req.method()==='PATCH'){if(!row||url.searchParams.get('revision')!=='eq.'+row.revision)return route.fulfill({status:406,json:{code:'PGRST116',details:'The result contains 0 rows',message:'Cannot coerce the result to a single JSON object'}});row={...row,...body,updated_at:new Date().toISOString()}}
+   else if(req.method()==='PATCH'){if(!row||url.searchParams.get('revision')!=='eq.'+row.revision)return route.fulfill({status:406,json:{code:'PGRST116',details:'The result contains 0 rows',message:'Cannot coerce the result to a single JSON object'}});row={...row,...body,updated_at:new Date().toISOString()};patches=[]}
    return route.fulfill({json:{revision:row.revision,updated_at:row.updated_at}});
   });
   const page=await ctx.newPage();await page.goto('/');await expect(page.getByRole('textbox',{name:'新任务名称'})).toBeVisible();return {ctx,page}
@@ -89,7 +94,7 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
   await b.page.getByRole('button',{name:'保存智能清单'}).click();
   await expect.poll(()=>row.state.smartLists?.some(f=>f.name==='同步智能清单'&&f.mode==='any')).toBe(true);
   await a.page.getByRole('button',{name:'设置',exact:true}).click();await a.page.getByRole('button',{name:'立即同步'}).click();await a.page.keyboard.press('Escape');
-  await expect(a.page.locator('.nav-row').filter({hasText:'同步智能清单'})).toBeVisible({timeout:15000});
+  await expect(a.page.locator('.nav-row').filter({hasText:'同步智能清单'})).toBeVisible({timeout:15000});expect(deltaReads).toBeGreaterThan(0);expect(deltaMisses).toBeGreaterThan(0);
 
  }finally{await Promise.all(contexts.map(c=>c.close()))}
 });

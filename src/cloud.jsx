@@ -4,7 +4,7 @@ import {isTauri} from '@tauri-apps/api/core';
 import {CLOUD_URL,CLOUD_KEY} from './cloud-config.js';
 import {initialState,migrateState,readState,saveState,STORAGE_KEY} from './domain.js';
 import {mergeTasks,resolveTaskFields,saveBaseline,loadBaseline} from './sync-merge.js';
-import {buildTaskDelta} from './task-delta.js';
+import {buildTaskDelta,replayTaskDeltas} from './task-delta.js';
 import {appendSyncLog,readSyncLog,SYNC_LOG_KEY} from './sync-diagnostics.js';
 import {SyncDiagnostics,ConflictPreview,FieldMerge} from './sync-ui.jsx';
 import {scopedStorage,canonical,digest,readMeta,META_KEY,decideSync,readRemote,preserveConflict} from './cloud-core.js';
@@ -26,6 +26,13 @@ async function getRow(uid,meta,base){
   if(error)throw error;
   if(!data)return null;
   if(data.revision===meta.revision)return {...data,state:base};
+  if(data.revision>meta.revision){
+   try{
+    const {data:result,error:deltaError}=await cloud.rpc('todo_read_task_deltas',{p_revision:meta.revision}).abortSignal(AbortSignal.timeout(12000));
+    if(!deltaError){const state=replayTaskDeltas(base,meta.revision,result);if(state&&result.revision>=data.revision){const valid=migrateState(state);if(canonical(valid)===canonical(state))return {revision:result.revision,updated_at:result.updated_at,state:valid,mode:'delta'}}}
+   }catch{/* missing RPC, gap or invalid data: use the authoritative full row */}
+  }
+
  }
  const {data,error}=await cloud.from(TABLE).select('revision,state,updated_at').eq('user_id',uid).abortSignal(AbortSignal.timeout(12000)).maybeSingle();if(error)throw error;return readRemote(data)}
 async function writeRow(uid,state,revision,remoteState){
@@ -92,7 +99,7 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked,logStorage}){
     // Save the downloaded snapshot before replacing the UI; never discard a local edit made during the request.
     if(latest.current.data!==snapshot)return;
     saveState(storage,remote.state);writeMeta(remote.revision,remoteHash,remote.state);
-    latest.current={...latest.current,data:remote.state};setData(remote.state);record('pull',remote.revision)
+    latest.current={...latest.current,data:remote.state};setData(remote.state);record(remote.mode==='delta'?'delta-pull':'pull',remote.revision)
    }else if(decision==='push'||decision==='insert'){
     const row=await writeRow(uid,snapshot,decision==='insert'?null:remote.revision,remote?.state);
     if(!active.current)return;
