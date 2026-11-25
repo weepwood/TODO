@@ -28,22 +28,35 @@ export function addOccurrence(tasks,task,date,index=(task.occurrenceIndex||1)+1)
  if(!validDate(date)||(task.repeatUntil&&date>task.repeatUntil)||(task.repeatCount>0&&index>task.repeatCount)||tasks.some(t=>series(t)===series(task)&&t.date===date&&(task.repeat!=='completion'||t.status==='pending'||t.previousId===task.id)))return tasks;
  return [...tasks,{...task,id:id(),seriesId:series(task),seriesStart:task.seriesStart||task.date,occurrenceIndex:index,previousId:task.id,date,status:'pending',stage:'todo',deletedAt:null,createdAt:new Date().toISOString(),completedAt:null,remindedAt:null,reminderAt:offsetDate(task.reminderAt,task.date,date),extraReminders:(task.extraReminders||[]).map(r=>({id:id(),at:offsetDate(r.at,task.date,date),sentAt:null})),checklist:task.checklist.map(c=>({...c,id:id(),done:false}))}]
 }
+// Fast-forward fixed daily/weekly series without iterating over years of missed dates.
+export function advanceOccurrence(task,next,index,boundary){
+ if(!validDate(next)||next>=boundary)return {next,index};
+ if(['daily','weekly'].includes(task.repeat)){
+  const step=intervalOf(task.interval)*(task.repeat==='weekly'?7:1);
+  const days=Math.round((Date.parse(boundary+'T00:00:00Z')-Date.parse(next+'T00:00:00Z'))/86400000);
+  const jumps=Math.ceil(days/step);return {next:shiftDay(next,jumps*step),index:index+jumps};
+ }
+ while(validDate(next)&&next<boundary){
+  if((task.repeatUntil&&next>task.repeatUntil)||(task.repeatCount>0&&index>task.repeatCount))return {next,index};
+  next=nextOccurrence(task,next);index++;
+ }
+ return {next,index};
+}
 export function completeTask(tasks,taskId,today=dayKey()){
  const task=tasks.find(t=>t.id===taskId);
  if(!task||task.status!=='pending'||task.deletedAt||blockers(tasks,task).length)return tasks;
  let result=tasks.map(t=>t.id===taskId?{...t,status:'completed',completedAt:new Date().toISOString(),stage:'done'}:t);
  if(task.repeat==='none'||!task.date)return result;
  let next=nextOccurrence(task,task.repeat==='completion'?today:task.date),index=(task.occurrenceIndex||1)+1;
- if(task.miss==='skip')while(validDate(next)&&next<today){next=nextOccurrence(task,next);index++}
+ if(task.miss==='skip')({next,index}=advanceOccurrence(task,next,index,today));
  return addOccurrence(result,task,next,index)
 }
 export function reconcile(tasks,today=dayKey(),now=null){
  let result=tasks;
  for(const task of tasks){
-  const boundary=now?effectiveDay(now,task.reset||'00:00'):today;
-  if(task.deletedAt||task.status!=='pending'||!['daily','weekly','monthly','workdays','weekdays'].includes(task.repeat)||task.miss!=='skip'||!validDate(task.date)||task.date>=boundary)continue;
-  let next=task.date,index=task.occurrenceIndex||1;
-  while(validDate(next)&&next<boundary){next=nextOccurrence(task,next);index++}
+  if(task.deletedAt||task.status!=='pending'||!['daily','weekly','monthly','workdays','weekdays'].includes(task.repeat)||task.miss!=='skip'||!validDate(task.date))continue;
+  const boundary=now?effectiveDay(now,task.reset||'00:00'):today;if(task.date>=boundary)continue;
+  const {next,index}=advanceOccurrence(task,task.date,task.occurrenceIndex||1,boundary);
   result=result.map(t=>t.id===task.id?{...t,status:'skipped'}:t);
   result=addOccurrence(result,task,next,index)
  }

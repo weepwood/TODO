@@ -117,8 +117,10 @@ fn native_search(scope:String,query:String,db:tauri::State<Database>)->Result<Ve
  stmt.query_map(params![scope,term],|r|r.get(0)).map_err(|e|e.to_string())?.collect::<Result<Vec<String>,_>>().map_err(|e|e.to_string())
 }
 #[tauri::command]
-fn native_notify(scope:String,task_id:String,at:String,title:String,db:tauri::State<Database>,app:tauri::AppHandle)->Result<(),String>{
+fn native_notify(scope:String,task_id:String,at:String,title:String,db:tauri::State<Database>,active:tauri::State<ActiveScope>,app:tauri::AppHandle)->Result<(),String>{
  if !valid_scope(&scope){return Err("invalid scope".into())}
+ let guard=active.0.lock().map_err(|e|e.to_string())?;
+ if guard.as_deref()!=Some(scope.as_str()){return Err("workspace is no longer active".into())}
  let c=db.0.lock().map_err(|e|e.to_string())?;
  let key=format!("{}:{}",task_id,at);
  if c.execute("INSERT OR IGNORE INTO delivered VALUES(?1,?2)",params![scope,key]).map_err(|e|e.to_string())?==1{
@@ -160,7 +162,7 @@ fn show(app:&tauri::AppHandle){if let Some(w)=app.get_webview_window("main"){let
 fn schedule(app:tauri::AppHandle){
  std::thread::spawn(move||loop{
   std::thread::sleep(Duration::from_secs(5));
-  let active=app.state::<ActiveScope>();let scope=active.0.lock().ok().and_then(|s|s.clone());let Some(scope)=scope else{continue};
+  let active=app.state::<ActiveScope>();let Ok(active_guard)=active.0.lock() else{continue};let Some(scope)=active_guard.clone() else{continue};
   let db=app.state::<Database>();let Ok(c)=db.0.lock() else{continue};
   let body:Option<String>=c.query_row("SELECT body FROM snapshots WHERE scope=?1",[&scope],|r|r.get(0)).optional().ok().flatten();
   let Some(body)=body else{continue};let Ok(state)=serde_json::from_str::<serde_json::Value>(&body) else{continue};let Some(tasks)=state["tasks"].as_array() else{continue};
