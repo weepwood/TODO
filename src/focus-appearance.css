@@ -1,0 +1,31 @@
+/* Appearance preference controls visual emphasis, not keyboard semantics.
+   Apply at the document root so portaled menus and dialogs inherit it. */
+.appearance-focus-setting{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;background:var(--panel);border-radius:var(--radius-control)}
+.appearance-focus-setting strong{font-size:13px;font-weight:550}
+.appearance-focus-setting p{margin:5px 0 0;line-height:1.5}
+.appearance-focus-switch{width:40px;height:24px;border-radius:999px;flex:none;padding:3px;background:var(--muted);display:flex;align-items:center;justify-content:flex-start}
+.appearance-focus-switch[aria-checked=true]{background:var(--accent)}
+.appearance-focus-switch>span{width:18px;height:18px;border-radius:50%;background:white;transform:translateX(0)}
+.appearance-focus-switch[aria-checked=true]>span{transform:translateX(16px)}
+@media(prefers-reduced-motion:no-preference){.appearance-focus-switch,.appearance-focus-switch>span{transition:background-color 140ms,transform 140ms}}
+/* Keep OS forced-color and high-contrast behavior untouched. */
+@media(forced-colors:none){
+ html[data-focus-mode=quiet][data-input-modality=pointer] :is(button,input,textarea,select,a,[tabindex],[contenteditable=true]):focus-visible{
+  outline:none;
+ }
+ html[data-focus-mode=quiet][data-input-modality=pointer] .v2 .task-body:focus-visible,
+ html[data-focus-mode=quiet][data-input-modality=pointer] .v2 .task-row:focus-within{outline:none}
+ html[data-focus-mode=quiet] :is(.quick-add,.palette-search,.ledger-search,.time-control,.number-control,.date-control):focus-within{box-shadow:none}
+ html[data-focus-mode=quiet][data-input-modality=pointer] .visual-note-content:focus-visible{box-shadow:none}
+ html[data-focus-mode=quiet][data-input-modality=pointer] :is(.smart-select-trigger,.date-trigger,.datetime-trigger):focus-visible:not([data-state=open]){outline:none;border-color:var(--line)}
+ /* A keyboard-focused child retains its own ring. Do not outline its row as well. */
+ html[data-focus-mode=quiet] .v2 .task-row:focus-within{outline:none}
+ html[data-focus-mode=quiet] .v2 .task-body:focus-visible{outline-offset:-2px}
+ html[data-focus-mode=quiet][data-input-modality=keyboard] :is(.palette-search,.quick-add,.ledger-search):has(>input:focus-visible){outline:2px solid var(--accent);outline-offset:1px}
+ html[data-focus-mode=quiet][data-input-modality=keyboard] :is(.palette-search,.quick-add,.ledger-search)>input:focus-visible{outline:none}
+ html[data-focus-mode=quiet][data-input-modality=keyboard] :is(.number-control,.time-control,.date-control):has(input:focus-visible){outline:2px solid var(--accent);outline-offset:1px}
+ html[data-focus-mode=quiet][data-input-modality=keyboard] :is(.number-control,.time-control,.date-control) input:focus-visible{outline:none}
+ /* Checked/highlighted menu options already have a selected fill. */
+ html[data-focus-mode=quiet][data-input-modality=pointer] .smart-select-option[data-state=checked][data-highlighted]{outline:none}
+}
+@media(forced-colors:active){.appearance-focus-switch{border:1px solid ButtonText}.appearance-focus-switch>span{background:ButtonText}.appearance-focus-switch[aria-checked=true]{background:Highlight}.appearance-focus-switch[aria-checked=true]>span{background:HighlightText}}
