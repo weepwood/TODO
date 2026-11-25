@@ -31,12 +31,27 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
   const b=await device();await expect(b.page.locator('.task-body').filter({hasText:'设备 A 原始任务'})).toBeVisible({timeout:12000});
   await b.ctx.setOffline(true);await add(b.page,'设备 B 离线修改');await expect(b.page.locator('.sync-footer')).toContainText('离线');
   await add(a.page,'设备 A 在线修改');await expect.poll(()=>row?.state.tasks.some(t=>t.title==='设备 A 在线修改')).toBe(true);
+  await b.ctx.setOffline(false);await expect.poll(()=>row.state.tasks.some(t=>t.title==='设备 B 离线修改'),{timeout:20000}).toBe(true);
+  expect(row.state.tasks.some(t=>t.title==='设备 A 在线修改')).toBe(true);
+  await expect(b.page.locator('.sync-footer')).toContainText('已同步',{timeout:12000});
+  // Wait for A to receive the merged revision before creating a genuine conflict.
+  await a.page.getByRole('button',{name:'设置',exact:true}).click();
+  await a.page.getByRole('button',{name:'立即同步'}).click();
+  await a.page.keyboard.press('Escape');
+  await expect(a.page.locator('.task-body').filter({hasText:'设备 B 离线修改'})).toBeVisible({timeout:15000});
+  await b.ctx.setOffline(true);
+  await b.page.locator('.task-body').filter({hasText:'设备 B 离线修改'}).click();
+  await b.page.getByRole('textbox',{name:'任务标题'}).fill('设备 B 冲突内容');
+  await expect(b.page.locator('.sync-footer')).toContainText('离线');
+  await a.page.locator('.task-body').filter({hasText:'设备 B 离线修改'}).click();
+  await a.page.getByRole('textbox',{name:'任务标题'}).fill('设备 A 冲突内容');
+  await expect.poll(()=>row.state.tasks.some(t=>t.title==='设备 A 冲突内容')).toBe(true);
   await b.ctx.setOffline(false);await expect(b.page.locator('.sync-footer')).toContainText('存在同步冲突',{timeout:12000});
-  expect(row.state.tasks.some(t=>t.title==='设备 B 离线修改')).toBe(false);
-  await expect(b.page.locator('.task-body').filter({hasText:'设备 B 离线修改'})).toBeVisible();
+  expect(row.state.tasks.some(t=>t.title==='设备 B 冲突内容')).toBe(false);
+  await expect(b.page.locator('.task-body').filter({hasText:'设备 B 冲突内容'})).toBeVisible();
   await b.page.getByRole('button',{name:'设置',exact:true}).click();
   b.page.once('dialog',d=>d.accept());await b.page.getByRole('button',{name:'使用云端版本'}).click();
   await expect(b.page.locator('.sync-footer')).toContainText('已同步',{timeout:12000});
-  expect(await b.page.evaluate(uid=>JSON.parse(localStorage.getItem('todo-account:'+uid+':todo-conflict-backup')).tasks.some(t=>t.title==='设备 B 离线修改'),uid)).toBe(true);
+  expect(await b.page.evaluate(uid=>JSON.parse(localStorage.getItem('todo-account:'+uid+':todo-conflict-backup')).tasks.some(t=>t.title==='设备 B 冲突内容'),uid)).toBe(true);
  }finally{await Promise.all(contexts.map(c=>c.close()))}
 });

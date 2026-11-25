@@ -49,3 +49,11 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - Web 仍使用原访客数据及独立账号缓存。真实云端 Auth 邮箱验证仍需生产域名的 Site URL/Redirect URLs 及邮件配置。原生注册确认回调使用 Pages 地址，确认后回应用登录。
 - Pages 工作流只做构建与部署；桌面安装包工作流手动触发 Windows x64 NSIS、macOS arm64 DMG。未要求复杂 CI 或正式签名、公证、Release。
 - 开发命令：npm ci；npm test；npm run build；npm run test:e2e；cargo test --manifest-path src-tauri/Cargo.toml --lib；npm run desktop:dev / desktop:build（Rust 1.90+）。本机未设置 rustup 默认工具链时前置 RUSTUP_TOOLCHAIN=stable。
+
+## V0.4.1 数据可靠性与同步收口
+
+- 基于 1c820c9，V0.4.0 Pages 与 Windows x64/macOS arm64 Actions 构建成功（45538083985、45538118217）。
+- 桌面主存储改为 SQLite workspace_store；native-store.js 提供同步内存读接口、串行异步持久化，workspace_store、快照及 FTS 索引在同一事务中更新；同步元数据、基线和冲突备份也保存于 SQLite。保存失败保留内存修改并暂停同步，支持重试；正常退出账号或托盘菜单退出前等待写入。强制终止仍可能丢失未提交修改。
+- 首次迁移保留旧 WebView 原始数据；旧镜像与 WebView 不一致时以旧 WebView 为迁移来源，完整保留 SQLite 镜像副本供导出；已迁移后只读取 SQLite 主存储。读取异常不覆盖，提供原始恢复数据导出。Supabase Auth 会话仍由 SDK 保存在 WebView。
+- sync-merge.js 保存上次确认的基线（Web IndexedDB，桌面 SQLite），校验版本与 SHA-256；仅自动合并无关联普通任务新增、标题/备注/优先级非冲突修改。删除、重复、依赖、其他工作空间字段或重排有冲突时维持手动保护。合并先保存本地和云端基线，再走原有 revision CAS 上传，仍非逐实体增量传输。未改变 Supabase 表或 RLS。Windows Tauri 注册确认回调修正为 Pages 地址。
+- 本轮保持轻量交付，继续直接 main；真实账号注册邮件、生产 Auth 重定向配置、原生通知/托盘实际交互及长期驻留仍待验收。
