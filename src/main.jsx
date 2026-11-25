@@ -72,6 +72,7 @@ import './business-design.css';
 import './clean-rows.css';
 import './desktop-list-interaction.css';
 import './detail-sections.css';
+import './focus-appearance.css';
 const CalendarView=lazy(()=>import('./calendar.jsx'));
 const WorkspaceBackup=lazy(()=>import('./workspace-backup.jsx'));
 const loadViews=()=>import('./views.jsx');

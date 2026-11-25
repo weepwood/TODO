@@ -416,3 +416,8 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - PR #17 a51217a 完整浏览器CI 45618105258成功，合并cde6bcc，正式main同步；Pages 45619038504成功。独立worktree v12-detail-sections。
 - 新增共享DetailSection/DetailFacts、七区主题表面、六区独立编辑与全局编辑模式、展示摘要、附件/链接只读展示及活动展开，保留现有即时保存、锁定、提醒草稿、关联与附件业务逻辑。展示态默认；全局编辑偏好为本机UI设置，局部状态随任务重置。标题仍可直接编辑；历史只读。Android运行脚本改为显式进入计划编辑，未执行原生构建。
 - 本机资源门禁通过，Web生产构建成功。首轮15项专项14通过，唯一失败因新测试错误使用独立提醒弹层名称（真实名称独立提醒编辑），修正后2项新专项通过。复核桌面展示/编辑及390px手机真实截图；去除展开历史时重复的最新记录后，再次Web构建与两项新专项通过。旧编辑控件测试配置显式使用编辑模式，新详情专项覆盖默认展示、独立编辑、全局切换、持久化、手机导航和取消提醒。最终全量PR CI及双主题全面复验待完成；未构建安装包、未新增运行时依赖。日志artifacts/TODO/detail-sections.log、detail-section-retest.log、detail-section-final.log。
+
+### 无障碍视觉提示设置
+- PR #18 0d7dc46 全量浏览器CI 45619671512成功，合并85b34c1并同步正式main；新分支feat/v12-focus-appearance复用v12-detail-sections工作树。
+- appearance新增enhancedFocus严格布尔偏好（缺省false），根元素设置主题模式和输入方式，设置开关及恢复默认，独立focus-appearance.css去除鼠标重复描边/阴影并保留键盘焦点、forced-colors、校验与选中状态，不禁用无障碍语义。新增2项浏览器专项，覆盖缺省、鼠标与键盘、搜索、开启、持久化、恢复默认和强制颜色。
+- Web构建及8项专项浏览器测试通过（见artifacts/TODO/focus-appearance.log），人工审阅focus-quiet、focus-enhanced、focus-setting截图。未构建安装包、未新增依赖；最终完整PR CI待验收。
