@@ -70,7 +70,7 @@ jobs:
           unzip -l android-qa/TODO-Android-QA-arm64.apk | grep 'lib/arm64-v8a/.*\.so'
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump resources android-qa/TODO-Android-QA-arm64.apk > android-qa/APK_RESOURCES.txt
           grep -F 'mipmap/ic_launcher_monochrome' android-qa/APK_RESOURCES.txt
-          grep -F 'mipmap/ic_launcher_background' android-qa/APK_RESOURCES.txt'
+          grep -F 'mipmap/ic_launcher_background' android-qa/APK_RESOURCES.txt
           (cd android-qa && sha256sum *.apk > SHA256SUMS.txt)
           printf '%s\n' "$GITHUB_SHA" > android-qa/BUILD_COMMIT.txt
       - uses: actions/upload-artifact@v4

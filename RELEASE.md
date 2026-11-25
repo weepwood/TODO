@@ -66,3 +66,32 @@ main 已进入 1.1.0-dev.1 后续开发，RC1 预发行标签与安装包保持 
 ## V1.1.0-alpha.1 候选
 
 main 进入 Alpha.1 候选，不替代 V1.0 RC1，正式 V1.0 门禁不变。本地 66 JS / 51 Edge / 9 Rust 与生产构建全部通过。待验证与候选提交一致的 Windows x64 和 macOS arm64 安装包、产物 SHA256、Pages 线上版本及资源，再创建标记为 prerelease 的 Release；不声称已发布，不要求商业签名或付费服务，不虚报实机结果。
+
+## V1.2 签名发行和应用内更新
+
+V1.2.0-alpha.1 为开发候选，不是已发布正式版。当前正式更新清单为空；普通开发/QA 仅检查版本，禁止下载安装。正式包 com.weepwood.todo，Android versionCode 102001，跨渠道单调递增；现有 QA 包不同包名/签名，需先导出或云同步迁移。稳定版和预发行版使用不同清单，渠道由安装版本决定，不跨渠道自动更新。桌面官方 Tauri Updater 2.14.1 requireSignedVersion，签名更新包与发布版本绑定；Android 原生 HTTPS 下载、大小/SHA256、版本/包名/证书及非 debug 验证，再 PackageInstaller 系统确认。更新前等待已有同步并暂停新同步、拒绝未解决冲突，flush SQLite、创建本地快照备份、再次 flush；不是全附件归档，系统确认期间仍需遵循正常保存机制。
+
+### 首次签名配置（必须由有权限的维护者在安全本机完成）
+
+本轮密钥配置工具请求被安全检查阻断，未确认生成或上传任何私钥。不要在聊天、公开仓库或日志中粘贴私钥。保留离线加密备份；签名密钥不能随版本重新生成。现有密钥不得覆盖。GitHub 仓库 Settings → Secrets and variables → Actions：
+
+| 类型 | 名称 | 内容 |
+|---|---|---|
+| Secret | TODO_SIGN_UPDATER_KEY | Tauri signer generate 生成的私钥文件内容 |
+| Secret | TODO_SIGN_UPDATER_PASSWORD | 对应私钥密码 |
+| Secret | TODO_SIGN_ANDROID_KEYSTORE | 持久 PKCS12 keystore 的 Base64（alias todo-release） |
+| Secret | TODO_SIGN_ANDROID_PASSWORD | 对应 keystore/key 密码 |
+| Variable | TODO_UPDATER_PUBLIC_KEY | 对应 .pub 公钥文件内容 |
+| Variable | TODO_ANDROID_CERT_SHA256 | Android 签名证书 SHA256，64 位小写十六进制，无冒号 |
+
+使用 Tauri 官方 signer generate --write-keys 在仓库之外生成桌面密钥；Android 使用 keytool 生成长期有效 PKCS12 RSA 签名，独立安全备份。通过仓库 Secrets 界面配置，不发送给聊天。公钥和证书指纹是公开验证材料。正式首次发版后必须固定密钥，不随意更改变量或丢失备份。无需商业 Windows/macOS 证书才能签署 updater，但未经系统代码签名/公证仍可能有操作系统信任提示。
+
+### 构建、草稿、发布
+
+1. 先完成当前提交对应 android-runtime.yml 模拟器运行验收与桌面关联测试；确认正式包安装、前后台、SQLite、提醒及 Keystore。
+2. 手动运行 signed-release.yml，预检查六个签名配置，任一缺失则停止。Windows x64 NSIS + minisign、macOS ARM64 DMG + app.tar.gz + minisign、Android ARM64 非 debug APK +固定证书签名；按平台检查并生成 SHA256 和 BUILD_COMMIT，仅创建草稿 Release，不发布更新清单。
+3. 人工核对相同签名的两版本覆盖升级、SQLite 及未同步数据保留、失败重试、签名不匹配拒绝、Android PackageInstaller 用户确认与桌面重启。首个正式版本无前代正式包，使用独立同签名升级验收版本。真实验收尚未完成，不勾选通过。
+4. 通过后手动运行 promote-release.yml，提供 Tag 与真实验收确认。检查同一 build SHA 的成功模拟器 workflow、完整资产及校验和、版本单调；先发布 Release，再以同一 Git commit 更新对应的两个 public/updates JSON 清单，触发 Pages。推送失败则旧清单不变，排查后重试；不覆盖已发布资产，不将预发行标记为 latest。
+5. QA 与正式包、稳定与预发行渠道明确隔离。当前仅支持 Windows x64、macOS ARM64、Android ARM64；其他架构不能承诺更新。Android APK 下载可取消，桌面采用官方 updater 进度及签名校验，下载过程中暂不提供强制取消；应用退出后的未完成 Android 安装需重新检查/下载。WorkManager 后台双向同步仍未完成。
+
+所有正式签名和覆盖升级尚待实际证据。不得将 CI 草稿或本地模拟测试称为正式发布。

@@ -1,0 +1,157 @@
+name: 三平台正式签名构建（仅草稿）
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: todo-signed-release
+  cancel-in-progress: false
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate signing configuration
+        env:
+          TODO_UPDATER_PUBLIC_KEY: ${{ vars.TODO_UPDATER_PUBLIC_KEY }}
+          TODO_ANDROID_CERT_SHA256: ${{ vars.TODO_ANDROID_CERT_SHA256 }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TODO_SIGN_UPDATER_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TODO_SIGN_UPDATER_PASSWORD }}
+          TODO_SIGN_ANDROID_KEYSTORE: ${{ secrets.TODO_SIGN_ANDROID_KEYSTORE }}
+          TODO_SIGN_ANDROID_PASSWORD: ${{ secrets.TODO_SIGN_ANDROID_PASSWORD }}
+        run: node scripts/release-config.mjs --preflight
+  desktop:
+    needs: preflight
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundle: nsis
+            kind: windows
+          - os: macos-15
+            target: aarch64-apple-darwin
+            bundle: dmg
+            kind: mac
+    runs-on: ${{ matrix.os }}
+    env:
+      TODO_SIGNED_RELEASE: '1'
+      VITE_TODO_SIGNED_RELEASE: '1'
+      TODO_UPDATER_PUBLIC_KEY: ${{ vars.TODO_UPDATER_PUBLIC_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - run: npm ci
+      - run: npm test
+      - run: node scripts/release-config.mjs --desktop
+      - name: Build and sign updater artifacts
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TODO_SIGN_UPDATER_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TODO_SIGN_UPDATER_PASSWORD }}
+        run: npm run desktop:build -- --target ${{ matrix.target }} --bundles ${{ matrix.bundle }} --ci --config src-tauri/tauri.release.conf.json
+      - run: node scripts/collect-release.mjs ${{ matrix.kind }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: signed-${{ matrix.kind }}
+          path: release-assets/
+          if-no-files-found: error
+  android:
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      VITE_TODO_SIGNED_RELEASE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - run: |
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
+      - run: npm ci
+      - run: npm run android:init -- --ci --skip-targets-install
+      - run: npm run android:build -- --ci
+      - name: Sign formal APK and verify certificate
+        shell: bash
+        env:
+          TODO_SIGN_ANDROID_KEYSTORE: ${{ secrets.TODO_SIGN_ANDROID_KEYSTORE }}
+          TODO_SIGN_ANDROID_PASSWORD: ${{ secrets.TODO_SIGN_ANDROID_PASSWORD }}
+          TODO_ANDROID_CERT_SHA256: ${{ vars.TODO_ANDROID_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          keydir="$(mktemp -d)"
+          trap 'rm -rf "$keydir"' EXIT
+          printf '%s' "$TODO_SIGN_ANDROID_KEYSTORE" | base64 -d > "$keydir/release.p12"
+          test "$(find src-tauri/gen/android/app/build/outputs/apk -type f -name '*.apk' | wc -l)" -eq 1
+          apk="$(find src-tauri/gen/android/app/build/outputs/apk -type f -name '*.apk' -print -quit)"
+          version="$(node -p 'require("./package.json").version')"
+          code="$(node -p 'require("./src-tauri/tauri.android.conf.json").bundle.android.versionCode')"
+          tools="$ANDROID_HOME/build-tools/36.0.0"
+          mkdir -p release-assets
+          out="release-assets/TODO_${version}_arm64.apk"
+          "$tools/zipalign" -P 16 -f 4 "$apk" "$keydir/aligned.apk"
+          "$tools/apksigner" sign --ks "$keydir/release.p12" --ks-key-alias todo-release --ks-pass env:TODO_SIGN_ANDROID_PASSWORD --key-pass env:TODO_SIGN_ANDROID_PASSWORD --out "$out" "$keydir/aligned.apk"
+          "$tools/apksigner" verify --verbose --print-certs "$out" > "$keydir/cert.txt"
+          grep -Fx "Signer #1 certificate SHA-256 digest: $TODO_ANDROID_CERT_SHA256" "$keydir/cert.txt"
+          "$tools/zipalign" -c -P 16 4 "$out"
+          "$tools/aapt" dump badging "$out" > "$keydir/info.txt"
+          grep -F "package: name='com.weepwood.todo' versionCode='$code' versionName='$version'" "$keydir/info.txt"
+          if grep -F 'application-debuggable' "$keydir/info.txt"; then exit 1; fi
+          unzip -l "$out" | grep 'lib/arm64-v8a/libapp_lib.so'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: signed-android
+          path: release-assets/
+          if-no-files-found: error
+  draft:
+    needs: [desktop, android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: signed-*
+          path: release-assets
+          merge-multiple: true
+      - run: node scripts/collect-release.mjs manifest
+        env:
+          TODO_ANDROID_CERT_SHA256: ${{ vars.TODO_ANDROID_CERT_SHA256 }}
+      - name: Create immutable draft only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="$(node -p 'require("./package.json").version')"
+          flags=()
+          if [[ "$version" == *-* ]]; then flags+=(--prerelease --latest=false); fi
+          gh release create "v$version" release-assets/* --draft --target "$GITHUB_SHA" --title "TODO V$version" --notes "Signed release candidate. Promotion requires separate runtime and upgrade verification." "${flags[@]}"

@@ -28,7 +28,7 @@ async function connect(){
   return 'webview_devtools_remote_'+pid;
  });
  adb('forward','tcp:9222','localabstract:'+socket);
- const browser=await retry(()=>chromium.connectOverCDP('http://127.0.0.1:9222',{timeout:5000}));
+ const browser=await retry(()=>chromium.connectOverCDP('http://127.0.0.1:9222',{timeout:5000,noDefaults:true}));
  const page=await retry(()=>{const p=browser.contexts().flatMap(c=>c.pages()).find(p=>!p.url().startsWith('devtools:'));assert.ok(p,'no WebView page');return p});
  await expect(page.locator('.native-mobile')).toBeVisible({timeout:60000});
  await expect(page.getByRole('textbox',{name:'新任务名称'})).toBeVisible({timeout:30000});

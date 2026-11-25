@@ -61,10 +61,10 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked,logStorage}){
  const record=(kind,revision=null)=>{if(uid&&logStorage)setEntries(appendSyncLog(logStorage,kind,revision))};
  const clearLog=()=>{try{logStorage?.removeItem(SYNC_LOG_KEY)}catch{}setEntries([])};
  const latest=useRef({data,blocked});latest.current={data,blocked};
- const active=useRef(true),busy=useRef(false),conflictRef=useRef(null);
+ const active=useRef(true),busy=useRef(false),conflictRef=useRef(null),pausedForUpdate=useRef(false);
  const writeMeta=(revision,hash,state)=>{saveBaseline(uid,storage,revision,hash,state);storage.setItem(META_KEY,JSON.stringify({revision,hash}))};
  const sync=useCallback(async (resolution=null)=>{
-  if(!uid||busy.current||!active.current||latest.current.blocked||(!resolution&&conflictRef.current)||mobileNative&&document.visibilityState==='hidden')return;
+  if(!uid||busy.current||pausedForUpdate.current||!active.current||latest.current.blocked||(!resolution&&conflictRef.current)||mobileNative&&document.visibilityState==='hidden')return;
   if(!navigator.onLine){setStatus('离线，修改保存在本机');record('offline');return}
   busy.current=true;setStatus('同步中');setError('');
   try{
@@ -125,7 +125,18 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked,logStorage}){
  for(const event of ['INSERT','UPDATE'])channel.on('postgres_changes',{event,schema:'public',table:TABLE,filter:'user_id=eq.'+uid},wake);
  channel.subscribe(status=>{if(!alive)return;setRealtime(status==='SUBSCRIBED'?'connected':status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'?'fallback':'connecting');if(status==='SUBSCRIBED')wake()});return()=>{alive=false;cloud.removeChannel(channel).catch(()=>{})}
  },[uid,sync]);
- return {status,error,conflict,lastSync,sync,entries,clearLog,realtime}
+ const pauseForUpdate=async()=>{
+  if(pausedForUpdate.current)throw Error('正在处理软件更新');
+  pausedForUpdate.current=true;
+  const resume=()=>{pausedForUpdate.current=false};
+  try{
+   const end=Date.now()+30000;
+   while(busy.current&&Date.now()<end)await new Promise(r=>setTimeout(r,100));
+   if(busy.current||conflictRef.current||latest.current.blocked)throw Error('同步仍在进行或存在冲突，请处理后重试');
+   return resume;
+  }catch(e){resume();throw e}
+ };
+ return {status,error,conflict,lastSync,sync,entries,clearLog,realtime,pauseForUpdate}
 }
 export function AccountPanel({session,sync,importGuest,exportConflict,storageError,beforeSignOut,localData}){
  const [email,setEmail]=useState(''),[password,setPassword]=useState(''),[register,setRegister]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState('');

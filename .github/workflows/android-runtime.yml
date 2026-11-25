@@ -6,6 +6,11 @@ on:
     paths:
       - '.github/workflows/android-runtime.yml'
       - 'scripts/android-runtime-smoke.mjs'
+      - 'src-tauri/plugins/todo-mobile/**'
+      - 'src/services/updates/**'
+      - 'src-tauri/capabilities/**'
+      - 'src-tauri/brand/**'
+      - 'package.json'
 permissions:
   contents: read
 concurrency:

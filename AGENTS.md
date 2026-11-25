@@ -283,3 +283,10 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 
 ### Android 图标资源专项
 - 基线 de2cfab；通过已锁定 Tauri CLI 2.12.6 源码核对 manifest 支持独立 SVG default/fg/bg/monochrome。新增 Android 单对勾渐变图标源及资源生成脚本，五档密度 PNG/XML 检查，preandroid:init/build 自动生成并同步已有工程，桌面/Web 资源不变。CI 增加 APK 背景和单色资源检查。Desktop Commander 未连接，本机未执行生成及视觉验收；以实际新 APK/截图为准。更新机制仅设计，未接入 updater/安装权限、未生成或披露签名私钥、不增加费用；QA 包不承诺覆盖升级。
+
+### V1.2 品牌与跨平台更新候选（基线 b974b9e）
+- Desktop Commander 新账户连接恢复；fast-forward 本地工作区，磁盘约39GiB。45574899084 实际 APK 编译、v2 签名、包名和单色资源通过，最终检查 shell 多余单引号失败，已修正 bash -n；45573792844 实际 x86_64 APK/模拟器启动、CDP连接后 Browser.setDownloadBehavior 不支持，改 connectOverCDP noDefaults:true，未虚报运行通过。
+- 同一品牌 SVG 通过已锁定 Tauri CLI 生成 Android adaptive/monochrome 五密度、桌面图标、PWA 192/512，实际192px及48px PNG检查通过。版本统一1.2.0-alpha.1，Android versionCode 102001。原 RC1、Alpha.1 及已成功的 Alpha.2 QA artifact 不变。
+- 统一更新协议固定稳定/preview渠道、SemVer、仓库资产URL、大小/sha256/平台签名元数据及128KiB响应限制。空静态清单不宣告新版本。设置软件更新、启动12h节流检查、日志、进度、重试；QA及Web只检查，正式签名构建才启用安装。桌面精确依赖Tauri Updater 2.14.1 + process，正式build注入公钥/endpoints/requireSignedVersion，安装前暂停新同步、等待现有同步、冲突保护、flush/SQLite快照备份。Android Kotlin APK下载限200MiB、HTTPS白名单、校验大小/摘要/包名/版本/证书/渠道及非debug，PackageInstaller Session 用户确认、下载取消和失败状态，未实机；进程回收后安装状态不持久化，需重新下载。桌面下载不提供强制取消。
+- 新增 signed-release.yml 三平台签名构建草稿和 promote-release.yml 实际验收后发布及两清单一次提交，缺失密钥preflight明确拒绝。尝试配置持久签名密钥被工具安全检查拦截，未确认任何私钥生成/Secrets配置，不绕过；RELEASE.md 记录六个配置名称及安全本机步骤。正式签名、原生更新、同签名覆盖升级尚未验收，未创建新Release或启用更新清单，未改用户数据/Supabase/收费服务。
+- 本地 89/89 JS（含版本、恶意清单、缺签名拒绝、ACL）、7/7关联Edge（软件更新、移动模拟、积分、云冲突、双主题）、9/9 macOS Rust --locked、生产构建、4个工作流shell语法、实际设置截图检查通过。原生Android更新代码待新CI编译；真实运行、正式签名和升级仍待。无新增依赖之外的服务费用。

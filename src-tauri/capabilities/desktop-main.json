@@ -16,6 +16,10 @@
     "allow-native-exit",
     "allow-native-direct-pending",
     "allow-native-direct-ack",
-    "allow-native-direct-cancel-pending"
+    "allow-native-direct-cancel-pending",
+    "updater:allow-check",
+    "updater:allow-download",
+    "updater:allow-install",
+    "process:allow-restart"
   ]
 }

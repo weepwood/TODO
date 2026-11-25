@@ -1,0 +1,56 @@
+name: 发布已签名版本并更新清单
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '已签名草稿 Tag（v...）'
+        required: true
+      verified:
+        description: '已人工核实同签名覆盖升级、SQLite 保留和签名验收'
+        type: boolean
+        required: true
+        default: false
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: todo-signed-release
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: inputs.verified
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify release and runtime evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
+          mkdir -p release-assets
+          gh release download "$TAG" --dir release-assets
+          node scripts/promote-release.mjs release-assets "$TAG"
+          commit="$(tr -d '\r\n' < release-assets/BUILD_COMMIT.txt)"
+          [[ "$commit" =~ ^[a-f0-9]{40}$ ]]
+          git fetch origin --tags
+          # A draft may not have a remote tag until published. Its target must be the build commit.
+          target="$(gh release view "$TAG" --json targetCommitish --jq .targetCommitish)"
+          test "$target" = "$commit"
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/android-runtime.yml/runs?head_sha=$commit&status=success&per_page=20" --jq '.workflow_runs | length' | grep -Ex '[1-9][0-9]*'
+          node scripts/promote-release.mjs release-assets "$TAG" --write
+          # Publish all assets before exposing either feed; a failed feed push leaves old clients safe.
+          if [[ "$TAG" == *-* ]]; then gh release edit "$TAG" --draft=false --prerelease --latest=false
+          else gh release edit "$TAG" --draft=false --latest; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/updates
+          git commit -m "发布 $TAG 签名更新清单"
+          git push origin HEAD:main
+          gh workflow run pages.yml --ref main

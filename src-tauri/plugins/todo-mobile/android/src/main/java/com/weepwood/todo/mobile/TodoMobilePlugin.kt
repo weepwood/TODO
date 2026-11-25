@@ -75,6 +75,14 @@ class TodoMobilePlugin(private val activity: Activity): Plugin(activity) {
     }
     @Command fun revisionCancel(invoke: Invoke) = run(invoke) { clearRevision(); invoke.resolve() }
 
+    @Command fun updatePrepare(invoke: Invoke) = run(invoke) {
+        ApkUpdates.prepare(context,invoke.parseArgs(UpdateArgs::class.java));invoke.resolve()
+    }
+    @Command fun updateStatus(invoke: Invoke) = run(invoke) { invoke.resolveObject(ApkUpdates.status()) }
+    @Command fun updateInstall(invoke: Invoke) = run(invoke) { invoke.resolveObject(ApkUpdates.install(activity)) }
+    @Command fun updateConfirm(invoke: Invoke) = run(invoke) { ApkUpdates.confirm(activity);invoke.resolve() }
+    @Command fun updateCancel(invoke: Invoke) = run(invoke) { ApkUpdates.cancelDownload();invoke.resolve() }
+
     override fun load(webView: WebView) {
         super.load(webView); view=webView
         val host=activity as? AppCompatActivity ?: return

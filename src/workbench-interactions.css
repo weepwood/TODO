@@ -125,3 +125,5 @@
 .reward-row>div:first-child{flex:1;min-width:110px;display:grid;gap:3px;overflow-wrap:anywhere}.reward-row strong{font-weight:550}.reward-row small{color:var(--muted);font-size:11px}
 .points-wallet>.points-header:not(:first-child){margin-top:14px}.points-wallet p,.points-goals p{margin:4px 0}
 @media(max-width:620px){.goal-grid,.wallet-grid{grid-template-columns:1fr}.goal-card,.wallet-grid>div{padding:9px}.points-curve{min-height:115px}}
+
+.update-panel{display:grid;gap:9px}.update-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}.update-heading h3,.update-heading p{margin:0}.update-panel progress{width:100%;accent-color:var(--accent)}.update-panel .update-release{border:1px solid var(--line);padding:12px;border-radius:8px;overflow-wrap:anywhere}.update-release p{white-space:pre-wrap;max-height:180px;overflow:auto;margin:6px 0}.update-panel>p{margin:0}.update-panel a{color:var(--accent)}

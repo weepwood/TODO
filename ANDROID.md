@@ -30,3 +30,9 @@
 
 ## Android 品牌图标
 - 新版 Android 图标源文件在 src-tauri/brand，蓝色渐变背景、单一对勾、单色主题层。`npm run android:icons` 通过锁定的 Tauri CLI 生成五档密度及 adaptive XML，并仅复制 Android 资源；android:init / android:build 自动调用，已有生成工程同步资源。桌面和 Web 原有图标暂保持不变。CI 检查 APK 中背景/单色资源；新图标实际打包和 launcher 截图仍待验收。
+
+## V1.2 品牌与应用内更新候选
+- b974b9e 的 45574899084 已真实通过 APK 编译、签名及单色 launcher 资源检查；最后失败为验证 shell 多余单引号（unexpected EOF），本轮已修正并实际 bash -n 检查。原生运行 45573792844 已启动 API35 模拟器并连接 WebView，但 Playwright Browser.setDownloadBehavior 不受支持；使用已安装版本的 connectOverCDP noDefaults:true 重新验收，不放宽测试。
+- 统一对勾渐变源生成 Android adaptive/monochrome 五密度、Windows/macOS 及 PWA 图标；本机生成和实际 192px/48px PNG 检查通过，手机 launcher 仍待真实截图。
+- 正式 Android 更新仅限非 debug com.weepwood.todo ARM64；开发/QA 只检查，不申请安装权限。正式下载限定仓库发行资产 HTTPS 跳转白名单、200MiB 上限、大小/SHA256、固定安装包身份及同证书、严格 versionCode 和渠道检查，安装前再次校验。PackageInstaller Session 需要用户授权来源及确认；系统回调、失败状态、下载取消、缓存重试。当前进程被回收后安装状态未持久化，需重新检查/下载；无静默安装。原生更新 Kotlin 待 CI 编译，真实同签名升级待后续专项。
+- 正式签名尚未配置，按 RELEASE.md 安全准备；未创建正式 APK/Release。当前 1.2.0-alpha.1 / versionCode 102001。

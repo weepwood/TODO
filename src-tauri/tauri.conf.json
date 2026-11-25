@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "TODO",
-  "version": "1.1.0-alpha.2",
+  "version": "1.2.0-alpha.1",
   "identifier": "com.weepwood.todo",
   "build": {
     "frontendDist": "../dist",
@@ -22,7 +22,7 @@
       },
       {
         "label": "capture",
-        "title": "TODO · 快速录入",
+        "title": "TODO \u00b7 \u5feb\u901f\u5f55\u5165",
         "url": "capture.html",
         "width": 520,
         "height": 315,
@@ -37,7 +37,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ipc: http://ipc.localhost https://xepkhnatnpvopnlqnrrz.supabase.co wss://xepkhnatnpvopnlqnrrz.supabase.co; font-src 'self' data:"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://weepwood.github.io ipc: http://ipc.localhost https://xepkhnatnpvopnlqnrrz.supabase.co wss://xepkhnatnpvopnlqnrrz.supabase.co; font-src 'self' data:"
     }
   },
   "bundle": {
