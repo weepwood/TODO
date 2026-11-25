@@ -352,3 +352,8 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - PR #6 7c3786e 浏览器CI 45600104333成功，合并c859b1c，本地正式main同步；Pages 45601453265成功。独立worktree v12-visual-system。
 - 实施语义表面令牌、重复边框与局部CSS治理、看板按任务ID跨列位置动画、选中日期标记、日历规划工具栏分组、备注独立阅读及草稿反馈；无新增依赖，保留数据、计时、提醒、签名及Markdown安全机制。
 - 本机资源门禁下 npm ci、Web生产构建及17项专项Edge测试（ui-visual-system、ui-business、v07、v08、v118）全部通过，含跨列动画实际调用与减少动效、选中日期、草稿保持、真实触摸日周拖放/跨午夜、Markdown可视化回转、双主题八模块。人工审阅visual-board、visual-mobile-calendar、visual-mobile-planner、visual-note-reading截图。随后补强日期选中背景、阅读标题层级及手机规划摘要密度；内存压力2拒绝再构建，最终这些CSS细节待PR完整浏览器验收。日志artifacts/TODO/visual-system.log。未构建安装包，不声称完整历史CSS收敛、真实帧率或所有动画中断已验收。
+
+### V1.2 第八轮移动日历与快捷录入
+- PR #7 3a263c2 的完整浏览器CI 45601863080成功，合并e97ab4b，本机正式main快进同步。独立worktree v12-mobile-capture-stats 以PR #7提交为基础开发，保持合并提交内容一致。
+- 新增共享CapturePreview及显式属性建议，手机月历选择日期与新建分离、统计分布条及聚合扫描优化。保留桌面日历、原日期拖放、连续录入、积分口径、数据模型、原生提醒及签名配置。无新增运行时依赖。
+- 本机资源门禁下 npm ci、Web生产构建及16项专项Edge浏览器测试全部通过（ui-mobile-capture、v112、v113、v118、points），包含真实触摸跨午夜/日周拖放、虚拟列表键盘、八模块双主题。实际审阅mobile-capture-preview、mobile-calendar-selected、stats-distribution截图；随后补充快捷录入标签宽度和按钮布局CSS，最新细节待PR完整CI复验。日志artifacts/TODO/mobile-capture.log。未构建安装包，未做真实设备性能或大型数据基准，不宣称完整八项长期规划全部完成。

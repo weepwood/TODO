@@ -1,0 +1,35 @@
+/* Quick entry shares the real parser; property chips describe the pending result. */
+.capture-structured{gap:8px;border-radius:10px}
+.capture-structured.inline{margin-top:-5px;margin-bottom:12px;padding:9px 12px}
+.capture-properties,.capture-suggestions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.capture-properties>span{display:inline-flex;align-items:center;gap:5px;border-radius:6px;background:var(--bg);padding:5px 7px;font-size:12px;color:var(--muted)}
+.capture-suggestions{padding-top:4px}
+.capture-suggestions button{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:12px;color:var(--accent-text)}
+.capture-suggestions button:hover{background:var(--active)}
+.calendar-add-selected{display:flex;align-items:center;justify-content:center;gap:6px}
+.stat-distribution{gap:12px}
+.stat-distribution>span:first-child{flex:0 1 120px;min-width:0;overflow-wrap:anywhere}
+.stat-distribution-track{flex:1;height:5px;border-radius:5px;background:var(--hover);overflow:hidden}
+.stat-distribution-track i{display:block;height:100%;border-radius:inherit;background:var(--accent)}
+.stat-distribution>small{min-width:36px;text-align:right;font-variant-numeric:tabular-nums}
+.stats .stats-jump{flex-wrap:wrap}
+@media(max-width:860px){
+ .capture-suggestions button{min-height:44px}
+ .capture-properties>span{font-size:13px}
+ .calendar-add-selected{min-height:44px;width:100%}
+ .calendar-main .fc .fc-toolbar{display:grid;grid-template-columns:1fr auto;gap:6px 8px;align-items:center}
+ .calendar-main .fc .fc-toolbar-chunk:nth-child(2){grid-column:2;grid-row:1;text-align:right}
+ .calendar-main .fc .fc-toolbar-chunk:nth-child(3){grid-column:1/-1;grid-row:2}
+ .calendar-main .fc .fc-toolbar-chunk:nth-child(3) .fc-button-group{display:flex;width:100%}
+ .calendar-main .fc .fc-toolbar-chunk:nth-child(3) .fc-button{flex:1}
+ .calendar-main .fc .fc-button{min-height:44px}
+ .calendar-main .fc .fc-daygrid-day-number{font-size:12px}
+ .calendar-main .todo-selected-day{background:var(--active)}
+ .stats .stats-jump{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+ .stats .stats-jump button{min-height:44px;padding-inline:5px}
+ .stat-distribution>span:first-child{flex-basis:90px}
+}
+.quick-capture-dialog .field{display:grid;grid-template-columns:64px minmax(0,1fr);gap:10px;align-items:center}
+.quick-capture-dialog .field>span{white-space:nowrap}
+.quick-capture-dialog .field .smart-select-trigger{width:100%}
+@media(max-width:860px){.quick-capture-dialog .dialog-actions{gap:6px}.quick-capture-dialog .dialog-actions>button{flex:1;min-width:0;padding-inline:7px;white-space:normal}}
