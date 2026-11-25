@@ -152,3 +152,9 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - 桌面工作流 45547696373 已通过并实际下载两端安装包；DMG hdiutil verify 成功。两份 SHA-256 与 GitHub Release 资产 digest 一致。已发布明确标记 prerelease、latest=false 的 v1.0.0-rc.1，Tag 指向上述精确 SHA；包含 DMG、NSIS EXE、SHA256SUMS.txt。https://github.com/weepwood/TODO/releases/tag/v1.0.0-rc.1 。不代表正式 v1.0.0 已发布。
 - 隔离 macOS RC1 实际恢复 window-state.json 的 920×640 尺寸，CGWindowList 确认可见；在隔离 guest snapshots 注入单一 QA 合成到期提醒，原生调度提交成功，两个扫描周期 delivered 仅 1 条，SQLite integrity=ok；恢复隔离 mirror 并退出 QA 进程。此项不是用户看到通知的证明。AX_TRUSTED=false、SCREEN_CAPTURE=false，未绕过权限，托盘点击/快捷键/通知可见性待验收。
 - Windows 设备仍离线；真实邮箱/认证后的 Realtime、实体移动端 PWA 安装尚未验证。保持功能冻结，不重编已验证的 RC1 二进制，仅更新文档。正式 v1.0.0 Tag/Release 仍需剩余门禁。
+
+### RC1 后续实网验收工具
+
+- 新增 scripts/verify-live.mjs（不打包进 Web 或桌面应用）；固定默认 TODO Supabase 项目，使用客户端公开 key。默认只读安全预检实际通过：Auth email/confirm、匿名工作空间 GET、匿名差量读/写 RPC 均按预期拒绝访问；无凭据的 --live --write 验证拒绝进入写入分支。Node 语法检查通过。
+- 可控专用测试邮箱完成确认后，在本地终端输入凭据执行 --live；--write 额外需要 TODO_QA_ALLOW_WRITE=YES，并严格限制为空白专用空间，实际事件与 CAS、恢复和本地退出语义；凭据不写入文件或日志。此认证分支未实测，不能作为已通过证据。脚本恢复保留 QA 空白行及版本历史，遇并发修改不覆盖。具体命令见 RELEASE.md。
+- 再次核实 RC1 Release 资产和预发行标识未变化、Windows 离线、macOS AX/屏幕录制权限未授权。保持原 RC1 Tag 及安装包，未修改业务代码、数据库或 Auth 配置，未新增费用。待用户具备实际环境后完成余下门禁。

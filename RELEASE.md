@@ -30,3 +30,29 @@ Web：https://weepwood.github.io/TODO/ 。首次在线打开后可离线重载�
 - Pages 45547695908 第二次部署成功，实际 HTTPS 首页、资源、RC1 版本及 Service Worker 验证通过；桌面 45547696373 已成功。
 - macOS 隔离应用 920×640 窗口恢复成功；后台提醒提交及去重已验证，不能证明通知可见。辅助功能和屏幕录制权限未授予，托盘及快捷键交互仍待验收。Windows 离线。
 - 正式发布门禁保持不变。
+
+## 可重复的实网认证验收
+
+使用 Node.js 22+，安装依赖后执行：
+
+```sh
+node scripts/verify-live.mjs
+```
+
+默认仅检查生产公开 Auth 设置、匿名 REST 和两个 RPC 的访问拒绝，不创建账号或写入工作空间。2026-11-25 实测通过。
+
+注册一个专用测试邮箱账号并在邮箱中点击确认链接后，可在本机终端安全输入测试账号密码（不要将密码、访问令牌或确认链接写入聊天、源码、命令历史或日志）。以下示例适用于 Bash：
+
+```bash
+read -r -p 'QA email: ' TODO_QA_EMAIL
+read -r -s -p 'QA password: ' TODO_QA_PASSWORD; echo
+export TODO_QA_EMAIL TODO_QA_PASSWORD
+node scripts/verify-live.mjs --live
+# 仅当账号是全新专用测试账号、无任何真实数据，并明确同意写入时：
+TODO_QA_ALLOW_WRITE=YES node scripts/verify-live.mjs --live --write
+unset TODO_QA_EMAIL TODO_QA_PASSWORD
+```
+
+认证模式验证独立登录会话、邮件已确认标志、隔离内存存储恢复、刷新及本设备退出不影响另一会话。写入模式额外验证实际 Realtime UPDATE、CAS 与跨会话读取；仅接受不存在或与初始状态完全相同的工作空间，恢复时核对版本与内容，拒绝覆盖并发修改。不存在的工作空间会创建空白 QA 行；恢复后仍有空白行及版本历史。不要在正式账号使用写入模式。若网络中断导致恢复无法确认，请检查专用测试账号中的 QA 合成任务。此脚本不是邮箱送达或双浏览器 UI 验收的替代品。
+
+本轮仅执行公开预检、Node 语法检查及缺少凭据的拒绝分支，真实认证/写入分支尚未执行。Windows 离线，macOS 辅助功能及屏幕录制仍未授权。正式 v1.0.0 保持冻结。
