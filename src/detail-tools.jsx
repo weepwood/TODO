@@ -2,12 +2,13 @@ import React,{useState,lazy,Suspense} from 'react';
 import {safeLink,taskActivity} from './productivity.js';
 import {ExternalLink,Link2,FileText,Eye} from 'lucide-react';
 const MarkdownPreview=lazy(()=>import('./markdown-preview.jsx'));
+const NoteWorkbench=lazy(()=>import('./note-workbench.jsx'));
 export function MarkdownNotes({value,onChange,locked}){
- const [preview,setPreview]=useState(false);
+ const [preview,setPreview]=useState(false),[expanded,setExpanded]=useState(false);
  function format(before,after=''){const node=document.getElementById('task-note-input');if(!node)return;const start=node.selectionStart,end=node.selectionEnd;onChange(value.slice(0,start)+before+value.slice(start,end)+after+value.slice(end));requestAnimationFrame(()=>{node.focus();node.setSelectionRange(start+before.length,end+before.length)})}
- return <section className="notes-section"><div className="detail-section-head"><h3>备注</h3><div className="note-mode"><button type="button" className={!preview?'chosen':''} onClick={()=>setPreview(false)}><FileText size={13}/>编辑</button><button type="button" className={preview?'chosen':''} onClick={()=>setPreview(true)}><Eye size={13}/>预览</button></div></div>
+ return <section className="notes-section"><div className="detail-section-head"><h3>备注</h3><button type="button" className="text-link" onClick={()=>setExpanded(true)}>展开编辑</button><div className="note-mode"><button type="button" className={!preview?'chosen':''} onClick={()=>setPreview(false)}><FileText size={13}/>编辑</button><button type="button" className={preview?'chosen':''} onClick={()=>setPreview(true)}><Eye size={13}/>预览</button></div></div>
  {preview?<div className="markdown-preview">{value?<Suspense fallback={<p className="muted">加载预览…</p>}><MarkdownPreview value={value}/></Suspense>:<p className="muted">暂无备注</p>}</div>:<><div className="note-format"><button type="button" disabled={locked} onClick={()=>format('**','**')} aria-label="粗体">B</button><button type="button" disabled={locked} onClick={()=>format('\x60','\x60')} aria-label="行内代码">Code</button><button type="button" disabled={locked} onClick={()=>format('\n- ')} aria-label="列表">− List</button></div><textarea id="task-note-input" className="notes" aria-label="任务备注" placeholder="添加描述，支持 Markdown / GFM…" value={value} readOnly={locked} onChange={e=>onChange(e.target.value)}/></>}
- </section>
+ {expanded&&<Suspense fallback={<p className="muted small">加载编辑器…</p>}><NoteWorkbench value={value} onApply={onChange} onClose={()=>setExpanded(false)} locked={locked}/></Suspense>}</section>
 }
 export function TaskLinks({task,patch,locked}){const [url,setUrl]=useState(''),[name,setName]=useState(''),[error,setError]=useState('');const links=task.links||[];
  return <section className="detail-extra"><h3><Link2 size={14}/> 关联链接</h3>{links.map(l=><div key={l.url} className="record-row"><span title={l.url}>{l.name||l.url}</span><a href={safeLink(l.url)||undefined} target="_blank" rel="noopener noreferrer" aria-label={'打开 '+(l.name||l.url)}><ExternalLink size={14}/></a>{!locked&&<button type="button" className="text-link" onClick={()=>patch({links:links.filter(x=>x.url!==l.url)})}>移除</button>}</div>)}
