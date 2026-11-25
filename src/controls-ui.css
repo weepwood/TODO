@@ -1,8 +1,8 @@
 /* Shared time and palette controls: consistent across browser and native shells. */
-.time-control{display:inline-flex;align-items:center;min-width:0;max-width:100%;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--bg);overflow:hidden}
+.time-control{display:inline-flex;align-items:center;width:132px;min-width:0;max-width:100%;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--bg);overflow:hidden}
 .time-control:focus-within{border-color:var(--accent)}
 .time-control[data-invalid=true]{border-color:#c65a5a}
-.time-control>input{width:0;flex:1;max-width:none;min-width:0;height:100%;padding:0 9px;border:0;border-radius:0;background:transparent;font-size:13px;font-variant-numeric:tabular-nums;outline-offset:-2px}
+.time-control>input{width:0;flex:1 1 72px;max-width:none;min-width:0;height:100%;padding:0 9px;border:0;border-radius:0;background:transparent;font-size:13px;font-variant-numeric:tabular-nums;outline-offset:-2px}
 .time-control .time-picker-trigger{display:grid;place-items:center;flex:none;width:34px;height:100%;padding:0;border:0;border-left:1px solid var(--line);border-radius:0;color:var(--muted)}
 .time-control .time-picker-trigger:hover,.time-control .time-picker-trigger[data-state=open]{background:var(--hover);color:var(--accent-text)}
 .time-picker-popover,.color-picker-popover{z-index:1200;width:min(300px,calc(100vw - 24px));max-height:var(--radix-popover-content-available-height);overflow:auto;padding:14px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow);transform-origin:var(--radix-popover-content-transform-origin)}

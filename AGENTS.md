@@ -377,3 +377,7 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - PR #11 0df0fb4 全量浏览器CI 45608011752成功，合并a17039d，本地main同步；Pages 45609627055成功。独立worktree v12-visual-refit。
 - 按用户截图与UI-Vault endfield-nav-tab实际源码实施短胶囊伸缩（不复用字体/插画）、导航/历史/任务留白、标题按容器重排、快捷键折叠、详情分组及宽窄字段布局、时间与数字控件完整填充及单位。虚拟列表间距纳入测量。保留所有业务逻辑及原生配置。
 - 本机资源门禁因内存压力2拒绝npm ci及构建，未绕过。复用已有Babel和PostCSS只读验证4个JS/JSX、6个CSS解析及git diff --check。新增2项浏览器专项，覆盖实际胶囊尺寸及间距、输入/按钮完整填充、数值编辑和手机保持；完整构建/实际截图及CI待验收。日志artifacts/TODO/selection-detail.log。未构建安装包。
+
+### PR #12 实际截图复验与回归修复
+- CI 45609979755 Web构建、单测成功，浏览器93/95；新增两项视觉专项均通过。下载真实证据至artifacts/TODO/ui-pr12-45609979755，人工审查selection-detail-violet、controls、mobile和planner-mobile-backlog。截图证实短胶囊、独立行距、双列详情、时间及步进器完整填充；两项失败均为规划工作开始时间恢复为09:00。
+- 修正独立TimeControl缺乏自然宽度及规划历史input样式冲突，规划偏好改为有效变更同步写入，避免组件切换丢失待保存状态；补充即时输入值断言，不删除原持久化断言。清理重复标记规则，精修下拉正文/展开状态与移动详情留白。14项productivity单测及JSX/CSS静态解析通过。Mac内存压力2仍拒绝重型任务，最终修复需新浏览器CI确认，不宣称已恢复；不构建安装包。集中保留PR #12，不额外开PR。
