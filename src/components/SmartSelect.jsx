@@ -1,3 +1,4 @@
+import {useTransientPopover} from "../design-system/popover.js";
 import React,{useEffect,useState} from 'react';
 import * as Select from '@radix-ui/react-select';
 import {Check,ChevronDown,ChevronUp} from 'lucide-react';
@@ -10,7 +11,7 @@ export function SmartSelect({value,onValueChange,children,disabled=false,'aria-l
  const selected=options.find(o=>String(o.props.value??'')===String(value??''));
  const placeholder=selected?.props.disabled&&String(value??'')==='';
  const [open,setOpen]=useState(false);
- useEffect(()=>{if(!open)return;const close=()=>setOpen(false);window.addEventListener('todo-close-select',close);return()=>window.removeEventListener('todo-close-select',close)},[open]);
+ useTransientPopover(open,()=>setOpen(false));
  return <Select.Root value={selected&&!placeholder?encode(value):''} onValueChange={v=>onValueChange?.(v.slice(2))} disabled={disabled} open={open} onOpenChange={setOpen}>
   <Select.Trigger id={id} className={'smart-select-trigger '+className} aria-label={label} aria-labelledby={labelledBy} data-value={String(value??'')}>
    <Select.Value placeholder={selected?.props.children??'请选择'}/><Select.Icon asChild><ChevronDown className="smart-select-chevron" size={15}/></Select.Icon>

@@ -13,7 +13,7 @@ export function usePanelLayout(storage,{detailVisible=true,sidebarVisible=true}=
  const latest=useRef(size);latest.current=size;
  useEffect(()=>{const persist=()=>{try{storage.setItem(KEY,JSON.stringify(latest.current))}catch{}};window.addEventListener('pagehide',persist);return()=>{window.removeEventListener('pagehide',persist);persist()}},[storage]);
  useEffect(()=>{const timer=setTimeout(()=>{try{storage.setItem(KEY,JSON.stringify(size))}catch{}},180);return()=>clearTimeout(timer)},[size,storage]);
- const effective={sidebar:clampPanel('sidebar',size.sidebar,viewport,detailVisible?size.detail:0),detail:clampPanel('detail',size.detail,viewport,sidebarVisible?size.sidebar:0)};return {size:effective,change,reset:()=>setSize(DEFAULT),style:{'--user-sidebar':effective.sidebar+'px','--user-detail':effective.detail+'px'}};
+ const effective={sidebar:clampPanel('sidebar',size.sidebar,viewport,detailVisible?size.detail:0),detail:clampPanel('detail',size.detail,viewport,sidebarVisible?size.sidebar:0)};return {size:effective,change,applyPreset:id=>setSize(id==="wide"?{sidebar:228,detail:540}:DEFAULT),reset:()=>setSize(DEFAULT),style:{'--user-sidebar':effective.sidebar+'px','--user-detail':effective.detail+'px'}};
 }
 export function PanelHandle({kind,value,onChange}){
  const drag=useRef(null),frame=useRef(0),sign=kind==='sidebar'?1:-1;const latest=useRef(onChange);latest.current=onChange;

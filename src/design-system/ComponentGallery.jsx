@@ -1,0 +1,15 @@
+import React,{useState} from 'react';
+import {SearchField,Segmented,DraftNumberField,CheckInput,RadioInput,Switch,PriorityValue,StatusValue,ListValue,GroupValue} from './Controls.jsx';
+import {DatePicker} from '../components/DatePicker.jsx';
+import {TimeControl} from '../components/TimeControl.jsx';
+import {DateTimeControl} from '../components/DateTimeControl.jsx';
+import {ColorControl} from '../components/ColorControl.jsx';
+import {SmartSelect,SelectOption} from '../components/SmartSelect.jsx';
+import {ActionButton,Field,NumberField,Menu,Empty} from '../ui.jsx';
+export function ComponentGallery(){
+ const [value,setValue]=useState(''),[segment,setSegment]=useState('a'),[number,setNumber]=useState(30),[draft,setDraft]=useState(''),[check,setCheck]=useState(false),[enabled,setEnabled]=useState(false),[radio,setRadio]=useState('a'),[date,setDate]=useState(''),[time,setTime]=useState('09:00'),[reminder,setReminder]=useState(''),[color,setColor]=useState('#5276d6');
+ return <div className="component-gallery"><p className="muted small">独立演示状态，仅用于预览公共控件；不写入任务或同步数据。</p>
+ <section><h3>基础控件与语义状态</h3><div className="gallery-row"><ActionButton variant="primary">主要操作</ActionButton><ActionButton>次要操作</ActionButton><ActionButton disabled>禁用</ActionButton></div><div className="gallery-row"><label><CheckInput checked={check} onChange={e=>setCheck(e.target.checked)}/>复选</label><label><RadioInput name="gallery-radio" checked={radio==='a'} onChange={()=>setRadio('a')}/>A</label><label><RadioInput name="gallery-radio" checked={radio==='b'} onChange={()=>setRadio('b')}/>B</label><Switch aria-label="演示开关" checked={enabled} onCheckedChange={setEnabled}/></div><div className="gallery-row"><PriorityValue value={1}/><PriorityValue value={2}/><PriorityValue value={3}/><StatusValue status="doing"/><ListValue list={{id:'inbox',name:'收集箱'}}/><GroupValue group={{name:'示例分组'}}/></div></section>
+ <section><h3>搜索与分段选择</h3><SearchField aria-label="演示搜索" value={value} onValueChange={setValue} placeholder="输入内容并清除"/><Segmented className="segmented workspace-segment" label="演示分段" value={segment} onValueChange={setSegment} options={[{value:'a',label:'选项一'},{value:'b',label:'选项二'}]}/><SmartSelect aria-label="演示下拉" value={segment} onValueChange={setSegment}><SelectOption value="a">选项一</SelectOption><SelectOption value="b">选项二</SelectOption></SmartSelect></section>
+ <section><h3>表单与弹层</h3><Field label="即时数值"><NumberField label="演示即时数值" value={number} onCommit={setNumber} min={0} max={180} unit="分钟"/></Field><Field label="表单草稿"><DraftNumberField label="演示数值草稿" value={draft} onValueChange={setDraft} min={0} max={180}/></Field><Field label="日期"><DatePicker label="演示日期" value={date} onChange={setDate}/></Field><Field label="时间"><TimeControl label="演示时间" value={time} onChange={setTime}/></Field><Field label="提醒"><DateTimeControl label="演示提醒" value={reminder} onChange={setReminder}/></Field><Field label="颜色"><ColorControl label="演示颜色" value={color} onChange={setColor}/></Field><Menu items={[{label:'示例操作',run:()=>{}},{label:'不可用操作',disabled:true}]}/></section><section><h3>空状态</h3><Empty title="没有匹配结果" hint="尝试调整筛选条件。"/></section></div>
+}

@@ -1,3 +1,4 @@
+import {RadioInput} from "./design-system/Controls.jsx";
 import React from 'react';
 import {compareWorkspace} from './services/sync-diagnostics.js';
 const labels={push:'上传工作空间',delta:'差量上传','delta-pull':'差量下载',pull:'下载云端版本',insert:'初始化云端',merge:'安全合并',conflict:'检测到冲突',offline:'离线',retry:'版本变化等待重试',error:'同步失败'};
@@ -12,5 +13,5 @@ export function FieldMerge({conflict,local,onApply}){
  const [choices,setChoices]=useState({});
  if(!plan)return null;
  const ready=plan.every(c=>['local','remote'].includes(choices[c.key]));
- return <details className="sync-diagnostics"><summary>按字段合并普通任务</summary><p className="muted small">保留双方独立修改，仅选择真正冲突的字段。应用前再次核对版本，双方原始快照保留本机备份。</p>{plan.map(c=><fieldset className="field-conflict" key={c.key}><legend>{c.title} · {fieldLabels[c.field]||c.field}</legend>{[['local','本地',c.local],['remote','云端',c.remote]].map(([side,label,value])=><label key={side}><input type="radio" name={c.key} checked={choices[c.key]===side} onChange={()=>setChoices(x=>({...x,[c.key]:side}))}/><span><strong>{label}</strong><span>{String(value??'（空）')}</span></span></label>)}</fieldset>)}<button className="primary" disabled={!ready} onClick={()=>onApply(choices)}>确认字段合并</button></details>
+ return <details className="sync-diagnostics"><summary>按字段合并普通任务</summary><p className="muted small">保留双方独立修改，仅选择真正冲突的字段。应用前再次核对版本，双方原始快照保留本机备份。</p>{plan.map(c=><fieldset className="field-conflict" key={c.key}><legend>{c.title} · {fieldLabels[c.field]||c.field}</legend>{[['local','本地',c.local],['remote','云端',c.remote]].map(([side,label,value])=><label key={side}><RadioInput name={c.key} checked={choices[c.key]===side} onChange={()=>setChoices(x=>({...x,[c.key]:side}))}/><span><strong>{label}</strong><span>{String(value??'（空）')}</span></span></label>)}</fieldset>)}<button className="primary" disabled={!ready} onClick={()=>onApply(choices)}>确认字段合并</button></details>
 }

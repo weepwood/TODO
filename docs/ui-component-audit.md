@@ -21,3 +21,6 @@
 | P2 | 专注与习惯、图表 | views.jsx、points-stats.jsx | 迁移现有空间与动效令牌，保留计时、图表比例、积分及打卡业务逻辑 |
 
 全站源代码扫描：4 处原生 number 标签（含 NumberField 内部 1 处），7 处 checkbox（含只读 Markdown 1 处），1 处 radio。原生标签本身不是缺陷；目标是共享视觉和交互契约，不是全部改成 div。
+
+## V1.2 设计系统收敛增量
+PR #20合并后：原全局侧栏搜索已移除；命令、日历、规划、积分四处搜索使用SearchField，三处业务数字表单迁移DraftNumberField并与NumberField共用NumberControl；命令/日历/看板/规划/专注/重复星期使用Segmented；业务复选和冲突单选复用原生封装；外观开关复用Switch；详情图标使用共享属性组件。日期、时间、提醒、颜色及普通/右键/排序菜单、SmartSelect统一使用可取消弹层关闭事件。详见design-system.md。剩余：全量CSS所有权、表单错误帮助契约、图标其他业务调用点、分组折叠/滚动恢复和原生Back实际设备验证；完整CI待验收，不将源码迁移等同于全面视觉完成。

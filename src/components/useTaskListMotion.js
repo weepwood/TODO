@@ -1,3 +1,4 @@
+import {motion} from "../design-system/motion.js";
 import {useLayoutEffect,useRef} from 'react';
 
 // Measure layout coordinates, excluding animated translations and drag transforms.
@@ -33,7 +34,7 @@ export function useTaskListMotion(container,{scope,order,enabled,layoutKey}){
    const before=old.positions.get(id);if(!before)continue;
    const delta=before.y-y+(offsets.get(id)||0);
    if(Math.abs(delta)<2||Math.abs(delta)>240||typeof row.animate!=='function')continue;
-   const animation=row.animate([{translate:'0 '+delta+'px'},{translate:'0 0px'}],{duration:180,easing:'cubic-bezier(.2,.75,.25,1)'});
+   const animation=row.animate([{translate:'0 '+delta+'px'},{translate:'0 0px'}],{duration:motion.reorder,easing:motion.ease});
    running.current.set(id,animation);
    animation.onfinish=()=>{if(running.current.get(id)===animation)running.current.delete(id)};
   }

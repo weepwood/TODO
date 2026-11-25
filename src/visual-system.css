@@ -1,13 +1,4 @@
 /* Semantic visual primitives shared by the business workspaces. */
-:root{
- --surface-radius:12px;
- --surface-padding:16px;
- --surface-gap:12px;
- --surface-shadow:0 1px 2px #1820330a;
- --control-border:1px solid var(--line);
-}
-:root[data-theme=dark]{--surface-shadow:0 1px 2px #0003}
-@media(prefers-color-scheme:dark){:root[data-theme=system]{--surface-shadow:0 1px 2px #0003}}
 .v2 .sidebar .search{border-radius:9px}
 
 .v2 .toolbar .primary,.v2 .toolbar-add{border-radius:8px;box-shadow:var(--surface-shadow)}

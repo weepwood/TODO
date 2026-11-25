@@ -1,3 +1,4 @@
+import {useTransientPopover,popoverGeometry} from "../design-system/popover.js";
 import React,{useEffect,useState} from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import {CalendarClock} from 'lucide-react';
@@ -7,12 +8,12 @@ import {TimeControl} from './TimeControl.jsx';
 const valid=value=>typeof value==='string'&&value.length===16&&value[10]==='T'&&validDate(value.slice(0,10))&&validTime(value.slice(11));
 export function DateTimeControl({label,value,onChange,required=false,defaultDate}){
  const [open,setOpen]=useState(false),[date,setDate]=useState(''),[time,setTime]=useState('09:00'),[original,setOriginal]=useState(value);
- useEffect(()=>{if(!open)return;const close=()=>setOpen(false);window.addEventListener('todo-close-transient',close);return()=>window.removeEventListener('todo-close-transient',close)},[open]);
+ useTransientPopover(open,()=>setOpen(false));
  const changed=original!==value;
  const apply=next=>{if(changed||(!valid(next)&&(required||next!=='')))return;if(next!==value)onChange(next);setOpen(false)};
  return <Popover.Root open={open} onOpenChange={next=>{setOpen(next);if(next){setOriginal(value);setDate(valid(value)?value.slice(0,10):validDate(defaultDate)?defaultDate:dayKey());setTime(valid(value)?value.slice(11):'09:00')}}}>
   <Popover.Trigger asChild><button type="button" className="datetime-trigger" aria-label={label}><CalendarClock size={16}/><span>{valid(value)?value.replace('T',' '):'设置提醒'}</span></button></Popover.Trigger>
-  <Popover.Portal><Popover.Content className="datetime-popover" sideOffset={6} align="end" collisionPadding={12} aria-label={label+'编辑'}>
+  <Popover.Portal><Popover.Content className="datetime-popover" {...popoverGeometry} aria-label={label+'编辑'}>
    <header><strong>{label}</strong><small>日期与时间使用本地时区</small></header>
    <div className="datetime-date-label"><span>日期</span><DatePicker label={label+'日期'} value={date} required onChange={setDate}/></div>
    <div className="datetime-time-label"><span>时间</span><TimeControl label={label+'时间'} value={time} required onChange={setTime}/></div>

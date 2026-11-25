@@ -1,24 +1,6 @@
 /* Visual refinement: semantic selection markers, intentional whitespace and
    compact inspector layout. No imported illustration or font assets. */
-:root{
- --space-1:4px;
- --space-2:8px;
- --space-3:12px;
- --space-4:16px;
- --space-6:24px;
- --radius-control:8px;
- --radius-surface:12px;
- --control-height:36px;
- --control-touch-height:44px;
- --row-gap:var(--space-1);
- --nav-gap:var(--space-1);
- --marker-idle:5px;
- --marker-active:19px;
- --marker-width:3px;
- --marker-duration:200ms;
- --inspector-gap:var(--space-3);
- --inspector-radius:var(--radius-surface);
-}
+
 .v2 .sidebar{gap:var(--nav-gap)}
 .v2 .sidebar nav,.v2 .sidebar .nested{display:flex;flex-direction:column;gap:var(--nav-gap)}
 .v2 .sidebar .section-label{padding-top:14px;padding-bottom:3px}

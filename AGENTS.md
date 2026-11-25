@@ -426,3 +426,8 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - PR #19 0ab7e9d 完整CI 45620425548通过，合并d3d5911，正式main同步；新分支feat/v12-detail-hover-icons。
 - 移除桌面拖动手柄灰底、鼠标离开后的残留显示；详情编辑按钮悬浮显示，触屏和键盘保留入口。组织与状态展示和下拉共用语义图标，增加现有分组创建及重命名入口，不改变数据结构。
 - Web生产构建通过，首轮专项8/9通过，新增悬浮、图标、创建/选择/重命名分组及刷新恢复测试通过。旧多选测试在Mac Ctrl+点击下失败，按平台修饰键ControlOrMeta复验；日志artifacts/TODO/hover-icons.log及hover-icons-retest.log。截图在复验清理test-results时被移除，未人工审查最新截图；完整CI待验收。未构建安装包。
+
+### V1.2 设计系统集中收敛
+- PR #20 45a9285 最新CI 45623479868通过，下载并人工审阅detail-hover-icons及desktop-floating-drag真实截图，合并a297b45，正式main同步，Pages 45624896881成功，线上HTML可访问。独立worktree v12-design-system。
+- 新共享设计系统令牌/控件/动画；即时与草稿数值共用NumberControl，四搜索、六类分段、业务复选/单选/开关、详情语义属性图标迁移；统一Radix transient层级关闭；五个界面职责抽离（main约82KB降至55KB）。新增按账号每视图偏好、布局预设、真实组件展厅、使用说明和性能基准。未修改任务数据模型、同步、原生接口、签名及发布配置。
+- 中间提交状态本机完整98项单元测试及Web构建通过（design-system-build.log）；后续新增偏好2项通过，相关6项专项通过，全源码与E2E解析/相对导入及diff检查通过。实际Node合成千/万级命令匹配P95 0.36/2.37ms、标题排序3.21/32.99ms，非浏览器延迟；新增浏览器首屏/搜索/DOM/JS堆基准，展厅/逐层关闭/持久化专项及320/390双主题八模块矩阵。Mac内存压力2拒绝最终重型验收（design-system-verify.log），最终浏览器及实际截图需PR CI；未执行安装包。不把中间构建当最终构建。剩余全量CSS迁移、滚动/分组折叠、模块布局、原生Back、长时资源与虚拟拖拽保留后续验收。

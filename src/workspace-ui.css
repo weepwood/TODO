@@ -46,7 +46,7 @@
 .v2 .bulk-bar[data-has-selection=true]>.text-link{min-height:30px;padding:4px 6px;border-radius:6px;white-space:nowrap}
 .v2 .bulk-bar[data-has-selection=true]>.text-link:hover{background:var(--hover)}
 .v2 .bulk-bar .bulk-points{display:inline-flex;align-items:center;gap:4px}
-.v2 .bulk-bar .bulk-points input{width:58px;min-width:0;border:1px solid var(--line);border-radius:7px;background:var(--bg);height:34px;padding:4px 7px;font-variant-numeric:tabular-nums}
+.v2 .bulk-bar .bulk-points .number-control{width:136px}
 @media(max-width:860px){.v2.compact-mobile .bulk-bar[data-has-selection=true]>.text-link{min-height:44px}.v2.compact-mobile .bulk-bar .bulk-points input{height:44px;font-size:16px}}
 
 .datetime-date-label .date-trigger svg:last-child{margin-left:auto}

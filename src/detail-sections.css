@@ -55,13 +55,13 @@
 .detail-fact-value{display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:100%;vertical-align:middle}
 .detail-fact-value svg{flex:none;color:var(--muted)}
 .detail-fact-value>span{min-width:0;overflow-wrap:anywhere}
-.detail-fact-value[data-priority="1"] svg{color:#5276d6}
-.detail-fact-value[data-priority="2"] svg{color:#bb842e}
-.detail-fact-value[data-priority="3"] svg{color:#c64b53}
+.detail-fact-value[data-priority="1"] svg{color:var(--priority-low)}
+.detail-fact-value[data-priority="2"] svg{color:var(--priority-medium)}
+.detail-fact-value[data-priority="3"] svg{color:var(--priority-high)}
 .detail-fact-value[data-list-color] svg{color:var(--list-icon-color)}
 .detail-fact-value[data-status=doing] svg{color:var(--accent)}
 .detail-fact-value[data-status=completed] svg{color:#26866e}
 .detail-group-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
 .detail-group-actions .text-link{display:inline-flex;align-items:center;gap:5px}
-@media(prefers-reduced-motion:no-preference){.detail-section-toggle{transition:opacity 120ms,background-color 120ms}}
+@media(prefers-reduced-motion:no-preference){.detail-section-toggle{transition:opacity var(--motion-fast),background-color var(--motion-fast)}}
 @media(max-width:860px){.detail-group-actions .text-link{min-height:44px}}

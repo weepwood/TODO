@@ -1,0 +1,22 @@
+/* Shared controls: one structure across modules, layout belongs to consumers. */
+.shared-search{display:flex;align-items:center;gap:var(--space-2);width:100%;min-width:0;min-height:var(--control-height);padding:4px 8px;border:1px solid transparent;border-radius:var(--radius-control);background:var(--panel);color:var(--muted)}
+.shared-search>input{flex:1;width:0;min-width:0;background:transparent!important;border:0!important;padding:4px 0!important;box-shadow:none!important;color:var(--text)}
+.shared-search:focus-within{border-color:var(--accent)}
+.shared-search .search-clear{flex:none;width:26px;height:26px}
+.planner .backlog-filter .shared-search{flex:1;min-width:90px}
+.shared-check,.shared-radio{accent-color:var(--accent);flex-shrink:0}
+.shared-segment{gap:var(--space-1)}
+.shared-segment>button{border-radius:var(--radius-control)}
+.shared-switch{width:40px;height:24px;border-radius:999px;flex:none;padding:3px;background:var(--muted);display:flex;align-items:center;justify-content:flex-start}
+.shared-switch[aria-checked=true]{background:var(--accent)}
+.shared-switch>span{width:18px;height:18px;border-radius:50%;background:white;transform:translateX(0)}
+.shared-switch[aria-checked=true]>span{transform:translateX(16px)}
+@media(prefers-reduced-motion:no-preference){.shared-switch,.shared-switch>span{transition:background-color var(--motion-fast),transform var(--motion-fast)}}
+@media(max-width:860px){.shared-search{min-height:var(--control-touch-height)}.shared-search>input{font-size:16px}.shared-search .search-clear{width:44px;height:44px}}
+@media(forced-colors:active){.shared-switch{border:1px solid ButtonText}.shared-switch>span{background:ButtonText}.shared-switch[aria-checked=true]{background:Highlight}.shared-switch[aria-checked=true]>span{background:HighlightText}}
+.component-gallery{display:grid;gap:var(--space-3);min-width:0}
+.component-gallery>section{display:grid;gap:var(--space-2);padding:var(--space-3);background:var(--panel);border-radius:var(--radius-surface)}
+.component-gallery h3{font-size:var(--font-heading)}
+.gallery-row{display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-2)}
+.gallery-row label{display:flex;gap:5px;align-items:center}
+.component-gallery .field>*:last-child{min-width:0}
