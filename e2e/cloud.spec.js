@@ -126,6 +126,18 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
   await b.page.keyboard.press('Escape');
   await a.page.getByRole('button',{name:'设置',exact:true}).click();await a.page.getByRole('button',{name:'立即同步'}).click();await a.page.keyboard.press('Escape');
   await a.page.getByRole('button',{name:'查看重复系列'}).click();await expect(a.page.getByRole('dialog',{name:'重复任务系列'})).toContainText('系列运行中');
+  // Simulate an old client replacing the cloud snapshot without the pause marker.
+  a.page.once('dialog',d=>d.accept());await a.page.getByRole('button',{name:'暂停系列'}).click();
+  await expect.poll(()=>row.state.tasks.find(t=>t.title==='同步重复系列')?.seriesHold?.count).toBe(0);
+  await expect(a.page.locator('.sync-footer')).toContainText('已同步',{timeout:15000});
+  await a.page.keyboard.press('Escape');
+  row={...row,revision:row.revision+1,state:{...row.state,tasks:row.state.tasks.map(t=>{if(t.title!=='同步重复系列')return t;const legacy={...t};delete legacy.seriesHold;return legacy})},updated_at:new Date().toISOString()};patches=[];
+  await a.page.getByRole('button',{name:'设置',exact:true}).click();await a.page.getByRole('button',{name:'立即同步'}).click();
+  await expect(a.page.locator('.sync-footer')).toContainText('存在同步冲突',{timeout:15000});
+  expect(await a.page.evaluate(uid=>JSON.parse(localStorage.getItem('todo-account:'+uid+':todo-workbench-v1')).tasks.find(t=>t.title==='同步重复系列').seriesHold.count,uid)).toBe(0);
+  a.page.once('dialog',d=>d.accept());await a.page.getByRole('button',{name:'保留本地并上传'}).click();
+  await expect.poll(()=>row.state.tasks.find(t=>t.title==='同步重复系列')?.seriesHold?.count).toBe(0);
+
 
 
  }finally{await Promise.all(contexts.map(c=>c.close()))}
