@@ -390,3 +390,9 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - PR #12 Pages 45611385410 成功；PR #13 8ee560d 完整浏览器CI 45611402381 成功，已合并并同步正式main。独立worktree v12-business-design基于PR #13源码。
 - 统一日历、看板、规划分段短标记；日历及规划任务行、看板卡片、统计筛选、积分和奖励行、指标卡片迁移共享设计令牌。移除两处旧逐行分隔线规则，不改变业务逻辑及原生接口。
 - JSX/CSS解析、测试脚本语法、git diff --check通过。新增2项浏览器专项覆盖跨页面短标记、行距、窄屏统计、明细过滤；最新构建、实际截图与CI待验收。Mac内存压力2，不绕过资源门禁，不构建安装包。
+
+### 日期选择器复用专项
+- PR #14 5d6e9ff 完整浏览器CI 45611906130通过，合并572e7c8，本地正式main同步。PR #13 Pages 45611863524成功。
+- 用户截图指出独立提醒的展开日历与计划日期不一致。提取 components/DatePicker.jsx，DateTimeControl复用，删除旧提醒月历与重复CSS，统一日期弹层层级/最大高度；保留提醒草稿、取消、清除及外部冲突语义。原 task-fields 继续兼容导出。更新原提醒浏览器测试，仍验证非法日期、取消、保存后重载、附加提醒和嵌套日期选择。
+- 审计 docs/ui-component-audit.md：31个SmartSelect、6个TimeControl、6个NumberField、5个DatePicker、2个DateControl调用点，单一DayPicker实现；3处未迁移业务数字输入、搜索/分段/复选框/弹层等剩余差距。源码统计不是实例数。
+- JSX及CSS解析、git diff --check通过。Mac内存压力2，未绕过资源门禁；当前改动的完整浏览器CI、真实截图及原生Back验收未完成，不构建安装包。

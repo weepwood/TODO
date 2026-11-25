@@ -1,6 +1,6 @@
 import {useBoardMotion} from './components/useBoardMotion.js';
 import {TimeControl} from './components/TimeControl.jsx';
-import {DateControl} from './task-fields.jsx';
+import {DateControl} from './components/DatePicker.jsx';
 import {SmartSelect,SelectOption} from './components/SmartSelect.jsx';
 import {PointsStats} from './points-stats.jsx';
 import {taskPoints,signedPoints} from './core/points.js';

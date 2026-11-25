@@ -1,28 +1,13 @@
+import {DatePicker} from './components/DatePicker.jsx';
+export {DatePicker,DateControl} from './components/DatePicker.jsx';
 import {DateTimeControl} from './components/DateTimeControl.jsx';
 import {TimeControl} from './components/TimeControl.jsx';
 import {SmartSelect,SelectOption} from './components/SmartSelect.jsx';
-import React,{useEffect,useState} from 'react';
-import * as Popover from '@radix-ui/react-popover';
-import {DayPicker} from 'react-day-picker';
-import {zhCN} from 'react-day-picker/locale';
-import {CalendarDays,ChevronDown,Plus,X} from 'lucide-react';
-import {dayKey,shiftDay,id,validDate} from './core/domain.js';
+import React,{useState} from 'react';
+import {Plus,X} from 'lucide-react';
+import {dayKey,id} from './core/domain.js';
 import {blockers,canLink,descendants} from './core/advanced.js';
 import {Field,NumberField} from './ui.jsx';
-import 'react-day-picker/style.css';
-export function DatePicker({value,onChange,label='计划日期',required=false}){
- const [open,setOpen]=useState(false),[draft,setDraft]=useState(value||''),[error,setError]=useState(false);const today=dayKey();
- const choose=date=>{if(required&&!date)return;onChange(date);setOpen(false)};
- useEffect(()=>{if(!open)return;const close=()=>setOpen(false);window.addEventListener('todo-close-transient',close);return()=>window.removeEventListener('todo-close-transient',close)},[open]);
- return <Popover.Root open={open} onOpenChange={v=>{setOpen(v);if(v){setDraft(value||'');setError(false)}}}><Popover.Trigger asChild><button type="button" className="date-trigger" aria-label={label}><CalendarDays size={15}/>{value||'设置日期'}<ChevronDown size={13}/></button></Popover.Trigger><Popover.Portal><Popover.Content className="date-popover" align="end" sideOffset={6} collisionPadding={12}><form className="date-direct" onSubmit={e=>{e.preventDefault();if((!required&&!draft)||validDate(draft))choose(draft);else setError(true)}}><input aria-label={label+'直接输入'} type="text" placeholder="YYYY-MM-DD" autoComplete="off" maxLength={10} aria-invalid={error||undefined} value={draft} onChange={e=>{setDraft(e.target.value);setError(false)}}/><button type="submit" className="secondary compact">应用</button>{error&&<small role="alert">日期无效</small>}</form><div className="date-presets">{[['今天',today],['明天',shiftDay(today,1)],['下周',shiftDay(today,7)],['清除','']].filter(([,d])=>!required||d).map(([n,d])=><button type="button" key={n} onClick={()=>choose(d)}>{n}</button>)}</div><DayPicker mode="single" required={required} locale={zhCN} defaultMonth={value?new Date(value+'T12:00:00'):new Date()} selected={value?new Date(value+'T12:00:00'):undefined} onSelect={date=>choose(date?dayKey(date):'')} showOutsideDays weekStartsOn={1}/></Popover.Content></Popover.Portal></Popover.Root>
-}
-export function DateControl({value,onChange,label}){
- const [draft,setDraft]=useState(value);
- useEffect(()=>setDraft(value),[value]);
- const invalid=!validDate(draft);
- const change=text=>{setDraft(text);if(validDate(text)&&text!==value)onChange(text)};
- return <div className="date-control" data-invalid={invalid||undefined}><input type="text" aria-label={label} aria-invalid={invalid||undefined} placeholder="YYYY-MM-DD" autoComplete="off" spellCheck={false} maxLength={10} value={draft} onChange={e=>change(e.target.value)} onBlur={()=>{if(invalid)setDraft(value)}} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();if(!invalid)e.currentTarget.blur()}else if(e.key==='Escape'&&invalid){e.stopPropagation();setDraft(value)}}}/><DatePicker label={label.replace('日期','')+'日历选择器'} required value={value} onChange={onChange}/></div>
-}
 export function RecurrenceFields({task,patch,seriesEdit}){
  const rules=['daily','weekly','monthly','weekdays','workdays','completion'];
  const [series,setSeries]=useState(false);
