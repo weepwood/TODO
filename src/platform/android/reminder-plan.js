@@ -15,3 +15,13 @@ export function planAlarms(tasks,scope,now,previous=[]){
  const unique=new Map();for(const r of [...retained,...future.sort((a,b)=>a.epoch-b.epoch)])if(!unique.has(r.key))unique.set(r.key,r);
  return [...unique.values()].slice(0,MAX_ALARMS);
 }
+
+
+// Notification 2.8.1 Android stores request.sourceJson to restore scheduled
+// notifications. Without it, the native preference can contain literal null.
+// Keep the serialized payload generic, finite and free of workspace data.
+export function alarmNotification(id,epoch){
+ if(!Number.isInteger(id)||id<1000000000||id>=1999999999||!Number.isFinite(epoch))throw Error('无效的定时提醒');
+ const request={id,title:'TODO · 任务提醒',body:'有计划任务到期，请打开 TODO 查看。',schedule:{at:{date:new Date(epoch).toISOString(),repeating:false,allowWhileIdle:true}}};
+ return {...request,sourceJson:JSON.stringify(request)};
+}

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {mkdirSync,writeFileSync} from 'node:fs';
 import {chromium,expect} from '@playwright/test';
+import {alarmNotification} from '../src/platform/android/reminder-plan.js';
 
 const pkg='com.weepwood.todo.qa.runtime';
 const out='android-runtime';
@@ -41,7 +42,10 @@ function launch(){
  assert.ok(!/Error:|Exception/.test(result),result);
 }
 const screenshot=name=>writeFileSync(out+'/'+name+'.png',raw('exec-out','screencap','-p'));
-const invoke=(page,cmd,args={})=>page.evaluate(({cmd,args})=>window.__TAURI_INTERNALS__.invoke(cmd,args),{cmd,args});
+const invoke=(page,cmd,args={})=>page.evaluate(async({cmd,args})=>{
+ try{return await window.__TAURI_INTERNALS__.invoke(cmd,args)}
+ catch(error){throw Error(cmd+': '+(error instanceof Error?error.message:JSON.stringify(error)??String(error)))}
+},{cmd,args});
 async function store(page){
  const value=await invoke(page,'native_load_store',{scope:'guest'});
  return JSON.parse(JSON.parse(value)['todo-workbench-v1']);
@@ -94,7 +98,10 @@ try{
  await retry(()=>{const dump=adb('shell','dumpsys','notification');assert.ok(dump.split('\n').some(line=>line.includes('NotificationRecord')&&line.includes(pkg)),'no OS notification record')},20000);
  pass('native notification permission and Android system notification record');
  const id=1000000042;
- const accepted=await invoke(page,'plugin:notification|batch',{notifications:[{id,title:'TODO Runtime QA',body:'Synthetic alarm',schedule:{at:{date:new Date(Date.now()+600000).toISOString(),repeating:false,allowWhileIdle:true}}}]});
+ // The production payload includes the native storage representation.
+ const before=await invoke(page,'plugin:notification|get_pending');
+ assert.ok(Array.isArray(before),'pending list before scheduling');
+ const accepted=await invoke(page,'plugin:notification|batch',{notifications:[alarmNotification(id,Date.now()+600000)]});
  assert.ok(Array.isArray(accepted)&&accepted.includes(id));
  await retry(async()=>assert.ok((await invoke(page,'plugin:notification|get_pending')).some(r=>r.id===id)));
  await invoke(page,'plugin:notification|cancel',{notifications:[id]});

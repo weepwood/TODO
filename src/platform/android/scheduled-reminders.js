@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
 import {invoke} from '@tauri-apps/api/core';
-import {planAlarms,reminderKey,MAX_ALARMS} from './reminder-plan.js';
+import {planAlarms,reminderKey,MAX_ALARMS,alarmNotification} from './reminder-plan.js';
 import {requireMobileNotificationPermission} from './notifications.js';
 const KEY='todo-android-alarm-registry-v1',ENABLED='todo-android-alarms-enabled';
 const MIN=1000000000,MAX=1999999999;
@@ -54,7 +54,7 @@ export function reconcileMobileAlarms(scope,tasks,{now=Date.now,alive=()=>true}=
   write(v);
   const additions=v.rows.filter(r=>r.epoch>now()&&!pending.has(r.id));
   if(!additions.length||!alive()||pausedScope===scope)return v.rows.filter(r=>r.accepted).length;
-  const ids=await invoke('plugin:notification|batch',{notifications:additions.map(r=>({id:r.id,title:'TODO · 任务提醒',body:'有计划任务到期，请打开 TODO 查看。',schedule:{at:{date:new Date(r.epoch).toISOString(),repeating:false,allowWhileIdle:true}}}))});
+  const ids=await invoke('plugin:notification|batch',{notifications:additions.map(r=>alarmNotification(r.id,r.epoch))});
   if(!Array.isArray(ids)||additions.some(r=>!ids.includes(r.id)))throw Error('系统未确认全部定时提醒');
   for(const r of additions)r.accepted=true;
   write(v);return v.rows.filter(r=>r.accepted).length;

@@ -298,3 +298,6 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 ### V1.2 签名配置与 Android 运行验收补充
 - 基线 b090ae9，Pages 45577761685 成功。用户在本机完成签名配置，已只读核实四个 Actions Secrets 和两个 Variables 存在，公开公钥与证书指纹均与本地一致；未读取远端 Secret 值，实际签名与升级未验收。
 - ARM64 45577761607 在 Maven Central 请求 Kotlin 依赖时收到 HTTP 429，未进入原生编译；不调整依赖或降低门禁。模拟器 45577761667 已完成真实 APK 编译、安装、Activity 启动及任务积分 SQLite IPC，但测试脚本重复点击被自动打开详情覆盖的任务行超时。改为断言新任务详情标题及积分，再以真实 Android Back 检查关闭；模拟 IPC 浏览器测试增加同一流程回归。语法与 diff 检查通过，真实运行仍待新 CI；签名构建及正式 Release 保持门禁。
+
+### V1.2 Android 定时提醒兼容性收口
+- 基线 43ac7e3；ARM64 45579840277 和 Pages 45579815548 实际成功。模拟器 45579816216 通过七项真实原生验收（安装启动、任务积分 SQLite、系统 Back、桌面 ACL 拒绝、Keystore、强制退出恢复、系统即时通知），最后 pending 查询 IPC 返回 Object。核对锁定的 notification 2.8.1 Kotlin 源码：batch 将 request.sourceJson 写入原生存储，旧载荷未提供此字段，可能写入 literal null 并导致 getPending 异常。共享生产与模拟器定时请求构造器，显式包含可反序列化的通用通知 JSON，不包含任务正文或账号；增加请求形状及范围测试，模拟器在调度前查询 pending，并保留具体 IPC 拒绝诊断。此为源码支持的修复假设，实际 pending/取消仍待新 CI。已存在的损坏原生记录没有自动清除，不扩大取消范围。独立 worktree 无依赖，初次完整提醒测试未启动；单独无依赖载荷及发布门禁测试通过。Mac 内存压力门禁拒绝重型任务，不重复本地浏览器/原生构建。正式签名构建及升级验收保持门禁。
