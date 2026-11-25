@@ -2,7 +2,7 @@ name: Pages 演示站
 on:
   push:
     branches: [main]
-    paths-ignore: ['**/*.md', 'src-tauri/**']
+    paths-ignore: ['**/*.md', 'src-tauri/**', 'scripts/verify-live*.mjs', 'tests/live-verifier.test.js']
   workflow_dispatch:
 permissions:
   contents: read
