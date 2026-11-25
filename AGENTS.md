@@ -136,3 +136,12 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - 重复任务：每日/每周固定规则以日历差直接跳过遗漏周期，保留 occurrenceIndex/终止次数；其余规则沿用逐次计算并提早停止于终止条件。提醒检查仅在已提交的任务引用变化、分钟边界及恢复焦点/可见性时全扫，专注计时仍每秒处理。确定性提醒事件 ID 减少重复应用内记录，不承诺多设备系统通知 exactly-once。
 - 原生提醒 IPC 校验当前活动账号，后台扫描在活动账号锁保护下执行；前端失败后会话内最多三次尝试、每30秒重试，失败有应用内提示。重试队列仅内存、最多100项，进程关闭后不保证继续，操作系统接受通知不代表用户实际收到。无需改动数据库或新增服务。
 - 生产构建仍存在富文本按需模块约 529 kB 警告，未人为提高警告阈值。真实邮箱认证需要可控测试邮箱/确认链接，本轮未创建正式项目测试用户或修改 Auth 配置；真实 Realtime、Windows 实机、原生可见窗口/托盘/通知操作与全面竞品像素级对照仍未完成，不能宣称 V1.0 已发布。
+
+## V1.0.0-rc.1 发布候选收口
+
+- 基线 9324da0，V0.9.0 Pages 45546773918 与桌面 45546774423 均已成功。正式 v1.0.0 尚未发布；必要实机门禁仍未通过，见 RELEASE.md 与 CHANGELOG.md。
+- 生产 Auth 实际 HTTPS 请求 settings 返回 200，email=true、disable_signup=false、mailer_autoconfirm=false；匿名 REST 工作空间查询返回 401。MCP SQL 确认 public.todo_workspaces 已加入 supabase_realtime。安全顾问新增泄露密码保护未启用警告（该保护 Pro+ 才提供）；不升级、不改变 Auth 服务端配置、不创建正式用户。缺少可控邮箱、SMTP 与重定向配置实际确认，登录/邮件确认与认证后 Realtime 实网仍待验收。前端显示实时订阅状态与降级轮询，保留现有15秒轮询；新注册客户端要求12字符，旧登录兼容，不等同服务端强制策略。
+- Web 生产构建拆分 ProseMirror 模型与 Tiptap 扩展依赖，消除原 529kB 单块警告；不提高警告阈值，不保证总下载量下降。
+- 安全区域 viewport-fit=cover、100dvh、触摸目标与焦点状态优化。新增 1440×900 浅/深真实浏览器截图与 Pixel 7 Chromium 触摸模拟，实际移动 09:00→09:30，无水平溢出。已人工查看三张截图；参考 Things 任务聚焦 https://culturedcode.com/things/features/ 与 TickTick 日历并排 https://ticktick.com/windows ，非逐像素复刻。真实移动设备安装仍待验收。
+- macOS 可见隔离测试：com.weepwood.todo.qa.rc1、临时 Tauri CLI override（不改正式配置）、example.invalid 测试 API 与占位 key。未签名 debug .app 37.29 MiB；实际启动后 SQLite integrity=ok、guest_workspace=1、other_accounts=0，CGWindowList 确认该进程一个可见 1000×700 窗口，测试进程已退出。未通过完整托盘、快捷键与系统通知交互验收；Windows 设备离线。保留独立测试数据及日志，不影响正式工作空间。
+- 恢复正式生产构建并核实无隔离占位 key。版本暂用 1.0.0-rc.1，更新 CHANGELOG.md、RELEASE.md、README.md、DESIGN.md；正式 Tag/Release 等真实验收通过后收口。不新增 CI、服务费、数据库迁移。

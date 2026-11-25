@@ -129,3 +129,14 @@
 .time-move{position:absolute;z-index:3;width:13px;padding:0;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;border-radius:3px}.time-move span{height:12px;width:3px;border-radius:2px;background:var(--accent);opacity:0}.time-move:is(:hover,:focus-visible,:active) span{opacity:1}.time-move:focus-visible{outline:2px solid var(--accent)}.time-move:active{cursor:grabbing}@media(pointer:coarse){.time-move{width:20px}.time-move span{opacity:.75}.time-block:not(.external){padding-left:22px}}
 
 .time-block:not(.external){padding-left:15px}.time-move{height:12px;min-height:0}@media(pointer:coarse){.time-block:not(.external){padding-left:22px}}
+
+/* Release polish: safe-area aware navigation and touch hit targets. */
+@media(max-width:860px){
+ .app.v2{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);height:100dvh}
+ .v2 .sidebar{top:env(safe-area-inset-top,0px);bottom:env(safe-area-inset-bottom,0px);left:calc(46px + env(safe-area-inset-left,0px))}
+ .v2 .details{top:calc(52px + env(safe-area-inset-top,0px));bottom:env(safe-area-inset-bottom,0px);right:env(safe-area-inset-right,0px)}
+ .dialog{max-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 24px)}
+ .v2 .toolbar{min-height:52px}
+}
+@media(pointer:coarse){.v2 .task-check{min-width:24px;min-height:24px}.v2 .toolbar .icon-button{min-height:36px}.v2 .rail>button{min-height:40px}.time-resize{min-height:12px}.time-move{min-width:20px}.v2 .nav-row{min-height:36px}}
+.v2 .heading h1{letter-spacing:-.035em}.v2 .nav-row,.v2 .task-body,.agenda-title{font-variant-numeric:tabular-nums}.v2 .task-row:focus-within{outline:1px solid var(--line);outline-offset:-1px}.v2 .detail-extra h3{font-weight:600}.v2 .task-content{min-width:0}
