@@ -8,6 +8,8 @@ on:
       - 'scripts/android-runtime-smoke.mjs'
       - 'src-tauri/plugins/todo-mobile/**'
       - 'src/services/updates/**'
+      - 'src/platform/android/**'
+      - 'src/layouts/mobile/**'
       - 'src-tauri/capabilities/**'
       - 'src-tauri/brand/**'
       - 'package.json'
@@ -73,7 +75,7 @@ jobs:
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
-          script: node scripts/android-runtime-smoke.mjs
+          script: adb shell am force-stop com.google.android.apps.nexuslauncher && node scripts/android-runtime-smoke.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

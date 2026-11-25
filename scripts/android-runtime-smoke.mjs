@@ -41,6 +41,23 @@ function launch(){
  const result=adb('shell','am','start','-W','-n',component);
  assert.ok(!/Error:|Exception/.test(result),result);
 }
+// Only on the disposable QA emulator: a background Pixel Launcher ANR
+// can obscure a healthy TODO WebView and consume the hardware Back event.
+async function waitForAppFocus(){
+ const launcher='com.google.android.apps.nexuslauncher';
+ let recovered=false;
+ await retry(()=>{
+  const windows=adb('shell','dumpsys','window');
+  const focus=windows.split('\n').find(line=>line.includes('mCurrentFocus='))||'';
+  assert.ok(!/Application Not Responding.*com\.weepwood\.todo|App Not Responding.*com\.weepwood\.todo/i.test(windows),'TODO application ANR');
+  if(focus.includes(pkg+'/'))return;
+  if(!recovered&&/Application Not Responding|App Not Responding|ANR/i.test(focus)&&focus.includes(launcher)){
+   adb('shell','am','force-stop',launcher);
+   recovered=true;console.log('Recovered isolated emulator Pixel Launcher ANR');
+  }
+  assert.fail('TODO is not the focused native window: '+focus.trim());
+ },30000);
+}
 const screenshot=name=>writeFileSync(out+'/'+name+'.png',raw('exec-out','screencap','-p'));
 const invoke=(page,cmd,args={})=>page.evaluate(async({cmd,args})=>{
  try{return await window.__TAURI_INTERNALS__.invoke(cmd,args)}
@@ -56,6 +73,7 @@ try{
  adb('shell','input','keyevent','82');
  launch();
  ({browser,page}=await connect());
+ await waitForAppFocus();
  pass('APK install, Activity launch, real native WebView and mobile shell');
  await expect(page.locator('.mobile-nav button')).toHaveCount(5);
  await page.getByRole('textbox',{name:'新任务名称'}).fill(title+' 积分+10');
@@ -68,6 +86,15 @@ try{
  await expect(page.locator('.details')).toBeVisible();
  await expect(page.locator('.details').getByRole('textbox',{name:'任务标题'})).toHaveValue(title);
  await expect(page.locator('.details').getByRole('spinbutton',{name:'任务积分'})).toHaveValue('10');
+ await waitForAppFocus();
+ // Dismiss the input method only if the OS reports it shown. Then exercise
+ // one actual system Back while TODO owns the focused window.
+ if(/mInputShown=true|mIsInputViewShown=true/.test(adb('shell','dumpsys','input_method'))){
+  adb('shell','input','keyevent','4');
+  await retry(()=>assert.ok(!/mInputShown=true|mIsInputViewShown=true/.test(adb('shell','dumpsys','input_method'))),10000);
+  await expect(page.locator('.details')).toBeVisible();
+ }
+ await waitForAppFocus();
  adb('shell','input','keyevent','4');
  await expect(page.locator('.details')).toHaveCount(0,{timeout:10000});
  pass('Android system Back closes detail through native bridge');
@@ -86,6 +113,7 @@ try{
  adb('forward','--remove','tcp:9222');
  launch();
  ({browser,page}=await connect());
+ await waitForAppFocus();
  assert.equal((await store(page)).tasks.filter(t=>t.title===title&&t.points===10).length,1);
  await expect(page.locator('.task-body').filter({hasText:title})).toBeVisible();
  assert.deepEqual(await invoke(page,'plugin:todo-mobile|session_read',{key:vaultKey}),{value:sentinel});
@@ -112,6 +140,7 @@ try{
 }catch(e){
  writeFileSync(out+'/result.json',JSON.stringify({status:'fail',reports,error:String(e)},null,2));
  try{screenshot('failure')}catch{}
+ try{writeFileSync(out+'/window-focus.txt',adb('shell','dumpsys','window'))}catch{}
  try{writeFileSync(out+'/android-runtime-log.txt',adb('logcat','-d','-s','AndroidRuntime:E'))}catch{}
  throw e;
 }finally{

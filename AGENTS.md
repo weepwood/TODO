@@ -301,3 +301,6 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 
 ### V1.2 Android 定时提醒兼容性收口
 - 基线 43ac7e3；ARM64 45579840277 和 Pages 45579815548 实际成功。模拟器 45579816216 通过七项真实原生验收（安装启动、任务积分 SQLite、系统 Back、桌面 ACL 拒绝、Keystore、强制退出恢复、系统即时通知），最后 pending 查询 IPC 返回 Object。核对锁定的 notification 2.8.1 Kotlin 源码：batch 将 request.sourceJson 写入原生存储，旧载荷未提供此字段，可能写入 literal null 并导致 getPending 异常。共享生产与模拟器定时请求构造器，显式包含可反序列化的通用通知 JSON，不包含任务正文或账号；增加请求形状及范围测试，模拟器在调度前查询 pending，并保留具体 IPC 拒绝诊断。此为源码支持的修复假设，实际 pending/取消仍待新 CI。已存在的损坏原生记录没有自动清除，不扩大取消范围。独立 worktree 无依赖，初次完整提醒测试未启动；单独无依赖载荷及发布门禁测试通过。Mac 内存压力门禁拒绝重型任务，不重复本地浏览器/原生构建。正式签名构建及升级验收保持门禁。
+
+### V1.2 模拟器系统干扰收口
+- 基线 fbfc2de，ARM64 45583860215 与 Pages 45583858456 成功；模拟器 45583858442 实际通过安装、WebView、任务积分 SQLite，但 Back 失败。下载真实证据到本机外置 artifacts/TODO/runtime-45583858442，人工核对创建及失败截图均被 Pixel Launcher isn't responding 系统弹窗遮挡，非 TODO ANR 的证据。隔离 emulator 测试前停止无关后台 Pixel Launcher，并在启动/重启/真实 Back 前核验 native window focus；仅允许恢复已识别的启动器 ANR，不隐藏系统错误、不绕过 TODO 自身 ANR、实际 Back 或详情关闭断言。若 IME 可见先独立关闭并验证详情保留；失败保留窗口诊断。移动源码路径增加 runtime 触发。定时提醒实际查询/取消仍未到达，待新 CI；此前七项通过是 43ac7e3 的证据，不能替代当前提交。专项 4/4、语法及 diff 检查通过；不提前启动正式签名或推广发布。
