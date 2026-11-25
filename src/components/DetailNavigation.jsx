@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-const sections=[['plan','计划'],['organization','属性'],['reminders','提醒'],['notes','备注'],['relations','关联'],['activity','记录']];
+const sections=[['plan','计划'],['organization','属性'],['reminders','提醒'],['notes','备注'],['relations','关联'],['resources','附件'],['activity','记录']];
 export function DetailNavigation(){
  const nav=useRef(null),[active,setActive]=useState('plan');
  useEffect(()=>{
