@@ -7,20 +7,22 @@ async function seed(page){
 }
 test('任务辅助控件仅悬浮或选择时显示，未选导航无标记',async({page})=>{
  await seed(page);
- const row=page.locator('.task-row').first(),button=row.locator('.multi-toggle'),nav=page.locator('[data-view-key=today]');
+ const row=page.locator('.task-row').first(),nav=page.locator('[data-view-key=today]');
  await page.mouse.move(0,0);
- await expect(button).toHaveCSS('opacity','0');
+ await expect(row.locator('.multi-toggle')).toHaveCount(0);
  await expect(row.locator('.drag-handle')).toHaveCSS('opacity','0');
  await expect.poll(()=>nav.evaluate(el=>getComputedStyle(el,'::before').opacity)).toBe('0');
  const active=page.locator('[data-view-key=inbox]');
  await expect.poll(()=>active.evaluate(el=>getComputedStyle(el,'::before').opacity)).toBe('1');
  await nav.hover();await expect.poll(()=>nav.evaluate(el=>getComputedStyle(el,'::before').opacity)).toBe('0');
- await row.hover();await expect(button).toHaveCSS('opacity','1');await expect(row.locator('.drag-handle')).toHaveCSS('opacity','1');
- await page.mouse.move(0,0);await expect(button).toHaveCSS('opacity','0');
- await page.getByRole('button',{name:'选择任务',exact:true}).click();
- await expect(button).toHaveCSS('opacity','1');
+ await row.hover();await expect(row.locator('.drag-handle')).toHaveCSS('opacity','1');
+ const handle=await row.locator('.drag-handle').boundingBox(),box=await row.boundingBox();
+ expect(handle.x+handle.width).toBeLessThanOrEqual(box.x+1);
+ await page.mouse.move(0,0);await expect(row.locator('.drag-handle')).toHaveCSS('opacity','0');
+ await row.locator('.task-body').click();await page.locator('.task-row').nth(1).locator('.task-body').click({modifiers:['Shift']});
+ await expect(page.locator('.bulk-bar')).toContainText('已选 2 项');
  await page.getByRole('button',{name:'结束选择',exact:true}).click();
- await expect(button).toHaveCSS('opacity','0');
+ await expect(page.locator('.bulk-bar')).toBeHidden();
  await expect(page.locator('.task-shortcuts')).toHaveCount(0);
  await page.screenshot({path:'test-results/clean-rows.png',animations:'disabled'});
 });

@@ -25,9 +25,8 @@ test('日期浮层、快捷录入、依赖、撤销重做与范围选择',async(
  await expect(page.getByRole('button',{name:'完成 后置工作'})).toBeEnabled();
  await page.getByRole('button',{name:'重做',exact:true}).click();
  await expect(page.getByRole('button',{name:'完成 后置工作'})).toBeDisabled();
- await page.getByRole('button',{name:'选择任务',exact:true}).click();
- await page.getByRole('button',{name:'选择 前置工作'}).click();
- await page.getByRole('button',{name:'选择 后置工作'}).click({modifiers:['Shift']});
+ await page.locator('.task-body').filter({hasText:'前置工作'}).click();
+ await page.locator('.task-body').filter({hasText:'后置工作'}).click({modifiers:['Shift']});
  await expect(page.locator('.bulk-bar')).toContainText('已选 2 项');
  await page.screenshot({path:'test-results/workbench-v04-light.png'});
  await page.getByRole('button',{name:'设置',exact:true}).click();
@@ -41,5 +40,5 @@ test('万级任务虚拟列表与搜索',async({page})=>{
  await page.evaluate(()=>{const key='todo-workbench-v1';const state=JSON.parse(localStorage.getItem(key));const now=new Date();const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');state.tasks=Array.from({length:10000},(_,i)=>({id:'bench-'+i,title:'基准任务 '+i,notes:'',listId:'inbox',date:today,priority:0,repeat:'none',miss:'keep',anchor:+today.slice(-2),seriesId:null,checklist:[],status:'pending',createdAt:now.toISOString(),completedAt:null}));localStorage.setItem(key,JSON.stringify(state))});
  const start=Date.now();await page.reload();await expect(page.locator('.virtual-task-list')).toBeVisible({timeout:15000});
  const rendered=await page.locator('.task-row').count();expect(rendered).toBeLessThan(80);console.log('10,000 tasks, rendered rows:',rendered,'elapsed ms:',Date.now()-start);
- await page.getByPlaceholder('搜索所有任务').fill('基准任务 9999');await expect(page.locator('.task-body').filter({hasText:'基准任务 9999'})).toBeVisible();
+ await page.getByRole('button',{name:'全局搜索',exact:true}).click();await page.getByRole('combobox',{name:'搜索命令与任务'}).fill('基准任务 9999');await expect(page.getByRole('option').filter({hasText:'基准任务 9999'})).toBeVisible();await page.getByRole('button',{name:'查看全部任务结果'}).click();await expect(page.locator('.task-body').filter({hasText:'基准任务 9999'})).toBeVisible();
 });

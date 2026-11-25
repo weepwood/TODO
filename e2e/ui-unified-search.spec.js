@@ -1,0 +1,33 @@
+import {test,expect} from '@playwright/test';
+import {initialState,newTask,dayKey} from '../src/domain.js';
+test('统一搜索入口、备注与标签、查看全部结果、恢复与智能清单',async({page})=>{
+ const data=initialState(),tag={id:'tag-test',name:'研究标签',color:'#8056c4'};
+ data.tags=[tag];data.tasks=[{...newTask('报告任务','work',dayKey()),notes:'独特备注内容',tags:[tag.id]},newTask('普通任务','inbox',dayKey())];
+ await page.addInitScript(data=>localStorage.setItem('todo-workbench-v1',JSON.stringify(data)),data);
+ await page.setViewportSize({width:1440,height:900});await page.goto('/');
+ await expect(page.locator('.sidebar .search')).toHaveCount(0);
+ await page.getByRole('button',{name:'全局搜索',exact:true}).click();
+ const dialog=page.getByRole('dialog',{name:'命令面板'}),input=dialog.getByRole('combobox',{name:'搜索命令与任务'});
+ await expect(input).toBeFocused();await input.fill('独特备注');
+ await expect(dialog.getByRole('option')).toHaveCount(1);await expect(dialog.getByRole('option')).toContainText('报告任务');
+ await input.fill('研究标签');await expect(dialog.getByRole('option')).toHaveCount(1);
+ await page.screenshot({path:'test-results/unified-search-desktop.png',animations:'disabled'});
+ await dialog.getByRole('button',{name:'查看全部任务结果'}).click();
+ await expect(page.getByRole('heading',{name:'搜索结果',exact:true})).toBeVisible();
+ await expect(page.locator('.task-row')).toHaveCount(1);await expect(page.locator('.task-row')).toContainText('报告任务');
+ await expect(page.getByRole('button',{name:'保存为智能清单'})).toBeVisible();
+ await page.keyboard.press('Control+f');await expect(input).toHaveValue('研究标签');await page.keyboard.press('Escape');
+ await page.getByRole('button',{name:'清除搜索',exact:true}).click();await expect(page.getByRole('heading',{name:'搜索结果',exact:true})).toHaveCount(0);
+ await page.keyboard.press('Control+k');await expect(input).toBeFocused();await input.fill('独特备注');await page.keyboard.press('Enter');
+ await expect(page.getByRole('textbox',{name:'任务标题'})).toHaveValue('报告任务');
+});
+test('320px 手机统一搜索无侧栏输入和水平溢出',async({page})=>{
+ await page.setViewportSize({width:320,height:844});await page.goto('/');
+ await page.getByRole('button',{name:'全局搜索',exact:true}).click();
+ const dialog=page.getByRole('dialog',{name:'命令面板'}),input=dialog.getByRole('combobox');
+ await input.fill('不存在');await expect(dialog.getByText('没有匹配结果')).toBeVisible();
+ const b=await dialog.boundingBox();expect(b.x).toBeGreaterThanOrEqual(0);expect(b.x+b.width).toBeLessThanOrEqual(321);
+ expect(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+ await page.screenshot({path:'test-results/unified-search-mobile.png',animations:'disabled'});
+ await page.keyboard.press('Escape');await page.getByRole('button',{name:'打开导航'}).click();await expect(page.locator('.sidebar .search')).toHaveCount(0);
+});

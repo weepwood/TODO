@@ -1,12 +1,12 @@
 import {test,expect} from '@playwright/test';
 test('设置分区胶囊与下拉选中态沿用统一规范',async({page})=>{
  await page.setViewportSize({width:1440,height:900});await page.goto('/');
- const sort=page.getByRole('combobox',{name:'排序',exact:true});
- await sort.click();
- const option=page.locator('.smart-select-option[data-state=checked]');
+ await page.getByRole('button',{name:'分组、排序与顺序'}).click();
+ await page.getByRole('menuitem',{name:/^排序/}).hover();
+ const option=page.locator('.task-view-option[data-state=checked]');
  await expect(option).toBeVisible();
  expect(await option.evaluate(el=>getComputedStyle(el).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)');
- await page.keyboard.press('Escape');
+ await page.keyboard.press('Escape');await page.keyboard.press('Escape');
  await page.locator('.rail').getByRole('button',{name:'设置',exact:true}).click();
  const nav=page.getByRole('navigation',{name:'设置分类'});
  const active=nav.locator('[aria-current=location]');

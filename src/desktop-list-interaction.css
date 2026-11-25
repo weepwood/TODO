@@ -1,0 +1,41 @@
+/* The desktop drag activator is attached to the row, not the viewport or
+   the row's content flow. Its hit area stays in the existing left gutter. */
+@media(min-width:861px){
+ .v2:not(.compact-mobile) .task-row{overflow:visible}
+ .v2:not(.compact-mobile) .task-row .drag-handle{
+  position:absolute;left:-21px;top:0;bottom:0;width:21px;min-width:21px;height:auto;
+  padding:0;display:flex;align-items:center;justify-content:center;cursor:grab;
+  opacity:0;pointer-events:auto;z-index:2;border-radius:6px
+ }
+ .v2:not(.compact-mobile) .task-row .drag-handle:hover,
+ .v2:not(.compact-mobile) .task-row .drag-handle:focus-visible,
+ .v2:not(.compact-mobile) .task-row:hover .drag-handle,
+ .v2:not(.compact-mobile) .task-row:focus-within .drag-handle,
+ .v2:not(.compact-mobile) .task-row[data-dragging=true] .drag-handle{opacity:1;pointer-events:auto}
+ .v2:not(.compact-mobile) .task-row .drag-handle:hover{background:var(--hover);color:var(--accent-text)}
+ .v2:not(.compact-mobile) .task-row .drag-handle:active{cursor:grabbing}
+ .v2:not(.compact-mobile) .task-row{user-select:none}
+ .v2:not(.compact-mobile) .task-row input{user-select:text}
+ .v2:not(.compact-mobile) .task-row.checked{background:var(--active)}
+ .v2:not(.compact-mobile) .task-row.checked:not(.selected)::before{opacity:1;height:var(--marker-active);background:var(--accent)}
+}
+.task-view-trigger{width:36px;height:36px;border-radius:var(--radius-control);color:var(--muted)}
+.task-view-trigger[data-state=open]{background:var(--active);color:var(--accent-text)}
+.task-view-menu,.task-view-options{min-width:210px;max-width:calc(100vw - 16px);padding:5px;border-radius:12px}
+.task-view-menu .task-view-sub{display:flex;align-items:center;gap:9px;min-height:36px;padding:7px 9px}
+.task-view-sub>small{margin-left:auto;color:var(--muted);font-size:12px;white-space:nowrap}
+.task-view-sub[data-state=open],.task-view-sub[data-highlighted]{background:var(--hover)}
+.task-view-options .task-view-option{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:34px}
+.task-view-option[data-state=checked]{color:var(--accent-text);background:var(--active)}
+@media(max-width:860px){.task-view-trigger{width:44px;height:44px}.task-view-menu .task-view-sub,.task-view-options .task-view-option{min-height:44px}}
+.task-view-options{min-width:148px}
+@media(prefers-reduced-motion:reduce){.task-view-menu,.task-view-options{animation:none!important;transition:none!important}}
+/* One global search surface, no duplicate sidebar field. */
+.global-search-trigger:hover,.global-search-trigger:focus-visible{color:var(--accent-text);background:var(--hover)}
+.command-palette .palette-search{border:1px solid var(--line);border-radius:var(--radius-control);background:var(--panel);min-height:44px;padding:4px 10px;gap:9px}
+.command-palette .palette-search:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 15%,transparent)}
+.command-palette .palette-search input:focus{outline:none;box-shadow:none}
+.command-palette .palette-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.palette-search-all{display:flex;align-items:center;gap:5px}
+.search-query-summary{color:var(--muted);font-size:12px;overflow-wrap:anywhere;margin:4px 0}
+@media(max-width:860px){.task-view-menu.task-view-options{min-width:210px}.palette-search-all{min-height:44px}}

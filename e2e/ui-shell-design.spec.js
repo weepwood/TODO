@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 
-test('桌面清单栏收起释放工作空间并可通过搜索快捷键恢复',async({page})=>{
+test('桌面清单栏收起释放工作空间，搜索快捷键打开统一搜索',async({page})=>{
  await page.setViewportSize({width:1440,height:900});await page.goto('/');
  const sidebar=page.locator('aside.sidebar'),workspace=page.locator('main.workspace');
  const width=(await workspace.boundingBox()).width,sideWidth=(await sidebar.boundingBox()).width;
@@ -9,7 +9,8 @@ test('桌面清单栏收起释放工作空间并可通过搜索快捷键恢复',
  await expect.poll(async()=>(await workspace.boundingBox()).width).toBeGreaterThan(width+sideWidth-5);
  await page.screenshot({path:'test-results/shell-desktop-focus.png',animations:'disabled'});
  await page.keyboard.press('Control+f');
- await expect(sidebar).toBeVisible();await expect(page.getByPlaceholder('搜索所有任务')).toBeFocused();
+ await expect(sidebar).toBeHidden();await expect(page.getByRole('combobox',{name:'搜索命令与任务'})).toBeFocused();
+ await page.keyboard.press('Escape');await page.getByRole('button',{name:'显示清单栏',exact:true}).click();await expect(sidebar).toBeVisible();
  expect(Math.abs((await sidebar.boundingBox()).width-sideWidth)).toBeLessThan(2);
  await page.getByRole('textbox',{name:'新任务名称'}).fill('桌面布局验收');
  await page.getByRole('button',{name:'添加',exact:true}).click();
