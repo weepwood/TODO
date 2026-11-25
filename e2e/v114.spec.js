@@ -32,7 +32,7 @@ test('日历日视图及周视图可通过任务栏精确安排时间',async({pa
  await page.goto('/');await page.getByRole('button',{name:'新建任务',exact:true}).click();await page.getByRole('textbox',{name:'快速任务名称'}).fill('日历时间安排');await page.getByRole('button',{name:'创建任务',exact:true}).click();
  await page.getByRole('button',{name:'日历',exact:true}).click();await page.getByLabel('联动日期').fill('2026-12-10');
  await page.locator('.calendar-main').getByText('日',{exact:true}).click();
- await page.getByRole('button',{name:'待安排',exact:true}).click();await page.getByLabel('待安排任务时间').fill('09:15');
+ await page.getByRole('button',{name:'待安排',exact:true}).click();await page.getByLabel('待安排任务时间',{exact:true}).fill('09:15');
  await page.getByRole('button',{name:'安排 日历时间安排',exact:true}).click();
  await page.getByRole('button',{name:'选定日期',exact:true}).click();await expect(page.locator('.agenda-title').filter({hasText:'日历时间安排'})).toContainText('09:15');
  await page.locator('.calendar-main').getByText('周',{exact:true}).click();await expect(page.getByLabel('联动日期')).toHaveValue('2026-12-10');

@@ -332,3 +332,8 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 ### PR #3 动效修复与编辑器、时间轴精修
 - 基线77c29cb，浏览器CI 45593176323为65/66；唯一失败是详情开合后列表动画布局快照宽度未刷新。补充layoutKey、ResizeObserver与独立布局坐标，中断时保留当前偏移，原失败用例已实际通过。新增任务标题自动高度、移动备注全屏单列、当天时间轴当前时间标记、日历任务栏触控尺寸。
 - 本地通过资源门禁执行一次 npm ci、Web生产构建及13项针对性Edge端到端测试（ui-polish、v08、v118），全部通过；包含跨午夜真实触摸移动、日/周视图触摸拖放、双主题八模块、Markdown编辑及减少动效。人工复核polish-mobile-tasks、polish-mobile-editor、polish-timeline-now、polish-empty-stats截图；产物在工作树test-results，测试日志在外置artifacts/TODO/polish-targeted.log。没有新增运行时依赖或构建安装包。最终全量CI待实际结果，不宣称新版原生设备已验收。
+
+### V1.2 第四轮公共控件与手势
+- PR #3 c83ff01 全量浏览器CI 45594408088成功，已合并d17367a、本地main同步，Pages 45594891620实际成功。独立worktree v12-controls-gestures 已快进该合并提交。
+- 实施五处TimeControl、ColorControl、手机横滑方向判定与跟手反馈、同日时间轴目标预览、公共浮层和实体表单布局精修。无新增依赖或安装包构建，提醒datetime-local、数据库及签名不变。
+- 本机资源门禁下Web构建成功；首轮19项专项17通过，两项仅因旧getByLabel部分匹配输入与按钮，改为精确名称，保留业务断言。最终重测13/13通过；首轮v118六项全部通过（含真实触摸跨午夜/日周拖放和双主题八模块）。已审阅真实时间浮层、左滑菜单及颜色截图，最终截图位于test-results，日志artifacts/TODO/controls-{targeted,final}.log。新增三项浏览器专项；同日目标预览的独立视觉断言、完整最新CI及真实设备验收仍待完成。

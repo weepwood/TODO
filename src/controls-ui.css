@@ -1,0 +1,52 @@
+/* Shared time and palette controls: consistent across browser and native shells. */
+.time-control{display:inline-flex;align-items:center;min-width:0;max-width:100%;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--bg);overflow:hidden}
+.time-control:focus-within{border-color:var(--accent)}
+.time-control[data-invalid=true]{border-color:#c65a5a}
+.time-control>input{width:76px;min-width:0;height:100%;padding:0 9px;border:0;border-radius:0;background:transparent;font-size:13px;font-variant-numeric:tabular-nums;outline-offset:-2px}
+.time-control .time-picker-trigger{display:grid;place-items:center;flex:none;width:34px;height:100%;padding:0;border:0;border-left:1px solid var(--line);border-radius:0;color:var(--muted)}
+.time-control .time-picker-trigger:hover,.time-control .time-picker-trigger[data-state=open]{background:var(--hover);color:var(--accent-text)}
+.time-picker-popover,.color-picker-popover{z-index:1200;width:min(300px,calc(100vw - 24px));max-height:var(--radix-popover-content-available-height);overflow:auto;padding:14px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow);transform-origin:var(--radix-popover-content-transform-origin)}
+.time-picker-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.time-picker-head span{font-variant-numeric:tabular-nums;font-size:19px;font-weight:600;color:var(--accent-text)}
+.time-picker-label{margin:10px 0 6px;font-size:12px;color:var(--muted)}
+.time-picker-grid{display:grid;gap:4px}
+.time-picker-grid.hours{grid-template-columns:repeat(6,minmax(0,1fr))}
+.time-picker-grid.minutes{grid-template-columns:repeat(5,minmax(0,1fr))}
+.time-picker-grid button{min-height:34px;border-radius:6px;border:1px solid var(--line);font-size:13px;font-variant-numeric:tabular-nums}
+.time-picker-grid button:hover{background:var(--hover)}
+.time-picker-grid button[aria-pressed=true]{background:var(--active);color:var(--accent-text);border-color:var(--accent)}
+.time-picker-actions{display:flex;gap:8px;justify-content:flex-end;margin:12px 0 8px}
+.time-picker-popover>small{color:var(--muted);font-size:11px}
+.color-picker-trigger{display:flex;align-items:center;gap:9px;min-height:36px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-size:12px;max-width:100%}
+.color-picker-trigger i{width:18px;height:18px;border-radius:5px;border:1px solid var(--line);flex:none}
+.color-picker-trigger>svg{margin-left:auto;color:var(--muted)}
+.color-picker-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:12px 0}
+.color-picker-grid>button{aspect-ratio:1;display:grid;place-items:center;border:2px solid transparent;border-radius:8px;color:white}
+.color-picker-grid>button[aria-pressed=true]{outline:2px solid var(--accent);outline-offset:2px}
+.color-picker-input{display:flex;gap:8px}
+.color-picker-input input{min-width:0;flex:1;font-family:monospace}
+.time-move-preview{position:absolute;z-index:6;pointer-events:none;border:1px dashed var(--accent);border-radius:6px;background:var(--active);color:var(--accent-text);padding:3px 8px;display:flex;flex-direction:column;overflow:hidden;font-size:11px;opacity:.88}
+@media(prefers-reduced-motion:no-preference){
+ .time-picker-popover[data-state=open],.color-picker-popover[data-state=open]{animation:ui-pop-in 180ms var(--ui-ease) both}
+ .time-picker-popover[data-state=closed],.color-picker-popover[data-state=closed]{animation:ui-pop-out 120ms ease both}
+}
+@media(max-width:860px){
+ .time-control{height:44px}
+ .time-control>input{width:80px;font-size:16px}
+ .time-control .time-picker-trigger{width:44px}
+ .time-picker-grid button{min-height:40px}
+ .time-picker-actions button,.color-picker-input button{min-height:44px}
+ .color-picker-trigger{min-height:44px}
+ .v2.compact-mobile .task-body{translate:var(--swipe-offset,0px) 0}
+ .v2.compact-mobile .task-row[data-swipe-active=true] .task-more{color:var(--accent-text);background:var(--active);border-radius:8px}
+ .v2.compact-mobile .detail-content .field .time-control{width:100%}
+ .v2.compact-mobile .detail-content .field .time-control>input{flex:1}
+ @media(prefers-reduced-motion:no-preference){.v2.compact-mobile .task-body{transition:translate 150ms var(--ui-ease)}.v2.compact-mobile .task-row[data-swipe-active=true] .task-body{transition:none}}
+}
+@media(prefers-reduced-motion:reduce){.v2.compact-mobile .task-body{translate:none!important}}
+.entity-dialog .field{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;align-items:center}
+.entity-dialog .field>span{white-space:nowrap}
+.entity-dialog .color-picker-trigger{justify-self:stretch}
+.v2 .detail-content .field .time-control>input{border:0;border-radius:0;background:transparent;box-shadow:none}
+.v2 .detail-content .field .time-control>button{border-radius:0}
+@media(max-width:860px){.time-picker-grid button{min-height:44px}.entity-dialog .field{grid-template-columns:52px minmax(0,1fr)}}
