@@ -14,7 +14,7 @@ test('桌面拖动手柄透明背景、编辑入口悬浮显示与分组管理',
  await handle.hover();await expect(handle).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
  const org=page.locator('[data-detail-section=organization]'),edit=org.getByRole('button',{name:'编辑 组织与状态',exact:true});
  await page.mouse.move(0,0);await expect(edit).toHaveCSS('opacity','0');
- await expect(org.locator('.detail-facts dd svg')).toHaveCount(4);
+ await expect(org.locator('.detail-facts dd .detail-fact-value svg')).toHaveCount(4);
  await org.hover();await expect(edit).toHaveCSS('opacity','1');
  await page.screenshot({path:'test-results/detail-hover-icons.png',animations:'disabled'});
  await edit.click();

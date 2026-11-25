@@ -1,4 +1,4 @@
-import React from 'react';
+import React,{useId} from 'react';
 import {Pencil,Check} from 'lucide-react';
 export function DetailSection({id,title,icon:Icon,editing=false,editable=true,onToggle,summary,children}){
  return <section className="detail-group detail-section-card" data-detail-section={id} data-editing={editing}>
@@ -7,6 +7,7 @@ export function DetailSection({id,title,icon:Icon,editing=false,editable=true,on
   <div className="detail-section-editor" hidden={summary!==undefined&&!editing}>{children}</div>
  </section>
 }
-export function DetailFacts({items}){
- return <dl className="detail-facts">{items.map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value||'—'}</dd></div>)}</dl>
+export function DetailFacts({items,onEdit}){
+ const id=useId();
+ return <dl className="detail-facts">{items.map(([label,value],i)=><div key={label}><dt>{label}</dt><dd>{onEdit?<button type="button" className="detail-fact-edit" aria-label={'快捷编辑 '+label} aria-describedby={id+'-'+i} onClick={()=>onEdit(label)}><span id={id+'-'+i}>{value||'—'}</span><Pencil size={12} aria-hidden="true"/></button>:value||'—'}</dd></div>)}</dl>
 }
