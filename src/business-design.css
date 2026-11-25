@@ -1,0 +1,61 @@
+/* Business workspaces consume the same selection, spacing and surface tokens
+   as the task inspector. Preserve library-owned calendar/drag geometry. */
+.workspace-segment{gap:var(--space-1)}
+.workspace-segment>button{position:relative;min-height:var(--control-height);padding-bottom:9px;border-radius:var(--radius-control)}
+.workspace-segment>button::after{
+ content:"";position:absolute;pointer-events:none;left:50%;bottom:3px;transform:translateX(-50%);
+ height:var(--marker-width);width:var(--marker-idle);border-radius:8px;background:var(--muted);opacity:.24;
+}
+.workspace-segment>button[aria-pressed=true]::after{width:var(--marker-active);background:var(--accent);opacity:1}
+.workspace-segment>button[aria-pressed=true]{color:var(--accent-text);background:var(--active);font-weight:600}
+.board-lane-nav.workspace-segment{padding:var(--space-1);background:var(--panel);border-radius:var(--radius-surface);width:fit-content;max-width:100%}
+.board-lane-nav.workspace-segment>button{border:1px solid transparent}
+.board-lane-nav.workspace-segment>button:hover:not([aria-pressed=true]){background:var(--hover)}
+.calendar-agenda,.planner .unscheduled,.stats .stat-card{border-radius:var(--radius-surface);padding:var(--space-4)}
+.calendar-agenda{gap:var(--space-2)}
+.calendar-agenda>input,.planner .backlog-filter input,.ledger-search{border-radius:var(--radius-control);min-height:var(--control-height);background:var(--panel);border-color:transparent}
+.calendar-agenda>input:focus,.planner .backlog-filter input:focus,.ledger-search:focus-within{border-color:var(--accent)}
+.agenda-task,.planner .unscheduled>div[draggable]{border:0;border-radius:var(--radius-control);padding:var(--space-1) var(--space-2);margin-bottom:var(--space-1)}
+.agenda-task:hover,.planner .unscheduled>div[draggable]:hover{background:var(--hover)}
+.calendar-agenda .agenda-title{min-height:var(--control-height)}
+.calendar-agenda .agenda-title small{margin-top:3px;line-height:1.4}
+.calendar-agenda-head h3,.planner .unscheduled h3,.stats .stat-card h3{font-weight:600;font-size:14px}
+.calendar-info,.planner-toolbar{gap:var(--space-2)}
+.calendar-info button,.planner-toolbar button{border-radius:var(--radius-control);min-height:var(--control-height)}
+.calendar-main .fc .fc-button{border-radius:var(--radius-control)}
+.calendar-main .fc .fc-button-group{gap:var(--space-1)}
+.calendar-main .fc .fc-button-group>.fc-button{border-radius:var(--radius-control);margin:0}
+.board-grid .board-column{border-radius:var(--radius-surface);padding:var(--space-3)}
+.board-task-card{margin-bottom:var(--space-2);padding:var(--space-2);border-radius:var(--radius-control)}
+.board-task-card .view-task{min-height:var(--control-height);padding:var(--space-1)}
+.board-task-card .smart-select-trigger{background:var(--panel);border:1px solid transparent}
+.board-task-card .smart-select-trigger[data-state=open]{border-color:var(--accent)}
+.stats-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-2)}
+.stats-filter-group{display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap;min-width:0}
+.stats-filter-group label{display:flex;align-items:center;gap:var(--space-1);min-width:0}
+.stats-filter-group label>span{font-size:12px;color:var(--muted)}
+.stats-filter-group .smart-select-trigger{background:var(--panel);border-color:transparent}
+.stats-filter-group .smart-select-trigger[data-state=open]{border-color:var(--accent)}
+.stats .stat-grid{gap:var(--space-2)}
+.stats .stat-grid>div,.goal-card,.wallet-grid>div{border-radius:var(--radius-surface);border-color:transparent;background:var(--panel)}
+.stats .stat-grid>div small{color:var(--muted)}
+.stats .stat-grid>div strong,.goal-card strong,.wallet-grid strong{font-variant-numeric:tabular-nums;letter-spacing:-.025em}
+.points-wallet .wallet-grid>div:first-child{background:var(--active)}
+.points-ledger .points-entry,.points-wallet .reward-row{border-bottom:0;border-radius:var(--radius-control);margin-bottom:var(--space-1);padding:var(--space-2)}
+.points-ledger .points-entry:hover,.points-wallet .reward-row:hover{background:var(--hover)}
+.points-ledger .points-entry>span:first-child,.points-wallet .reward-row>div:first-child{min-width:0;overflow-wrap:anywhere}
+.points-ledger .points-entry small,.points-wallet .reward-row small{line-height:1.5}
+.points-wallet .reward-row button{border-radius:var(--radius-control)}
+@media(prefers-reduced-motion:no-preference){
+ .workspace-segment>button::after{transition:width var(--marker-duration) var(--ui-ease),background-color var(--marker-duration) ease,opacity var(--marker-duration) ease}
+ .agenda-task,.planner .unscheduled>div[draggable],.points-ledger .points-entry,.points-wallet .reward-row{transition:background-color 120ms ease}
+}
+@media(max-width:860px){
+ .workspace-segment>button,.calendar-info button,.planner-toolbar button,.calendar-agenda .agenda-title{min-height:var(--control-touch-height)}
+ .calendar-agenda,.planner .unscheduled,.stats .stat-card{padding:var(--space-3)}
+ .board-lane-nav.workspace-segment{width:100%}
+ .calendar-agenda>input,.planner .backlog-filter input,.ledger-search{min-height:var(--control-touch-height)}
+ .stats-filter-group{width:100%}
+ .stats-filter-group label{flex:1 1 110px}
+ .stats-filter-group .smart-select-trigger{flex:1;min-width:0;max-width:100%}
+}

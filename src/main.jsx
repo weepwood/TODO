@@ -62,6 +62,7 @@ import './planner-layout.css';
 import './command-points.css';
 import './shell-design.css';
 import './selection-detail.css';
+import './business-design.css';
 const CalendarView=lazy(()=>import('./calendar.jsx'));
 const WorkspaceBackup=lazy(()=>import('./workspace-backup.jsx'));
 const loadViews=()=>import('./views.jsx');

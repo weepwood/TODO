@@ -3,8 +3,6 @@
 .planner{container-type:inline-size}
 .planner .planner-grid{align-items:start;gap:16px;grid-template-columns:minmax(0,1fr) minmax(190px,260px)}
 .planner .unscheduled{min-width:0;border:1px solid var(--line);border-radius:var(--surface-radius);padding:12px;background:var(--bg)}
-.planner .unscheduled>div[draggable]{border-bottom:1px solid var(--line);padding:5px 0 8px}
-.planner .unscheduled>div[draggable]:last-child{border:0}
 .planner .unscheduled .text-link{display:block;max-width:100%;padding:6px 8px;color:var(--accent-text);font-size:12px}
 .planner .planner-hours[hidden],.planner-grid>section[hidden]{display:none!important}
 .planner-pane-nav{display:none}
