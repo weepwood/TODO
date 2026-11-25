@@ -290,3 +290,7 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - 统一更新协议固定稳定/preview渠道、SemVer、仓库资产URL、大小/sha256/平台签名元数据及128KiB响应限制。空静态清单不宣告新版本。设置软件更新、启动12h节流检查、日志、进度、重试；QA及Web只检查，正式签名构建才启用安装。桌面精确依赖Tauri Updater 2.14.1 + process，正式build注入公钥/endpoints/requireSignedVersion，安装前暂停新同步、等待现有同步、冲突保护、flush/SQLite快照备份。Android Kotlin APK下载限200MiB、HTTPS白名单、校验大小/摘要/包名/版本/证书/渠道及非debug，PackageInstaller Session 用户确认、下载取消和失败状态，未实机；进程回收后安装状态不持久化，需重新下载。桌面下载不提供强制取消。
 - 新增 signed-release.yml 三平台签名构建草稿和 promote-release.yml 实际验收后发布及两清单一次提交，缺失密钥preflight明确拒绝。尝试配置持久签名密钥被工具安全检查拦截，未确认任何私钥生成/Secrets配置，不绕过；RELEASE.md 记录六个配置名称及安全本机步骤。正式签名、原生更新、同签名覆盖升级尚未验收，未创建新Release或启用更新清单，未改用户数据/Supabase/收费服务。
 - 本地 89/89 JS（含版本、恶意清单、缺签名拒绝、ACL）、7/7关联Edge（软件更新、移动模拟、积分、云冲突、双主题）、9/9 macOS Rust --locked、生产构建、4个工作流shell语法、实际设置截图检查通过。原生Android更新代码待新CI编译；真实运行、正式签名和升级仍待。无新增依赖之外的服务费用。
+
+### V1.2 Android 依赖兼容性修复
+- 基线 7cd5cf6；Pages 45576539830 成功。Android ARM64 45576539770 与模拟器 45576539811 均在 Tauri CLI 版本检查阶段失败：Rust process 2.4.0 与 npm process 2.3.1 的 minor 不一致，未进入实际原生编译。将 npm process 精确升级至 2.4.0，使用 npm 更新锁文件，仅相关依赖变化，增加 process/updater 的 Rust 与 npm major/minor 一致性专项回归。
+- 重新连接 Mac，仓库级 Actions Secrets 与 Variables 数量均为 0；未确认任何现有私钥，未生成、读取或上传私钥，不降低签名门禁。原工作区保持不变，修复在外置独立 worktree 完成。Android 原生编译及覆盖升级以新 CI 和真实设备验收为准。
