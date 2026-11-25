@@ -6,6 +6,28 @@ export const defaultGoals=()=>({completed:0,focusMinutes:0,yearCompleted:0,yearF
 export function validGoals(g){return g&&Number.isInteger(g.completed)&&g.completed>=0&&g.completed<=100000&&Number.isInteger(g.focusMinutes)&&g.focusMinutes>=0&&g.focusMinutes<=44640&&(g.yearCompleted===undefined||Number.isInteger(g.yearCompleted)&&g.yearCompleted>=0&&g.yearCompleted<=1000000)&&(g.yearFocusMinutes===undefined||Number.isInteger(g.yearFocusMinutes)&&g.yearFocusMinutes>=0&&g.yearFocusMinutes<=527040)}
 export function readGoals(storage){const raw=storage.getItem(GOAL_KEY);if(raw==null)return defaultGoals();const g=JSON.parse(raw);if(!validGoals(g))throw Error('目标配置无效，原数据保留');return {...defaultGoals(),...g}}
 export function writeGoals(storage,g){if(!validGoals(g))throw Error('目标超出范围');storage.setItem(GOAL_KEY,JSON.stringify(g));return g}
+// Keep the legacy preference intact; its original effective date is unknown.
+export const GOAL_HISTORY_KEY='todo-review-goal-history-v1';
+export const GOAL_HISTORY_LIMIT=366;
+export function readGoalHistory(storage){
+ const raw=storage.getItem(GOAL_HISTORY_KEY);if(raw==null)return [];
+ const rows=JSON.parse(raw);
+ if(!Array.isArray(rows)||rows.length>GOAL_HISTORY_LIMIT||!rows.every((r,i)=>r&&validDate(r.effectiveFrom)&&typeof r.savedAt==='string'&&Number.isFinite(Date.parse(r.savedAt))&&validGoals(r.goals)&&(!i||rows[i-1].effectiveFrom<=r.effectiveFrom)))throw Error('目标历史异常，原数据保留');
+ return rows;
+}
+export function goalAt(rows,date){
+ if(!validDate(date))return null;
+ return rows.findLast(r=>r.effectiveFrom<=date)||null;
+}
+export function saveGoalVersion(storage,goals,today,now=new Date()){
+ if(!validGoals(goals)||!validDate(today)||dayKey(now)!==today)throw Error('目标或生效日期无效，请重新打开报告');
+ const rows=readGoalHistory(storage),last=rows.at(-1),value={...defaultGoals(),...goals};
+ if(last&&last.effectiveFrom>today)throw Error('设备日期早于最近目标版本，不能覆盖历史');
+ if(last&&Object.keys(defaultGoals()).every(k=>last.goals[k]===value[k]))return rows;
+ if(rows.length>=GOAL_HISTORY_LIMIT)throw Error('目标历史已达366份上限，原记录保留');
+ const next=[...rows,{effectiveFrom:today,savedAt:now.toISOString(),goals:value}];
+ storage.setItem(GOAL_HISTORY_KEY,JSON.stringify(next));return next;
+}
 export function habitAssociation(days,counts){
  const n=days.length,yes=days.filter(d=>d.checked),no=days.filter(d=>!d.checked),mean=xs=>xs.reduce((s,d)=>s+(counts.get(d.date)||0),0)/xs.length;
  if(n<14||yes.length<3||no.length<3)return {days:n,checked:yes.length,unchecked:no.length,checkedMean:null,uncheckedMean:null,r:null};

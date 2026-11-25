@@ -29,3 +29,15 @@ test('手势轴锁定与位移门槛，无破坏性动作',()=>{
  assert.equal(gestureAction(-80,10,'x'),'menu');assert.equal(gestureAction(-80,60,'y'),null);assert.equal(gestureAction(-40,0,'x'),null);
  assert.equal(gestureAction(10,90,'y','sheet'),'dismiss');assert.equal(gestureAction(80,90,'y','sheet'),null);assert.equal(gestureAction(0,-100,'y','sheet'),null);
 });
+
+test('目标版本仅自保存日生效，旧配置不回填，历史与同日版本保留',async()=>{
+ const {readGoalHistory,goalAt,saveGoalVersion,GOAL_HISTORY_KEY}=await import('../src/core/review-insights.js');
+ const s=store();writeGoals(s,{completed:99,focusMinutes:300});assert.deepEqual(readGoalHistory(s),[]);assert.equal(goalAt([],date),null);
+ const first={completed:10,focusMinutes:60},second={completed:20,focusMinutes:120};
+ saveGoalVersion(s,first,date,new Date(date+'T12:00:00'));
+ const next=shiftDay(date,1);saveGoalVersion(s,second,next,new Date(next+'T12:00:00'));
+ assert.equal(goalAt(readGoalHistory(s),shiftDay(date,-1)),null);assert.equal(goalAt(readGoalHistory(s),date).goals.completed,10);assert.equal(goalAt(readGoalHistory(s),next).goals.completed,20);
+ saveGoalVersion(s,{...second,completed:25},next,new Date(next+'T13:00:00'));assert.equal(readGoalHistory(s).length,3);assert.equal(goalAt(readGoalHistory(s),next).goals.completed,25);assert.equal(readGoals(s).completed,99);
+ assert.throws(()=>saveGoalVersion(s,first,date,new Date(date+'T12:00:00')));
+ s.setItem(GOAL_HISTORY_KEY,'broken');assert.throws(()=>saveGoalVersion(s,first,next,new Date(next+'T12:00:00')));assert.equal(s.getItem(GOAL_HISTORY_KEY),'broken');
+});

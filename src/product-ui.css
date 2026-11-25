@@ -48,8 +48,8 @@
 @media(prefers-reduced-motion:no-preference){
  .v2 :is(.nav-row,.task-row,.rail button,.icon-button,.primary,.secondary,.tag-chip),.smart-select-trigger,.settings-navigation button{transition:background-color var(--ui-fast),border-color var(--ui-fast),color var(--ui-fast),box-shadow var(--ui-fast),transform var(--ui-fast)}
  .v2 :is(.primary,.secondary,.rail button,.icon-button):active:not(:disabled),.smart-select-trigger:active:not(:disabled){transform:scale(.97)}
- .v2 .task-content{animation:ui-workspace-in var(--ui-normal) var(--ui-ease) both}
- @keyframes ui-workspace-in{from{opacity:.6;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+ .v2 .task-content{animation:ui-workspace-in var(--motion-popup) var(--motion-ease)}
+ @keyframes ui-workspace-in{from{opacity:.82;translate:0 3px}to{opacity:1;translate:0 0}}
 }
 @media(hover:hover) and (pointer:fine){.smart-select-trigger:hover{background:var(--hover)}.settings-navigation button:hover:not(.active){background:var(--hover)}}
 @media(max-width:860px){
