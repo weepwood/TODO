@@ -12,6 +12,8 @@ export function useTouchGesture({enabled=true,kind='row',onAction,onHold}){
  useEffect(()=>{cancelTimer();active.current=null;cancelFrame();if(enabled)paint(idle,true)},[enabled]);
  const start=e=>{
   reset();if(!enabled||e.touches.length!==1||kind!=='row'&&e.target.closest('button,input,textarea,a,[role=button]'))return;
+  // A new valid touch owns its own click; only the preceding gesture's synthetic click is suppressed.
+  suppressUntil.current=0;
   const t=e.touches[0],a={x:t.clientX,y:t.clientY,axis:null,held:false,moved:false};active.current=a;
   if(onHold)timer.current=setTimeout(()=>{if(active.current===a&&!a.axis&&!a.moved){a.held=true;paint({offset:0,phase:'held',release:0},true)}},500);
  };
