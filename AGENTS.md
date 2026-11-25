@@ -457,3 +457,8 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - 0ceeafa CI 45632765599成功，实际审阅artifacts/TODO/ui-pr23-45632765599内专注、看板、习惯、深色规划截图，确认数值完整、状态控件紧凑、指标及进度正常。PR #23合并d894dc0，正式main同步；Pages 45634066837成功。
 - 独立worktree v13-detail-timeline，feat/v13-detail-timeline基于d894dc0；展示态8项快捷属性进入现有区块并定位控件，桌面悬浮图标、触屏入口、只读保护；当前值与可访问描述关联。时间轴同日重叠预览、拉伸分钟提示、短块实色预览，保留时间算法、指针取消和写入时机。习惯卡片去除重复目标计数。未修改业务模型、同步、计时和发布配置。
 - 本机105/105单测、159源码/E2E解析、CSS及相对导入检查、Web构建2.73s、首轮16/16专项浏览器通过；审查detail-quick-edit.png、timeline-overlap-preview.png（保存至artifacts/TODO/detail-timeline-first）。最后增加不透明短块单行预览及ARIA当前值描述、新增真实拉伸取消专项，最终重型复验因内存压力2被资源门禁拒绝（detail-timeline-final.log），需PR CI验证最终提交，不把首轮截图视为最终证据。跨日预览不计算其他日期冲突；未构建安装包、未新增依赖。
+
+### PR #24 收口及 V1.3 工作台视觉深化
+- 2f0533f CI 45634630658成功；下载artifacts/TODO/ui-pr24-45634630658，人工复核快捷编辑、同日重叠预览及拉伸反馈真实截图。PR #24合并1dc8ae8，正式main同步；Pages 45635508066成功。保留跨日预览不预判其他日期冲突的边界。
+- 新独立worktree v13-workspace-visual，feat/v13-workspace-visual基于1dc8ae8。新增共享事件颜色、FullCalendar 7 color/contrastColor/eventClass及实际--fc-event-color应用；看板/四象限增加清单、日期时间、非零积分信息；专注历史按日期分组和时长合计，保留最近100条；364天热力图按本地星期定位，色阶0/1/2/3/4+及图例、滚动容器与摘要。保留数据模型、计时、筛选、同步及发布配置。
+- 本机108/108单测、162个源文件及E2E解析、相对导入和CSS、diff检查通过；新增事件颜色、星期位置及记录分组单测，新增实际看板元数据、日历事件样式、专注历史、热力图位置浏览器测试与截图。重型验收因内存压力2被资源门禁拒绝（workspace-visual-verify.log）；最终Web构建和视觉验收待CI。未新增依赖、未构建安装包。未实施长时资源测试或全面工作区动画重构。
