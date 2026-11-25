@@ -5,6 +5,7 @@ import {calendarBusy} from './productivity.js';
 
 export function reviewPeriod(anchor,today,weekly=false){
  const date=validDate(anchor)&&anchor<=today?anchor:today;
+ if(weekly==='month'){const since=date.slice(0,7)+'-01',end=dayKey(new Date(Number(date.slice(0,4)),Number(date.slice(5,7)),0,12));return {since,until:[end,today].sort()[0]}}
  const monday=shiftDay(date,-((new Date(date+'T12:00:00').getDay()+6)%7));
  return weekly?{since:monday,until:[shiftDay(monday,6),today].sort()[0]}:{since:date,until:date};
 }

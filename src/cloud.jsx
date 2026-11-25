@@ -1,3 +1,4 @@
+import {unsafeSeriesPull} from './core/series-control.js';
 import {subscribeSyncWake} from './platform/web/sync-wake.js';
 import {mobileNative,androidNative} from './platform/runtime.js';
 import {invoke} from '@tauri-apps/api/core';
@@ -75,6 +76,7 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked,logStorage}){
    if(!active.current)return;
    if(latest.current.data!==snapshot){setStatus('等待本地保存');return}
    let decision=decideSync({localHash:hash,remoteHash,remoteRevision:remote?.revision??null,meta,emptyHash});
+   const unsafePull=!resolution&&decision==='pull'&&remote&&unsafeSeriesPull(base||snapshot,remote.state);if(unsafePull)decision='conflict';
    if(resolution){
     // Recheck the exact cloud revision presented to the user.
     if((remote?.revision??null)!==conflictRef.current?.revision){decision='conflict'}
@@ -90,7 +92,7 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked,logStorage}){
     else if(resolution==='cloud'&&remote){preserveConflict(storage,snapshot);decision='pull'}
     else if(resolution==='local'){if(remote)preserveConflict(storage,remote.state);decision=remote?'push':'insert'}
    }
-   if(decision==='conflict'&&!resolution&&remote){
+   if(decision==='conflict'&&!resolution&&!unsafePull&&remote){
     if(!active.current||latest.current.data!==snapshot){setStatus('等待本地保存');return}
     const merged=base?mergeTasks(base,snapshot,remote.state):null;
     if(merged){

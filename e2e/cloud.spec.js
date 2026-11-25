@@ -10,7 +10,7 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
  const token=encode({alg:'HS256',typ:'JWT'})+'.'+encode({sub:uid,exp:expires,role:'authenticated'})+'.mock';
  const session={access_token:token,refresh_token:'mock-refresh',token_type:'bearer',expires_in:3600,expires_at:expires,user:{id:uid,email:'test@example.invalid',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{},created_at:new Date().toISOString()}};
  let row=null,deltaWrites=0,metadataReads=0,deltaReads=0,deltaMisses=0,patches=[],forceRace=false;
- test.setTimeout(90000);const contexts=[];
+ test.setTimeout(120000);const contexts=[];
  async function device(){
   const ctx=await browser.newContext();contexts.push(ctx);
   await ctx.routeWebSocket("**/realtime/v1/websocket**",ws=>ws.close());
@@ -107,6 +107,38 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
   await expect.poll(()=>row.state.smartLists?.some(f=>f.name==='同步智能清单'&&f.mode==='any')).toBe(true);
   await a.page.getByRole('button',{name:'设置',exact:true}).click();await a.page.getByRole('button',{name:'立即同步'}).click();await a.page.keyboard.press('Escape');
   await expect(a.page.locator('.nav-row').filter({hasText:'同步智能清单'})).toBeVisible({timeout:15000});expect(deltaReads).toBeGreaterThan(0);expect(deltaMisses).toBeGreaterThan(0);
+  // Series controls travel through the same revision-checked task delta protocol.
+  await a.page.locator('[data-view-key=inbox]').click();await add(a.page,'同步重复系列');
+  await a.page.locator('.task-body').filter({hasText:'同步重复系列'}).click();
+  const expand=a.page.getByRole('button',{name:'编辑全部',exact:true});if(await expand.isVisible())await expand.click();
+  await chooseOption(a.page.getByRole('combobox',{name:'重复规则'}),'daily');
+  await expect.poll(()=>row.state.tasks.find(t=>t.title==='同步重复系列')?.repeat).toBe('daily');
+  await a.page.getByRole('button',{name:'查看重复系列'}).click();
+  a.page.once('dialog',d=>d.accept());await a.page.getByRole('button',{name:'暂停系列'}).click();
+  await expect.poll(()=>row.state.tasks.find(t=>t.title==='同步重复系列')?.seriesHold?.count).toBe(0);
+  await a.page.keyboard.press('Escape');
+  await b.page.getByRole('button',{name:'设置',exact:true}).click();await b.page.getByRole('button',{name:'立即同步'}).click();await b.page.keyboard.press('Escape');
+  await b.page.locator('[data-view-key=inbox]').click();await b.page.locator('.task-body').filter({hasText:'同步重复系列'}).click();
+  await b.page.getByRole('button',{name:'查看重复系列'}).click();
+  await expect(b.page.getByRole('dialog',{name:'重复任务系列'})).toContainText('系列已暂停');
+  await b.page.getByRole('button',{name:'恢复系列'}).click();
+  await expect.poll(()=>row.state.tasks.find(t=>t.title==='同步重复系列')?.seriesHold).toBeNull();
+  await b.page.keyboard.press('Escape');
+  await a.page.getByRole('button',{name:'设置',exact:true}).click();await a.page.getByRole('button',{name:'立即同步'}).click();await a.page.keyboard.press('Escape');
+  await a.page.getByRole('button',{name:'查看重复系列'}).click();await expect(a.page.getByRole('dialog',{name:'重复任务系列'})).toContainText('系列运行中');
+  // Simulate an old client replacing the cloud snapshot without the pause marker.
+  a.page.once('dialog',d=>d.accept());await a.page.getByRole('button',{name:'暂停系列'}).click();
+  await expect.poll(()=>row.state.tasks.find(t=>t.title==='同步重复系列')?.seriesHold?.count).toBe(0);
+  await expect(a.page.locator('.sync-footer')).toContainText('已同步',{timeout:15000});
+  await a.page.keyboard.press('Escape');
+  row={...row,revision:row.revision+1,state:{...row.state,tasks:row.state.tasks.map(t=>{if(t.title!=='同步重复系列')return t;const legacy={...t};delete legacy.seriesHold;return legacy})},updated_at:new Date().toISOString()};patches=[];
+  await a.page.getByRole('button',{name:'设置',exact:true}).click();await a.page.getByRole('button',{name:'立即同步'}).click();
+  await expect(a.page.locator('.sync-footer')).toContainText('存在同步冲突',{timeout:15000});
+  expect(await a.page.evaluate(uid=>JSON.parse(localStorage.getItem('todo-account:'+uid+':todo-workbench-v1')).tasks.find(t=>t.title==='同步重复系列').seriesHold.count,uid)).toBe(0);
+  a.page.once('dialog',d=>d.accept());await a.page.getByRole('button',{name:'保留本地并上传'}).click();
+  await expect.poll(()=>row.state.tasks.find(t=>t.title==='同步重复系列')?.seriesHold?.count).toBe(0);
+
+
 
  }finally{await Promise.all(contexts.map(c=>c.close()))}
 });

@@ -5,7 +5,8 @@ export function seriesOverview(tasks,id,today){
  const rows=tasks.filter(t=>seriesKey(t)===seriesKey(task)).sort((a,b)=>(b.occurrenceIndex||1)-(a.occurrenceIndex||1)||String(b.date).localeCompare(String(a.date)));
  const live=rows.filter(t=>!t.deletedAt&&t.status==='pending'),active=live.filter(t=>t.repeat!=='none');
  let next=null,reason='没有运行中的重复实例';
- if(active.length===1){
+ if(rows.some(t=>!t.deletedAt&&t.seriesHold&&t.status!=='pending'))reason='存在历史暂停标记冲突，请检查系列管理中心';
+ else if(active.length===1){
   const t=active[0];if(t.seriesHold)reason='系列已暂停，恢复后才继续生成';else if(validDate(t.date)){
    let date=nextOccurrence(t,t.repeat==='completion'?today:t.date),index=(t.occurrenceIndex||1)+1;
    if(t.miss==='skip')({next:date,index}=advanceOccurrence(t,date,index,today));

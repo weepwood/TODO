@@ -1,7 +1,7 @@
 import {canonical,digest} from './cloud-core.js';
 import {migrateState} from '../core/domain.js';
 const eq=(a,b)=>canonical(a)===canonical(b);
-const simple=t=>!t||t.repeat==='none'&&!t.seriesId&&!t.parentId&&!(t.dependsOn||[]).length&&!t.deletedAt;
+const simple=t=>!t||t.repeat==='none'&&!t.seriesId&&!t.previousId&&!t.seriesHold&&!t.parentId&&!(t.dependsOn||[]).length&&!t.deletedAt;
 const SAFE_FIELDS=new Set(['title','notes','priority','points']);
 const changed=(a,b)=>[...new Set([...Object.keys(a||{}),...Object.keys(b||{})])].filter(k=>!eq(a?.[k],b?.[k]));
 // Only task-only, nonstructural concurrent edits are eligible. No guessing on deletion,
