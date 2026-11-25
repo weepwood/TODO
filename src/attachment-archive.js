@@ -16,7 +16,7 @@ export async function parseAttachmentArchive(file){
   validateAttachment(x);if(typeof x.taskId!=='string'||!x.taskId||x.taskId.length>200||typeof x.createdAt!=='string'||!Number.isFinite(Date.parse(x.createdAt))||typeof x.data!=='string'||x.data.length!==Math.ceil(x.size/3)*4||!(/^[a-f0-9]{64}$/).test(x.sha256||''))throw Error('归档条目无效');
   total+=x.size;counts.set(x.taskId,(counts.get(x.taskId)||0)+1);if(total>SCOPE_LIMIT||counts.get(x.taskId)>TASK_LIMIT)throw Error('归档超过附件容量限制');
   const bytes=decode(x.data);if(bytes.length!==x.size||await checksum(bytes)!==x.sha256)throw Error('文件校验失败：'+x.name);
-  entries.push({taskId:x.taskId,name:x.name,size:x.size,createdAt:x.createdAt,blob:new Blob([bytes])});
+  entries.push({taskId:x.taskId,name:x.name,size:x.size,createdAt:x.createdAt,sha256:x.sha256,blob:new Blob([bytes])});
  }
  return entries;
 }

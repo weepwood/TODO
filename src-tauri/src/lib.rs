@@ -188,7 +188,7 @@ pub fn run(){
   let quick=MenuItem::with_id(app,"quick","快速新建任务",true,None::<&str>)?;let menu=Menu::with_items(app,&[&open,&quick,&quit])?;
   let mut tray=TrayIconBuilder::new().menu(&menu).tooltip("TODO").on_menu_event(|app,event|match event.id.as_ref(){"open"=>show(app),"quick"=>{show(app);let _=app.emit("todo-quick-add",());},"quit"=>{let active=app.state::<ActiveScope>();if active.0.lock().ok().and_then(|s|s.clone()).is_some(){let _=app.emit("todo-quit-request",());}else{app.exit(0)}},_=>{}});
   if let Some(icon)=app.default_window_icon(){tray=tray.icon(icon.clone())}tray.build(app)?;
-  if let Err(e)=app.global_shortcut().register("CommandOrControl+Shift+A"){eprintln!("global shortcut unavailable: {e}")}
+  if app.config().identifier == "com.weepwood.todo" {if let Err(e)=app.global_shortcut().register("CommandOrControl+Shift+A"){eprintln!("global shortcut unavailable: {e}")}}
   if let Some(w)=app.get_webview_window("main"){restore_window(&w);}schedule(app.handle().clone());Ok(())
  })
  .on_window_event(|window,event|{if let WindowEvent::CloseRequested{api,..}=event{api.prevent_close();if let Some(w)=window.app_handle().get_webview_window("main"){save_window(&w);}let _=window.hide();}})
