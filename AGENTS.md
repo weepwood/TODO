@@ -261,3 +261,10 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - Android 原生窄屏基础布局为横向可滚动底栏及全宽详情，不代表最终移动端交互设计；浏览器和桌面布局不变。真实 Android WebView/软键盘/系统返回键/Keystore/附件及多设备同步待验收。
 - 77/77 JS、9/9 macOS Rust、11/11 关联 Edge（含模拟 Android IPC、真实桌面 UI、模拟同步、积分、通知授权和直接录入），最后一次移动专项 1/1，生产构建通过。模拟 IPC 不是实机 Android 测试。Rust 全局缓存清理警告不影响测试。本机无 Android SDK，采用 GitHub-hosted Android ARM64 调试 APK 工作流；独立 QA 包名 com.weepwood.todo.qa.android，临时 debug 签名不保证跨次覆盖安装，产物验证包名、签名、arm64及SHA256。生成的 Gradle/Kotlin 工程暂由固定版本 CLI 在 CI 初始化，尚未提交正式 Android 工程。CI 按 workflow/Android 配置变更触发或手动运行，不为普通桌面开发强制打包。禁止自动创建正式 Release，禁止引入未经批准的收费服务；WorkManager、AlarmManager/重启调度、FCM、Widget、长期签名与真机留待后续专项。
 - 首次 Android workflow 45565343516 在 SDK 安装步骤失败（sdkmanager: command not found，退出127），未执行 APK 编译。显式接入固定 SHA 的 android-actions/setup-android v3，确保 SDK command-line tools 和 license 准备；删除重复 badging 检查，修正 main 路径触发。新的 Android 结果仍待实际验收。一次额外全量 E2E 启动因 4178 端口占用未运行；关联回归和最终移动专项已通过。工作区曾有重叠的同方向编辑，已修复重复转发与 Cargo target 定义，并核对13个迁移实现和原提交除导入路径外一致。远程 main 已实际为7012800，Pages 45565265830 成功。
+
+### Android 第二阶段（基线 e4a408e）
+- CI 45565487067 失败于 setup-android 默认 tools 包已废弃；改为明确 platform-tools，保持 SDK36/NDK28.2/JDK17、APK 包名/签名/ABI/SHA256 门禁。扩展 Android 工作流路径过滤，未创建 Release。
+- Android 主导航五项 + 更多底部面板、全屏详情、右滑关闭、VisualViewport 及 native back/pause/resume 桥接；原有浏览器和桌面布局保持。后台/pagehide 尽力 flush；系统强杀前异步保存不保证。
+- 复用实际 tauri-plugin-notification 2.8.1 的 batch/get_pending/cancel、AlarmManager 和 Boot Receiver；默认关闭实验开关，未来30天最多200项、持久化后调度、取消改期/完成/删除/退出、保留ID及孤立恢复，通用通知文案，已接收系统请求避免前台重复。系统实际送达、Doze、重启和时区未验证。
+- 新增 Android-only tauri-plugin-todo-mobile（版本化 Kotlin/Gradle/ACL），Keystore AES-256-GCM + 随机IV/AAD + noBackupFilesDir AtomicFile；Supabase 固定会话键异步适配，无明文回退；未迁移旧明文会话，工作空间 SQLite 未加密。WorkManager 2.10.1 仅后台只读 revision 检查，联网约束、15分钟周期、暂停唤醒、已保存的 dirty/revision 意图、有效 access token、项目/UID绑定、禁止重定向、无后台刷新和云端写入。完整后台双向同步未实现。
+- 82/82 JS、5/5 关联 Edge、9/9 macOS Rust、生产构建通过。浏览器仅模拟 Android IPC/原生返回，非实机；Kotlin/Gradle 及真实 Android 安装待 CI。Keystore、WorkManager、闹钟均未验证真机，不虚报。未改真实数据、Supabase schema/费用、既有发布资产。Desktop Commander 月用量约94%。

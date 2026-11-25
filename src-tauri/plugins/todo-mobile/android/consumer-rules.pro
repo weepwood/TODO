@@ -1,0 +1,4 @@
+-keep class com.weepwood.todo.mobile.TodoMobilePlugin { *; }
+-keep class com.weepwood.todo.mobile.RevisionWorker { *; }
+-keep class com.weepwood.todo.mobile.SessionArgs { *; }
+-keep class com.weepwood.todo.mobile.RevisionArgs { *; }

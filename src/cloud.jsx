@@ -1,5 +1,7 @@
 import {subscribeSyncWake} from './platform/web/sync-wake.js';
-import {mobileNative} from './platform/runtime.js';
+import {mobileNative,androidNative} from './platform/runtime.js';
+import {invoke} from '@tauri-apps/api/core';
+import {ANDROID_SESSION_KEY,createAndroidSessionStorage} from './platform/android/session-storage.js';
 import React,{useEffect,useRef,useState,useCallback} from 'react';
 import {createClient} from '@supabase/supabase-js';
 import {isTauri} from '@tauri-apps/api/core';
@@ -10,7 +12,9 @@ import {buildTaskDelta,replayTaskDeltas} from './services/task-delta.js';
 import {appendSyncLog,readSyncLog,SYNC_LOG_KEY} from './services/sync-diagnostics.js';
 import {SyncDiagnostics,ConflictPreview,FieldMerge} from './sync-ui.jsx';
 import {scopedStorage,canonical,digest,readMeta,META_KEY,decideSync,readRemote,preserveConflict,authErrorMessage} from './services/cloud-core.js';
-export const cloud=createClient(CLOUD_URL,CLOUD_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+// Android credentials live only in the native encrypted vault. Other platforms
+// retain their existing session behavior; unsupported native mobile is memory-only.
+export const cloud=createClient(CLOUD_URL,CLOUD_KEY,{auth:{persistSession:!mobileNative||androidNative,autoRefreshToken:true,detectSessionInUrl:!mobileNative,...(androidNative?{storageKey:ANDROID_SESSION_KEY,storage:createAndroidSessionStorage(invoke)}:{})}});
 const TABLE='todo_workspaces';
 export function useAccount(){
  const [session,setSession]=useState(null),[ready,setReady]=useState(false),[error,setError]=useState('');
@@ -60,7 +64,7 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked,logStorage}){
  const active=useRef(true),busy=useRef(false),conflictRef=useRef(null);
  const writeMeta=(revision,hash,state)=>{saveBaseline(uid,storage,revision,hash,state);storage.setItem(META_KEY,JSON.stringify({revision,hash}))};
  const sync=useCallback(async (resolution=null)=>{
-  if(!uid||busy.current||!active.current||latest.current.blocked||(!resolution&&conflictRef.current))return;
+  if(!uid||busy.current||!active.current||latest.current.blocked||(!resolution&&conflictRef.current)||mobileNative&&document.visibilityState==='hidden')return;
   if(!navigator.onLine){setStatus('离线，修改保存在本机');record('offline');return}
   busy.current=true;setStatus('同步中');setError('');
   try{

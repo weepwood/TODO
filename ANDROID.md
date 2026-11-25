@@ -9,3 +9,12 @@
 
 ## 验收边界
 当前通过桌面 Rust 单测及 Android 浏览器模拟 IPC 测试；首次真实 APK 构建结果及 Android 真机运行待核验。当前本地任务、积分、SQLite 和前台同步沿用共享实现。仅应用运行期间检查提醒；真正的定时通知、重启恢复、后台同步、Keystore、FCM 和无 Google 服务设备推送仍待实现。真机需验证启动/退出、权限拒绝/同意、离线恢复、任务积分及兑换、登录隔离、系统返回、软键盘、附件导入导出。未经确认不新增费用。
+
+## Android 原生能力第二阶段（实验）
+
+移动端使用任务/日历/每日规划/统计/更多五项底部导航、全宽详情、非破坏性详情右滑关闭、VisualViewport 键盘适配。Kotlin Activity 回退桥接先询问 WebView 是否消耗返回动作；未处理则交给系统。前后台及 pagehide 尽力 flush SQLite；不能保证系统强杀前异步写入完成。恢复前台触发既有 revision/CAS 同步。
+
+- 系统定时提醒：显式开启并授权后，复用 Tauri notification 插件的 batch/pending/cancel 与 Android AlarmManager、Boot Receiver。最多200个未来30天的请求；保存成功后对账，改期/完成/删除/切换账号取消旧请求。使用保留 ID 范围、设备本地注册表、重复提交/孤立请求恢复。默认通用锁屏文案，不暴露任务标题。插件接收成功不等于实际送达；已交付系统调度的请求不再主动重复弹窗，应用内仍记录提醒。后台调度、重启、Doze、时区和精确闹钟权限须实机确认；不自动申请精确闹钟特权。开关默认关闭。
+- Android 会话：独立 todo-mobile Tauri 插件，AndroidKeyStore AES-256-GCM，每次加密随机 IV，包名/键名 AAD，AtomicFile 持久化于 noBackupFilesDir；仅允许三个固定 Supabase 会话键。无明文 WebView 存储回退，不迁移旧明文会话；失效可显式清除登录会话，不删除工作空间。原生加解密与升级恢复仍待真机验证，SQLite 任务库本身未加密。
+- WorkManager：可选实验性后台版本检查，已提交 SQLite 快照的 revision/dirty 意图加密保存，15分钟周期及暂停时单次联网任务。仅使用有效 access token 向绑定的 Supabase HTTPS 项目 GET 当前账号 revision；禁止重定向、后台刷新令牌、后台写入任务/云端。令牌过期等待前台恢复。现有 SQLite 快照为离线修改的权威队列，foreground CAS 继续唯一工作空间写入者。不是完整后台上传/下载引擎；后续需要原生单写入者、事务回执、会话刷新仲裁和真实多设备冲突验收。
+- CI 45565487067 实际失败在 setup-android 默认安装已废弃 tools 包，明确 packages: platform-tools；已版本化 Kotlin/Gradle 插件源码和 Android 专属 ACL，CI 按移动源码/配置触发。仅 debug QA APK，不创建正式 Release；正式长期签名另验收。

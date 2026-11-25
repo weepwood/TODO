@@ -6,6 +6,10 @@ on:
     paths:
       - '.github/workflows/android.yml'
       - 'src-tauri/tauri.android.conf.json'
+      - 'src-tauri/plugins/todo-mobile/**'
+      - 'src-tauri/capabilities/android-native.json'
+      - 'src/platform/android/**'
+      - 'src/layouts/mobile/**'
 permissions:
   contents: read
 concurrency:
@@ -32,6 +36,9 @@ jobs:
           targets: aarch64-linux-android
       - name: Set up Android command-line tools
         uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
       - name: Android SDK and NDK
         run: |
           sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358"

@@ -1,0 +1,14 @@
+{
+  "identifier":"android-native",
+  "description":"Android main window encrypted session and read-only background revision check",
+  "windows":["main"],
+  "platforms":["android"],
+  "permissions":[
+    "todo-mobile:allow-session-read",
+    "todo-mobile:allow-session-write",
+    "todo-mobile:allow-session-remove",
+    "todo-mobile:allow-revision-configure",
+    "todo-mobile:allow-revision-status",
+    "todo-mobile:allow-revision-cancel"
+  ]
+}

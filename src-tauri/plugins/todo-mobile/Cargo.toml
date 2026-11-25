@@ -1,0 +1,10 @@
+[package]
+name = "tauri-plugin-todo-mobile"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.90"
+links = "tauri-plugin-todo-mobile"
+[dependencies]
+tauri = { version = "2", default-features = false }
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
