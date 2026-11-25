@@ -41,3 +41,13 @@ test('目标版本仅自保存日生效，旧配置不回填，历史与同日�
  assert.throws(()=>saveGoalVersion(s,first,date,new Date(date+'T12:00:00')));
  s.setItem(GOAL_HISTORY_KEY,'broken');assert.throws(()=>saveGoalVersion(s,first,next,new Date(next+'T12:00:00')));assert.equal(s.getItem(GOAL_HISTORY_KEY),'broken');
 });
+
+test('独立目标累计与回顾口径一致，排除未来和休息记录',async()=>{
+ const {goalProgressAt,reviewInsights}=await import('../src/core/review-insights.js');
+ const d=initialState(),t={...newTask('完成','work',date),status:'completed',completedAt:date+'T12:00:00'};
+ d.tasks=[t,{...t,id:'future',completedAt:shiftDay(date,1)+'T12:00:00'},{...t,id:'deleted',deletedAt:date}];
+ d.sessions=[{mode:'focus',seconds:1800,startedAt:date+'T09:00:00'},{mode:'stopwatch',seconds:600,startedAt:date+'T10:00:00'},{mode:'break',seconds:1200,startedAt:date+'T11:00:00'}];
+ const p=goalProgressAt(d,date),r=reviewInsights(d,buildReview(d,{since:date,until:date}));
+ for(const [key,value] of Object.entries(p))assert.equal(r[key],value);
+ assert.equal(p.monthlyCompleted,1);assert.equal(p.monthlyFocus,40);
+});

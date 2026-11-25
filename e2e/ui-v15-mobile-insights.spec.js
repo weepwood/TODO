@@ -59,3 +59,23 @@ test('时长参考样本门槛、预测及清单范围',async({page})=>{
  await forecast.getByLabel('参考任务预计分钟',{exact:true}).fill('20');await forecast.getByLabel('参考任务预计分钟',{exact:true}).press('Enter');await expect(forecast).toContainText('40–40 分钟');
  await page.getByRole('combobox',{name:'统计清单'}).click();await page.getByRole('option',{name:'收集箱',exact:true}).click();await expect(forecast.getByRole('status')).toContainText('有效样本不足10项');
 });
+
+test('目标编辑离开保护、取消及报告模式切换',async({page})=>{
+ await page.setViewportSize({width:1440,height:900});await seed(page);
+ await page.getByRole('button',{name:'打开目标管理',exact:true}).click();
+ const panel=page.getByRole('region',{name:'目标管理'});
+ await panel.getByRole('button',{name:'设置月度目标与年度目标'}).click();
+ await panel.getByLabel('月度完成目标',{exact:true}).fill('73');
+ page.once('dialog',d=>d.dismiss());await page.getByRole('button',{name:'统计',exact:true}).click();
+ await expect(panel.getByLabel('月度完成目标',{exact:true})).toHaveValue('73');
+ await panel.getByRole('button',{name:'保存目标'}).click();
+ await panel.getByRole('button',{name:'查看对应日期回顾'}).click();
+ const report=page.getByRole('region',{name:'任务回顾'});
+ await expect(report.getByRole('progressbar',{name:'完成任务目标进度',exact:true})).toHaveAttribute('max','73');
+ await report.getByRole('button',{name:'设置月度目标与年度目标'}).click();
+ await report.getByLabel('月度完成目标',{exact:true}).fill('99');
+ page.once('dialog',d=>d.dismiss());await report.getByRole('button',{name:'阅读模式',exact:true}).click();
+ await expect(report.getByLabel('月度完成目标',{exact:true})).toHaveValue('99');
+ await report.getByRole('button',{name:'取消',exact:true}).click();
+ await report.getByRole('button',{name:'阅读模式',exact:true}).click();await expect(report.locator('.report-reading')).toBeVisible();
+});

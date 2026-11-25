@@ -485,3 +485,21 @@
  .todo-print-report .review-line,.todo-print-report .review-trend{break-inside:avoid}
  .todo-print-report .review-trend:has(.monthly-trend){break-inside:auto}
 }
+
+/* Workspace composition: use one surface language and preserve actionable
+   controls, not decorative nested cards. */
+.goal-edit-note{grid-column:1/-1;margin:0}
+.forecast-week-bars{display:grid;gap:5px;flex:1 1 220px;min-width:0}
+.forecast-week-bars>div{display:grid;grid-template-columns:96px minmax(0,1fr);align-items:center;gap:8px;font-size:var(--font-caption);font-variant-numeric:tabular-nums}
+.forecast-week-bars i{height:7px;border-radius:var(--radius-small);background:var(--muted)}
+.forecast-week-bars i.actual{background:var(--accent)}
+.module-content .focus-card{max-width:720px;margin-inline:auto;border:var(--surface-border);border-radius:var(--surface-radius)}
+.module-content .habit-row{border:var(--surface-border);border-radius:var(--surface-radius);padding:var(--space-3);margin-bottom:var(--space-2)}
+.module-content .board-task-card{box-shadow:var(--surface-shadow)}
+.module-content .board-column h3{font-size:var(--surface-heading-size)}
+.module-content .stats .stat-card{margin-bottom:var(--space-3)}
+@container work-area (min-width:920px){
+ .module-content .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3);align-items:stretch}
+ .module-content .stats>:not(.stat-card),.module-content .stats>.duration-forecast,.module-content .stats>.stats-wide-chart,.module-content .stats>.activity-drill,.module-content .stats>.points-dashboard,.module-content .stats>.points-wallet{grid-column:1/-1}
+ .module-content .stats .stat-card{margin:0}
+}

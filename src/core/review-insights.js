@@ -34,18 +34,24 @@ export function habitAssociation(days,counts){
  const a=mean(yes),b=mean(no),m=mean(days),variance=days.reduce((s,d)=>s+((counts.get(d.date)||0)-m)**2,0)/n;
  return {days:n,checked:yes.length,unchecked:no.length,checkedMean:a,uncheckedMean:b,r:variance>0?Math.max(-1,Math.min(1,(a-b)/Math.sqrt(variance)*Math.sqrt(yes.length*no.length)/n)):null}
 }
+export function goalProgressAt(data,until){
+ const monthStart=until.slice(0,7)+'-01',yearStart=until.slice(0,4)+'-01-01';
+ let monthlyCompleted=0,yearlyCompleted=0,monthlySeconds=0,yearlySeconds=0;
+ for(const t of data.tasks){if(t.deletedAt||t.status!=='completed')continue;const date=timestampDay(t.completedAt);if(date>=yearStart&&date<=until){yearlyCompleted++;if(date>=monthStart)monthlyCompleted++}}
+ for(const s of data.sessions){if(s.mode==='break'||!Number.isFinite(s.seconds)||s.seconds<0)continue;const date=timestampDay(s.startedAt);if(date>=yearStart&&date<=until){yearlySeconds+=s.seconds;if(date>=monthStart)monthlySeconds+=s.seconds}}
+ return {month:until.slice(0,7),monthlyCompleted,yearlyCompleted,monthlyFocus:Math.round(monthlySeconds/60),yearlyFocus:Math.round(yearlySeconds/60)};
+}
 export function reviewInsights(data,r){
- const {since,until}=r,monthStart=until.slice(0,7)+'-01',yearStart=until.slice(0,4)+'-01-01',windowStart=shiftDay(until,-89),tasks=data.tasks.filter(t=>!t.deletedAt),counts=new Map(),boundSeconds=new Map(),completedIds=new Set(r.completed.map(t=>t.id));
- let monthlyCompleted=0,monthlySeconds=0,yearlyCompleted=0,yearlySeconds=0;
- for(const t of tasks){if(t.status!=='completed')continue;const date=timestampDay(t.completedAt);if(date>=monthStart&&date<=until)monthlyCompleted++;if(date>=yearStart&&date<=until)yearlyCompleted++;if(date>=windowStart&&date<=until)counts.set(date,(counts.get(date)||0)+1)}
+ const {since,until}=r,windowStart=shiftDay(until,-89),tasks=data.tasks.filter(t=>!t.deletedAt),counts=new Map(),boundSeconds=new Map(),completedIds=new Set(r.completed.map(t=>t.id));
+ for(const t of tasks){if(t.status!=='completed')continue;const date=timestampDay(t.completedAt);if(date>=windowStart&&date<=until)counts.set(date,(counts.get(date)||0)+1)}
  const completionDays=new Map(r.completed.map(t=>[t.id,timestampDay(t.completedAt)]));
- for(const s of data.sessions){if(s.mode==='break'||!Number.isFinite(s.seconds)||s.seconds<0)continue;const date=timestampDay(s.startedAt);if(!date||date>until)continue;if(date>=monthStart)monthlySeconds+=s.seconds;if(date>=yearStart)yearlySeconds+=s.seconds;if(completedIds.has(s.taskId)&&date<=completionDays.get(s.taskId))boundSeconds.set(s.taskId,(boundSeconds.get(s.taskId)||0)+s.seconds)}
+ for(const s of data.sessions){if(s.mode==='break'||!Number.isFinite(s.seconds)||s.seconds<0)continue;const date=timestampDay(s.startedAt);if(!date||date>until)continue;if(completedIds.has(s.taskId)&&date<=completionDays.get(s.taskId))boundSeconds.set(s.taskId,(boundSeconds.get(s.taskId)||0)+s.seconds)}
  const efficiency=efficiencySummary(data.tasks,since,until);
  const errors=[];let estimated=0,actual=0;
  for(const t of r.completed){if(!boundSeconds.has(t.id)||boundSeconds.get(t.id)<=0)continue;const minutes=boundSeconds.get(t.id)/60;estimated+=t.duration;actual+=minutes;errors.push(Math.abs(minutes-t.duration))}
  errors.sort((a,b)=>a-b);const mid=Math.floor(errors.length/2),median=errors.length?(errors[mid]+errors[(errors.length-1)>>1])/2:null;
  const habits=data.habits.slice(0,30).map(h=>{const recorded=h.days.filter(d=>d<=until).sort(),start=recorded.length?[recorded[0],windowStart].sort().at(-1):null,checked=new Set(recorded),days=[];if(start)for(let d=start;d<=until&&days.length<90;d=shiftDay(d,1))days.push({date:d,checked:checked.has(d)});return {id:h.id,name:h.name,...habitAssociation(days,counts)}});
- return {version:1,month:until.slice(0,7),monthlyCompleted,monthlyFocus:Math.round(monthlySeconds/60),yearlyCompleted,yearlyFocus:Math.round(yearlySeconds/60),...efficiency,matched:errors.length,estimated:Math.round(estimated),actual:Math.round(actual),bias:Math.round(actual-estimated),medianError:median===null?null:Math.round(median*10)/10,habits,habitTotal:data.habits.length};
+ return {version:1,...goalProgressAt(data,until),...efficiency,matched:errors.length,estimated:Math.round(estimated),actual:Math.round(actual),bias:Math.round(actual-estimated),medianError:median===null?null:Math.round(median*10)/10,habits,habitTotal:data.habits.length};
 }
 export function validInsights(v){
  const nonnegative=['monthlyCompleted','monthlyFocus','planned','plannedDone','dated','onTime','matched','estimated','actual','habitTotal'];

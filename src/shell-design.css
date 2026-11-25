@@ -53,6 +53,20 @@
  .note-editor-dialog .note-immersive-toggle{display:none}
 }
 @media(prefers-reduced-motion:no-preference){
- .v2 .task-content{animation-duration:140ms}
  .v2.compact-mobile .mobile-nav-indicator{transition:transform 190ms var(--ui-ease)}
+}
+
+/* Stable four-track shell on resizable desktop widths. Grid interpolates from
+   its current value on rapid toggles. Dragging a handle stays synchronous. */
+@media(min-width:1151px){
+ .app.v2:not(.compact-mobile){--shell-side-track:var(--user-sidebar,228px);--shell-detail-track:0px;grid-template-columns:var(--shell-rail) var(--shell-side-track) minmax(0,1fr) var(--shell-detail-track)}
+ .app.v2:not(.compact-mobile)[data-detail-visible=true]{--shell-detail-track:var(--user-detail,350px)}
+ .app.v2:not(.compact-mobile)[data-sidebar-hidden=true]{--shell-side-track:0px}
+ .app.v2:not(.compact-mobile)>.workspace{grid-column:3;min-width:0}
+ .app.v2:not(.compact-mobile)>.sidebar{grid-column:2;min-width:0;overflow-x:hidden}
+ .app.v2:not(.compact-mobile)[data-sidebar-hidden=true]>.sidebar{display:flex;visibility:hidden;pointer-events:none;padding-inline:0;border:0}
+ .app.v2:not(.compact-mobile)>.details{grid-column:4;min-width:0;width:100%;overflow:hidden}
+}
+@media(min-width:1151px) and (prefers-reduced-motion:no-preference){
+ body:not(.resizing-panels) .app.v2:not(.compact-mobile){transition:grid-template-columns var(--motion-layout) var(--motion-ease)}
 }
