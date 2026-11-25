@@ -1,13 +1,13 @@
 import {useTransientPopover} from "../design-system/popover.js";
 import React,{useEffect,useState} from 'react';
 import * as Dropdown from '@radix-ui/react-dropdown-menu';
-import {ArrowDownUp,ListFilter,Layers,ChevronRight,Check,Plus} from 'lucide-react';
+import {ArrowDownUp,ListFilter,Layers,ChevronRight,Check,Plus,CheckCircle2} from 'lucide-react';
 import {SORTS,GROUPS,ORDERS} from '../core/task-list-interaction.js';
-export function TaskViewMenu({sort,group,order,onSort,onGroup,onOrder,onAddGroup,compact=false}){
+export function TaskViewMenu({sort,group,order,onSort,onGroup,onOrder,onAddGroup,completed,onCompleted,compact=false}){
  const [open,setOpen]=useState(false),[page,setPage]=useState(null);
  const changeOpen=value=>{setOpen(value);setPage(null)};
  useTransientPopover(open,()=>changeOpen(false));
- const groups=[['分组',Layers,GROUPS,group,onGroup,false],['排序',ListFilter,SORTS,sort,onSort,false],['顺序',ArrowDownUp,ORDERS,order,onOrder,sort==='manual']];
+ const groups=[['分组',Layers,GROUPS,group,onGroup,false],['排序',ListFilter,SORTS,sort,onSort,false],['顺序',ArrowDownUp,ORDERS,order,onOrder,sort==='manual'],...(completed===undefined?[]:[['已完成任务',CheckCircle2,[['inherit','跟随设置'],['show','显示'],['hide','隐藏']],completed,onCompleted,false]])];
  const choices=(options,value,change)=><Dropdown.RadioGroup value={value} onValueChange={change}>{options.map(([id,name])=><Dropdown.RadioItem key={id} value={id} className="dropdown-item task-view-option"><span>{name}</span><Dropdown.ItemIndicator><Check size={15}/></Dropdown.ItemIndicator></Dropdown.RadioItem>)}</Dropdown.RadioGroup>;
  const submenu=(label,Icon,options,value,change,disabled=false)=><Dropdown.Sub>
   <Dropdown.SubTrigger className="dropdown-item task-view-sub" disabled={disabled}><Icon size={16}/><span>{label}</span><small>{disabled?'手动':options.find(([id])=>id===value)?.[1]}</small><ChevronRight size={14}/></Dropdown.SubTrigger>

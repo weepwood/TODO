@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readViewPreferences,updateViewPreference,normalizeView,defaultView,VIEW_PREFS_KEY,toggleGroupPreference,groupPreferenceKey} from '../src/core/view-preferences.js';
+import {readViewPreferences,updateViewPreference,normalizeView,defaultView,VIEW_PREFS_KEY,toggleGroupPreference,groupPreferenceKey,showCompletedInView} from '../src/core/view-preferences.js';
 test('validates preference values and isolated view patches',()=>{
  const state=readViewPreferences({getItem:()=>null});
  const first=updateViewPreference(state,'inbox',{sort:'title',order:'desc'});
@@ -30,4 +30,18 @@ test('fold state is independent by view and grouping dimension',()=>{
  assert.deepEqual(s.views.inbox.collapsedGroups,[groupPreferenceKey('date','unassigned')]);
  assert.deepEqual(s.views.today.collapsedGroups,[groupPreferenceKey('section','unassigned')]);
  assert.deepEqual(normalizeView({collapsedGroups:[42,'a','a',null]}).collapsedGroups,['a']);
+});
+
+test('completed visibility defaults to hidden and independent lists can override global settings',()=>{
+ const original=readViewPreferences({getItem:()=>null});
+ assert.equal(showCompletedInView(original,'inbox'),false);
+ let state={...original,showCompleted:true};
+ assert.equal(showCompletedInView(state,'inbox'),true);
+ state=updateViewPreference(state,'inbox',{completed:'hide'});
+ assert.equal(showCompletedInView(state,'inbox'),false);
+ assert.equal(showCompletedInView(state,'work'),true);
+ state=updateViewPreference(state,'inbox',{completed:'inherit'});
+ assert.equal(showCompletedInView(state,'inbox'),true);
+ assert.equal(normalizeView({completed:'invalid'}).completed,'inherit');
+ assert.deepEqual(readViewPreferences({getItem:()=>JSON.stringify(state)}),state);
 });

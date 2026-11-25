@@ -65,3 +65,11 @@
 .detail-fact-edit:hover>svg,.detail-fact-edit:focus-visible>svg{opacity:1}
 @media(pointer:coarse),(max-width:860px){.detail-fact-edit>svg{opacity:.65}.detail-facts dd .detail-fact-edit{min-height:44px}}
 @media(prefers-reduced-motion:no-preference){.detail-fact-edit{transition:background-color var(--motion-fast)}.detail-fact-edit>svg{transition:opacity var(--motion-fast)}}
+
+/* Completed records stay selectable, while their editable fields remain locked. */
+.task-row.historical .task-check:not(:disabled),.detail-title .task-check[aria-pressed=true]:not(:disabled){color:var(--accent-text);border-color:var(--accent)}
+.task-row.historical .task-check:not(:disabled):hover,.detail-title .task-check[aria-pressed=true]:not(:disabled):hover{background:var(--active)}
+.completed-list-caption{margin-top:var(--space-3)}
+.task-preference-row{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3);background:var(--panel);border-radius:var(--radius-surface)}
+.task-preference-row>div{flex:1;min-width:0}
+.task-preference-row p{margin:5px 0 0;line-height:1.5}
