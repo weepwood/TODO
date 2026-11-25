@@ -187,3 +187,14 @@
 .bulk-postpone-dialog .shared-segment>button{padding:6px 12px;min-height:var(--control-height);color:var(--muted)}
 .bulk-postpone-dialog .shared-segment>button.chosen{background:var(--active);color:var(--accent-text);font-weight:600}
 @media(max-width:860px){.bulk-postpone-dialog .shared-segment>button{min-height:44px}}
+
+.series-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.series-summary>span,.series-next{display:grid;gap:6px;padding:12px;background:var(--panel);border-radius:var(--radius-surface);color:var(--muted)}
+.series-summary strong,.series-next strong{color:var(--text)}
+.series-summary strong{font-size:20px}
+.series-records,.closeout-rows{max-height:32dvh;overflow:auto}
+.series-record{width:100%;padding:10px;border-bottom:1px solid var(--line)}
+.closeout-row{display:flex;align-items:center;gap:8px;min-height:36px;padding:5px 0}
+.closeout-row>span{flex:1;min-width:0;overflow-wrap:anywhere}
+.closeout-row>small{color:var(--muted);white-space:nowrap}
+@media(max-width:860px){.closeout-row,.series-record{min-height:44px}}
