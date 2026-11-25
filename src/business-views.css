@@ -8,7 +8,7 @@
 .board-lane-nav button{padding:6px 12px;min-height:34px;border:1px solid var(--line);border-radius:7px;color:var(--muted);font-size:12px}
 .board-lane-nav button[aria-pressed=true]{background:var(--active);border-color:transparent;color:var(--accent-text);font-weight:600}
 .board-grid .board-column[data-lane-visible=false]{display:none}
-.board-grid[data-lane]:not([data-lane=all]){grid-template-columns:minmax(0,1fr)}
+.board-grid[data-lane]:not([data-lane=all]){grid-template-columns:minmax(0,640px)}
 .board-grid .board-column{padding:12px;min-width:0}
 .board-column h3{align-items:center;min-height:28px;padding-bottom:8px;border-bottom:1px solid var(--line)}
 .board-column h3 span{font-variant-numeric:tabular-nums;padding:2px 7px;border-radius:7px;background:var(--bg)}
@@ -44,7 +44,7 @@
  .habit-days button:active{transform:scale(.96)}
 }
 @media(max-width:860px){
- .detail-navigation{margin-inline:-4px;padding-inline:4px}
+ .detail-navigation{margin-inline:-4px;padding-inline:4px;top:-16px;padding-top:16px}
  .detail-navigation button{min-height:44px}
  .board-lane-nav{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
  .board-lane-nav button{white-space:nowrap;flex:none;min-height:44px}
@@ -61,17 +61,12 @@
  .habit-row{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:10px;padding:12px}
  .habit-row>div:first-child{grid-column:1;min-width:0}
  .habit-row>button{grid-column:2;grid-row:1;align-self:start;width:44px;height:44px}
- .habit-row .habit-days{grid-column:1/-1;width:100%;gap:3px}
+ .habit-row .habit-days{grid-column:1/-1;width:100%;gap:3px;grid-template-columns:repeat(7,minmax(44px,1fr));overflow-x:auto;scrollbar-width:thin;padding-bottom:3px}
  .habit-row .habit-days button{min-width:0;min-height:44px}
  .habits-view .quick-add{flex-wrap:wrap}
  .habits-view .quick-add input{min-width:100px}
  .habits-view .quick-add .smart-select-trigger{flex:none}
  .planner-zoom-buttons button{width:44px;height:44px}
 }
-.board-grid[data-lane]:not([data-lane=all]){grid-template-columns:minmax(0,640px)}
 .habits-view .quick-add .smart-select-trigger{background:var(--bg);color:var(--text);border:1px solid var(--line)}
 .focus-card .segmented button.chosen:disabled{opacity:1;color:var(--accent-text)}
-@media(max-width:860px){
- .detail-navigation{top:-16px;padding-top:16px}
- .habit-row .habit-days{grid-template-columns:repeat(7,minmax(44px,1fr));overflow-x:auto;scrollbar-width:thin;padding-bottom:3px}
-}
