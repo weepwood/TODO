@@ -1,4 +1,4 @@
-use std::{sync::Mutex, time::Duration};
+use std::{sync::{Mutex,atomic::{AtomicBool,Ordering}}, time::Duration};
 use chrono::Local;
 use rusqlite::{params, Connection, OptionalExtension};
 use tauri::{Emitter, Manager, WindowEvent, menu::{Menu, MenuItem}, tray::TrayIconBuilder};
@@ -7,6 +7,16 @@ use tauri_plugin_notification::NotificationExt;
 
 struct Database(Mutex<Connection>);
 struct ActiveScope(Mutex<Option<String>>);
+struct QuickCapture(AtomicBool);
+struct ShortcutStatus(Mutex<String>);
+#[tauri::command]
+fn native_take_quick_capture(pending:tauri::State<QuickCapture>)->bool{pending.0.swap(false,Ordering::AcqRel)}
+#[tauri::command]
+fn native_shortcut_status(status:tauri::State<ShortcutStatus>)->String{status.0.lock().map(|v|v.clone()).unwrap_or_else(|_|"unknown".into())}
+fn request_quick_capture(app:&tauri::AppHandle){
+ app.state::<QuickCapture>().0.store(true,Ordering::Release);show(app);let _=app.emit("todo-quick-add",());
+}
+
 fn valid_scope(s:&str)->bool { s=="guest" || (s.len()==36 && s.chars().all(|c|c.is_ascii_hexdigit()||c=='-')) }
 fn schema(c:&Connection)->rusqlite::Result<()> {
  c.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; CREATE TABLE IF NOT EXISTS snapshots(scope TEXT PRIMARY KEY, body TEXT NOT NULL, updated_at INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS backups(scope TEXT NOT NULL, body TEXT NOT NULL, saved_at INTEGER NOT NULL, PRIMARY KEY(scope,saved_at)); CREATE TABLE IF NOT EXISTS delivered(scope TEXT NOT NULL, reminder TEXT NOT NULL, PRIMARY KEY(scope,reminder)); CREATE TABLE IF NOT EXISTS reminder_retry(scope TEXT NOT NULL, reminder TEXT NOT NULL, attempts INTEGER NOT NULL, next_at INTEGER NOT NULL, PRIMARY KEY(scope,reminder)); CREATE TABLE IF NOT EXISTS workspace_store(scope TEXT PRIMARY KEY, body TEXT NOT NULL); CREATE VIRTUAL TABLE IF NOT EXISTS task_search USING fts5(scope UNINDEXED, task_id UNINDEXED, title, notes, tokenize='trigram');")
@@ -156,7 +166,7 @@ fn restore_window(w:&tauri::WebviewWindow){
  if let Ok(Some(m))=w.current_monitor(){let scale=m.scale_factor();let limit=m.size().to_logical::<f64>(scale);width=width.min((limit.width-40.).max(760.) as u32);height=height.min((limit.height-100.).max(520.) as u32);}
  let _=w.set_size(tauri::LogicalSize::new(width,height));let _=w.center();if g.maximized{let _=w.maximize();}
 }
-fn show(app:&tauri::AppHandle){if let Some(w)=app.get_webview_window("main"){let _=w.show();let _=w.set_focus();}}
+fn show(app:&tauri::AppHandle){if let Some(w)=app.get_webview_window("main"){let _=w.show();let _=w.unminimize();let _=w.set_focus();}}
 // Persist a bounded retry schedule before invoking the OS. Delivery is marked only
 // after show() returns success. A crash between show and the SQLite commit may
 // duplicate a reminder; it must not silently suppress the only attempt.
@@ -210,16 +220,19 @@ pub fn run(){
  tauri::Builder::default()
  .plugin(tauri_plugin_single_instance::init(|app,_,_|show(app)))
  .plugin(tauri_plugin_notification::init())
- .plugin(tauri_plugin_global_shortcut::Builder::new().with_handler(|app,_,event|{if event.state()==ShortcutState::Pressed{show(app);let _=app.emit("todo-quick-add",());}}).build())
- .invoke_handler(tauri::generate_handler![native_load,native_save,native_load_store,native_write_store,native_activate,native_search,native_list_backups,native_read_backup,native_create_backup,native_notify,native_exit,native_test_notification])
+ .plugin(tauri_plugin_global_shortcut::Builder::new().with_handler(|app,_,event|{if event.state()==ShortcutState::Pressed{request_quick_capture(app);}}).build())
+ .invoke_handler(tauri::generate_handler![native_load,native_save,native_load_store,native_write_store,native_activate,native_search,native_list_backups,native_read_backup,native_create_backup,native_notify,native_exit,native_test_notification,native_take_quick_capture,native_shortcut_status])
  .setup(|app|{
   let path=app.path().app_data_dir()?;std::fs::create_dir_all(&path)?;let c=Connection::open(path.join("todo.sqlite3"))?;schema(&c)?;
-  app.manage(Database(Mutex::new(c)));app.manage(ActiveScope(Mutex::new(None)));
+  app.manage(Database(Mutex::new(c)));app.manage(ActiveScope(Mutex::new(None)));app.manage(QuickCapture(AtomicBool::new(false)));app.manage(ShortcutStatus(Mutex::new("not-registered".into())));
   let open=MenuItem::with_id(app,"open","打开 TODO",true,None::<&str>)?;let quit=MenuItem::with_id(app,"quit","退出 TODO",true,None::<&str>)?;
-  let quick=MenuItem::with_id(app,"quick","快速新建任务",true,None::<&str>)?;let menu=Menu::with_items(app,&[&open,&quick,&quit])?;
-  let mut tray=TrayIconBuilder::new().menu(&menu).tooltip("TODO").on_menu_event(|app,event|match event.id.as_ref(){"open"=>show(app),"quick"=>{show(app);let _=app.emit("todo-quick-add",());},"quit"=>{let active=app.state::<ActiveScope>();if active.0.lock().ok().and_then(|s|s.clone()).is_some(){let _=app.emit("todo-quit-request",());}else{app.exit(0)}},_=>{}});
+  let quick=MenuItem::with_id(app,"quick","快速新建任务",true,None::<&str>)?;let hide=MenuItem::with_id(app,"hide","隐藏主窗口",true,None::<&str>)?;let menu=Menu::with_items(app,&[&open,&quick,&hide,&quit])?;
+  let mut tray=TrayIconBuilder::new().menu(&menu).tooltip("TODO").on_menu_event(|app,event|match event.id.as_ref(){"open"=>show(app),"quick"=>request_quick_capture(app),"hide"=>{if let Some(w)=app.get_webview_window("main"){save_window(&w);let _=w.hide();}},"quit"=>{let active=app.state::<ActiveScope>();if active.0.lock().ok().and_then(|s|s.clone()).is_some(){let _=app.emit("todo-quit-request",());}else{app.exit(0)}},_=>{}});
   if let Some(icon)=app.default_window_icon(){tray=tray.icon(icon.clone())}tray.build(app)?;
-  if app.config().identifier == "com.weepwood.todo" {if let Err(e)=app.global_shortcut().register("CommandOrControl+Shift+A"){eprintln!("global shortcut unavailable: {e}")}}
+  if app.config().identifier == "com.weepwood.todo" {
+   let status=match app.global_shortcut().register("CommandOrControl+Shift+A"){Ok(())=>"registered",Err(e)=>{eprintln!("global shortcut unavailable: {e}");"unavailable"}};
+   if let Ok(mut value)=app.state::<ShortcutStatus>().0.lock(){*value=status.into()}
+  }
   if let Some(w)=app.get_webview_window("main"){restore_window(&w);}schedule(app.handle().clone());Ok(())
  })
  .on_window_event(|window,event|{if let WindowEvent::CloseRequested{api,..}=event{api.prevent_close();if let Some(w)=window.app_handle().get_webview_window("main"){save_window(&w);}let _=window.hide();}})

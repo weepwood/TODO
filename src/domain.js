@@ -130,3 +130,17 @@ export function saveState(storage,state){const old=storage.getItem(STORAGE_KEY);
 export function timerSeconds(timer,now=Date.now()){return Math.max(0,timer.elapsed+(timer.startedAt===null?0:Math.floor((now-timer.startedAt)/1000)))}
 export function dueReminders(tasks,now=new Date()){return tasks.filter(t=>!t.deletedAt&&t.status==='pending'&&t.reminderAt&&!t.remindedAt&&new Date(t.reminderAt)<=now)}
 export function reorderTasks(tasks,active,over){const i=tasks.findIndex(t=>t.id===active),j=tasks.findIndex(t=>t.id===over);if(i<0||j<0||i===j)return tasks;const a=[...tasks];a.splice(j,0,a.splice(i,1)[0]);return a}
+
+// Copy task content only. A new independent pending task never inherits recurrence,
+// reminder delivery, dependencies, child relations or device-local attachments.
+export function duplicateTask(task,lists,tags){
+ if(!task||task.status!=='pending'||task.deletedAt)return null;
+ const list=lists.find(l=>l.id===task.listId)||lists.find(l=>l.id==='inbox');if(!list)return null;
+ return {...newTask(task.title+'（副本）',list.id,task.date),notes:task.notes,time:task.time,duration:task.duration,priority:task.priority,sectionId:list.sections.some(s=>s.id===task.sectionId)?task.sectionId:null,tags:task.tags.filter(id=>tags.some(t=>t.id===id)),checklist:task.checklist.map(c=>({id:id(),text:c.text,done:false})),...(task.links?{links:task.links.map(l=>({...l}))}:{})};
+}
+export function moveTaskToList(state,tid,listId,sectionId=null){
+ const list=state.lists.find(l=>l.id===listId),task=state.tasks.find(t=>t.id===tid);
+ if(!list||!task||task.deletedAt||task.status!=='pending'||(sectionId!==null&&!list.sections.some(s=>s.id===sectionId)))return state;
+ if(task.listId===listId&&task.sectionId===sectionId)return state;
+ return {...state,tasks:state.tasks.map(t=>t.id===tid?{...t,listId,sectionId}:t)};
+}

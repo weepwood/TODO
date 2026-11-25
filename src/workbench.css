@@ -177,3 +177,18 @@
 .v2 .agenda-drag:active{cursor:grabbing}
 .v2 .dialog-actions{flex-wrap:wrap}
 @media(pointer:coarse){.v2 .agenda-drag{width:30px;min-height:36px}}
+
+/* Shared action and field surfaces, including Radix portals outside .app. */
+.dialog-description{font-size:12px;line-height:1.6;color:var(--muted);margin:0 0 15px}
+.inline-title-editor{display:flex;flex:1;min-width:0;align-items:center;flex-wrap:wrap;gap:6px}
+.inline-title-editor input{flex:1;min-width:80px;border:1px solid var(--accent);border-radius:6px;background:var(--bg);color:var(--text);padding:6px 8px;font-size:13px}
+.inline-title-editor small{flex-basis:100%;color:var(--danger);font-size:11px}
+.inline-title-editor button{flex:none;font-size:11px;padding:5px 7px}
+.quick-capture-dialog{width:min(530px,calc(100vw - 32px));max-width:none}
+.quick-capture-dialog .dialog-input{font-size:15px;min-height:42px}
+.capture-preview{display:grid;gap:4px;margin:12px 0;padding:10px 12px;border:1px solid var(--line);border-radius:7px;background:var(--panel);overflow-wrap:anywhere}
+.capture-preview strong{font-size:13px;font-weight:600}.capture-preview small{font-size:12px;color:var(--muted)}
+.date-popover,.dropdown{border:1px solid var(--line);border-radius:9px}
+.v2 .detail-content .field{display:grid;grid-template-columns:minmax(76px,1fr) minmax(0,1.3fr);gap:8px;align-items:center}
+.v2 .detail-content .field>:last-child{justify-self:stretch;min-width:0;max-width:100%}
+.v2 .detail-content .date-trigger{justify-content:space-between;min-height:32px}
