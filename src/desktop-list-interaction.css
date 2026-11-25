@@ -30,3 +30,12 @@
 @media(max-width:860px){.task-view-trigger{width:44px;height:44px}.task-view-menu .task-view-sub,.task-view-options .task-view-option{min-height:44px}}
 .task-view-options{min-width:148px}
 @media(prefers-reduced-motion:reduce){.task-view-menu,.task-view-options{animation:none!important;transition:none!important}}
+/* One global search surface, no duplicate sidebar field. */
+.global-search-trigger:hover,.global-search-trigger:focus-visible{color:var(--accent-text);background:var(--hover)}
+.command-palette .palette-search{border:1px solid var(--line);border-radius:var(--radius-control);background:var(--panel);min-height:44px;padding:4px 10px;gap:9px}
+.command-palette .palette-search:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 15%,transparent)}
+.command-palette .palette-search input:focus{outline:none;box-shadow:none}
+.command-palette .palette-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.palette-search-all{display:flex;align-items:center;gap:5px}
+.search-query-summary{color:var(--muted);font-size:12px;overflow-wrap:anywhere;margin:4px 0}
+@media(max-width:860px){.task-view-menu.task-view-options{min-width:210px}.palette-search-all{min-height:44px}}

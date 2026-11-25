@@ -36,15 +36,15 @@ test('桌面 IPC 模拟：旧存储迁移、SQLite 优先与保存失败重试',
  await page.reload();
  await expect(page.locator('.task-body').filter({hasText:'等待保存的任务'})).toBeVisible();
  expect(JSON.parse(await page.evaluate(()=>localStorage.getItem('todo-workbench-v1'))).tasks.length).toBe(1);
- await page.getByPlaceholder('搜索所有任务').fill('等待保存');
+ await page.getByRole('button',{name:'全局搜索',exact:true}).click();await page.getByRole('combobox',{name:'搜索命令与任务'}).fill('等待保存');await expect(page.getByRole('option').filter({hasText:'等待保存的任务'})).toBeVisible();await page.getByRole('button',{name:'查看全部任务结果'}).click();
  await expect.poll(()=>page.evaluate(()=>window.__testSearch||0)).toBeGreaterThan(0);
  await expect(page.locator('.task-body').filter({hasText:'等待保存的任务'})).toBeVisible();
+ await page.getByRole('button',{name:'清除搜索',exact:true}).click();
  await page.getByRole('button',{name:'设置',exact:true}).click();
  await page.getByRole('button',{name:'SQLite 备份历史',exact:true}).click();
  await expect(page.getByRole('dialog',{name:'SQLite 备份历史'})).toBeVisible();
  await page.getByRole('button',{name:'恢复',exact:true}).click();
  await expect(page.getByRole('dialog',{name:'确认恢复工作空间'})).toBeVisible();
  await page.getByRole('button',{name:'确认恢复'}).click();
- await page.getByPlaceholder('搜索所有任务').fill('');
  await expect(page.locator('.task-body').filter({hasText:'等待保存的任务'})).toHaveCount(0);
 });
