@@ -1,3 +1,4 @@
+import {taskFocusSummary} from '../../core/task-defaults.js';
 import React from 'react';
 import {CheckInput} from "../../design-system/Controls.jsx";
 import {DetailSection,DetailFacts} from "../../components/DetailSection.jsx";
@@ -42,7 +43,8 @@ export function TaskDetail({compactLayout,scope,task,data,patch,remove,finish,re
  const recurrenceLabels={none:'不重复',daily:'每天',weekly:'每周',monthly:'每月',weekdays:'指定星期',workdays:'工作日',completion:'完成后按天'};
  const chosenTags=data.tags.filter(t=>task.tags.includes(t.id)),children=descendants(data.tasks,task.id).filter(t=>!t.deletedAt);
  const historyItems=taskActivity(task),seriesItems=(task.seriesId||task.repeat!=='none')?data.tasks.filter(t=>(t.seriesId||t.id)===(task.seriesId||task.id)&&t.id!==task.id).slice(-12):[];
- const planSummary=<DetailFacts onEdit={locked?undefined:label=>quickEdit('plan',label)} items={[[ '计划日期',task.date||'未安排'],['计划时间',task.time||'未设置'],['预计时长',task.duration+' 分钟'],['任务积分',taskPoints(task)+' 分']]}/>;
+ const focusSummary=taskFocusSummary(data.sessions,task.id);
+ const planSummary=<><DetailFacts onEdit={locked?undefined:label=>quickEdit('plan',label)} items={[[ '计划日期',task.date||'未安排'],['计划时间',task.time||'未设置'],['预计时长',task.duration+' 分钟'],['任务积分',taskPoints(task)+' 分']]}/><div className="task-focus-summary"><Clock size={14}/><span>实际专注 {focusSummary.minutes} 分钟 · {focusSummary.count} 次</span></div></>;
  const taskGroup=list?.sections?.find(s=>s.id===task.sectionId);
  const status=task.deletedAt?'trash':task.status==='completed'?'completed':task.status==='skipped'?'skipped':task.stage==='doing'?'doing':'todo';
  const priorityValue=i=><PriorityValue value={i}/>;
