@@ -1,3 +1,4 @@
+import {useTransientPopover} from "../design-system/popover.js";
 import React,{useEffect,useState} from 'react';
 import * as Dropdown from '@radix-ui/react-dropdown-menu';
 import {ArrowDownUp,ListFilter,Layers,ChevronRight,Check,Plus} from 'lucide-react';
@@ -5,7 +6,7 @@ import {SORTS,GROUPS,ORDERS} from '../core/task-list-interaction.js';
 export function TaskViewMenu({sort,group,order,onSort,onGroup,onOrder,onAddGroup,compact=false}){
  const [open,setOpen]=useState(false),[page,setPage]=useState(null);
  const changeOpen=value=>{setOpen(value);setPage(null)};
- useEffect(()=>{if(!open)return;const close=()=>changeOpen(false);window.addEventListener('todo-close-transient',close);return()=>window.removeEventListener('todo-close-transient',close)},[open]);
+ useTransientPopover(open,()=>changeOpen(false));
  const groups=[['分组',Layers,GROUPS,group,onGroup,false],['排序',ListFilter,SORTS,sort,onSort,false],['顺序',ArrowDownUp,ORDERS,order,onOrder,sort==='manual']];
  const choices=(options,value,change)=><Dropdown.RadioGroup value={value} onValueChange={change}>{options.map(([id,name])=><Dropdown.RadioItem key={id} value={id} className="dropdown-item task-view-option"><span>{name}</span><Dropdown.ItemIndicator><Check size={15}/></Dropdown.ItemIndicator></Dropdown.RadioItem>)}</Dropdown.RadioGroup>;
  const submenu=(label,Icon,options,value,change,disabled=false)=><Dropdown.Sub>

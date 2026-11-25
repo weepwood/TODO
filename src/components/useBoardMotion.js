@@ -1,3 +1,4 @@
+import {motion} from "../design-system/motion.js";
 import {useLayoutEffect,useRef} from 'react';
 
 // Cards may remount in another lane. Keep their last layout position and the
@@ -31,7 +32,7 @@ export function useBoardMotion(ref,{scope,order,enabled}){
    if(before.lane===p.lane&&!offset)continue;
    const x=before.x-p.x+(offset?.x||0),y=before.y-p.y+(offset?.y||0);
    if(Math.hypot(x,y)<2||Math.abs(x)>host.clientWidth||Math.abs(y)>480||typeof p.el.animate!=='function')continue;
-   const animation=p.el.animate([{translate:x+'px '+y+'px'},{translate:'0px 0px'}],{duration:200,easing:'cubic-bezier(.2,.75,.25,1)'});
+   const animation=p.el.animate([{translate:x+'px '+y+'px'},{translate:'0px 0px'}],{duration:motion.reorder,easing:motion.ease});
    running.current.set(id,{animation,x,y});
    animation.onfinish=()=>{if(running.current.get(id)?.animation===animation)running.current.delete(id)};
   }

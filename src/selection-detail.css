@@ -1,24 +1,6 @@
 /* Visual refinement: semantic selection markers, intentional whitespace and
    compact inspector layout. No imported illustration or font assets. */
-:root{
- --space-1:4px;
- --space-2:8px;
- --space-3:12px;
- --space-4:16px;
- --space-6:24px;
- --radius-control:8px;
- --radius-surface:12px;
- --control-height:36px;
- --control-touch-height:44px;
- --row-gap:var(--space-1);
- --nav-gap:var(--space-1);
- --marker-idle:5px;
- --marker-active:19px;
- --marker-width:3px;
- --marker-duration:200ms;
- --inspector-gap:var(--space-3);
- --inspector-radius:var(--radius-surface);
-}
+
 .v2 .sidebar{gap:var(--nav-gap)}
 .v2 .sidebar nav,.v2 .sidebar .nested{display:flex;flex-direction:column;gap:var(--nav-gap)}
 .v2 .sidebar .section-label{padding-top:14px;padding-bottom:3px}
@@ -72,16 +54,6 @@
 .v2 .detail-content .detail-group .smart-select-trigger,.v2 .detail-content .detail-group .date-trigger,.v2 .detail-content .detail-group .datetime-trigger{min-height:36px;border-radius:8px;background:var(--panel);border-color:transparent}
 .v2 .detail-content .detail-group .smart-select-trigger:focus-visible,.v2 .detail-content .detail-group .date-trigger:focus-visible,.v2 .detail-content .detail-group .datetime-trigger:focus-visible{border-color:var(--accent)}
 .v2 .detail-content .detail-group .smart-select-trigger:hover,.v2 .detail-content .detail-group .date-trigger:hover,.v2 .detail-content .detail-group .datetime-trigger:hover{border-color:var(--line)}
-.time-control,.number-control{background:var(--panel);border-color:transparent;border-radius:8px;height:36px;padding:3px;gap:3px}
-.time-control>input,.v2 .detail-content .field .time-control>input{flex:1 1 72px;max-width:none;width:0;min-width:0;padding:0 8px;color:var(--text)}
-.time-control .time-picker-trigger,.number-control .number-step{height:100%;width:30px;border:0;border-radius:6px;background:var(--bg);color:var(--muted)}
-.number-control .number-step:first-child,.number-control .number-step:last-child{border:0}
-.number-control .number-value{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;height:100%;gap:3px}
-.number-control .number-value>.number-field{max-width:none;min-width:0;width:0;flex:1;color:var(--text);font-weight:550;font-variant-numeric:tabular-nums;appearance:textfield}
-.number-control .number-value>.number-field::-webkit-inner-spin-button,.number-control .number-value>.number-field::-webkit-outer-spin-button{appearance:none;margin:0}
-.number-unit{flex:none;color:var(--muted);font-size:10px;padding-inline-end:4px}
-.time-control:focus-within,.number-control:focus-within{border-color:var(--accent)}
-.time-control .time-picker-trigger:hover,.number-control .number-step:not(:disabled):hover{background:var(--active);color:var(--accent-text)}
 .v2 .detail-content .detail-group .reminder-fields{display:grid;gap:8px}
 .v2 .detail-content .detail-group h3:first-child{margin-top:0}
 .v2 .detail-content .detail-group .detail-tags{gap:6px}
@@ -102,22 +74,15 @@
  .v2.compact-mobile .detail-content .detail-group{padding:12px}
  .v2.compact-mobile .detail-content .detail-group .field{min-height:48px}
  .v2.compact-mobile .detail-content .detail-group .field>span{font-size:13px}
- .v2.compact-mobile .detail-content .detail-group .smart-select-trigger,.v2.compact-mobile .detail-content .detail-group .date-trigger,.v2.compact-mobile .detail-content .detail-group .datetime-trigger,.time-control,.number-control{min-height:44px}
- .time-control .time-picker-trigger,.number-control .number-step{width:40px}
+ .v2.compact-mobile .detail-content .detail-group .smart-select-trigger,.v2.compact-mobile .detail-content .detail-group .date-trigger,.v2.compact-mobile .detail-content .detail-group .datetime-trigger{min-height:44px}
  .v2.compact-mobile .task-content>.heading .view-toolbar{gap:8px}
 }
 .virtual-task-item{padding-bottom:var(--row-gap)}
 .v2 .virtual-task-item>.task-row{margin-bottom:0}
-@media(max-width:860px){
- .time-control,.number-control{height:50px;padding:2px}
- .time-control .time-picker-trigger,.number-control .number-step{width:44px;min-height:44px}
-}
-.v2 .detail-content .field .number-control .number-field{max-width:none}
 @media(max-width:860px){.v2.compact-mobile .task-row:not(.checked).selected{background:var(--active)}}
 /* A standalone time editor needs an intrinsic width; inspectors and date-time
    popovers instead stretch to their allocated field width. */
 .planner .planner-hours .time-control{flex:0 1 132px;min-width:112px}
-.planner .planner-hours .time-control>input{min-width:0;border:0;background:transparent;border-radius:0;padding:0 6px}
 .v2 .detail-content .field .time-control{width:100%}
 .v2 .sidebar .nav-row[data-view-key]{flex-shrink:0}
 .v2 .sidebar .nav-wrap{gap:4px;flex-shrink:0}

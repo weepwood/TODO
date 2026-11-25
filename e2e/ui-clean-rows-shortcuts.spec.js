@@ -32,8 +32,8 @@ test('设置改键冲突拦截、实际执行、重载和恢复默认',async({pa
  await open();
  const key=page.getByRole('button',{name:'编辑快捷键 安排明天',exact:true});
  await key.click();await page.keyboard.press('t');
- await expect(page.getByRole('alert')).toContainText('冲突');
- await page.keyboard.press('j');await expect(key).toHaveText('J');
+ await expect(page.locator('.shortcut-settings').getByRole('alert')).toContainText('冲突');
+ await expect(key).toHaveAccessibleDescription('与「安排今天」冲突');await page.keyboard.press('j');await expect(key).toHaveText('J');
  await page.screenshot({path:'test-results/shortcut-settings.png',animations:'disabled'});
  await page.getByRole('dialog',{name:'设置与数据管理'}).getByRole('button',{name:'关闭',exact:true}).click();
  await page.reload();await page.locator('[data-view-key=inbox]').click();await open();await expect(key).toHaveText('J');

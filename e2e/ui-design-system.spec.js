@@ -1,0 +1,51 @@
+import {test,expect} from '@playwright/test';
+import {initialState,newTask,dayKey} from '../src/domain.js';
+async function seed(page){
+ const d=initialState();d.tasks=['任务 3','任务 1','任务 2'].map(t=>newTask(t,'inbox',dayKey()));
+ await page.addInitScript(d=>{if(!localStorage.getItem('todo-workbench-v1'))localStorage.setItem('todo-workbench-v1',JSON.stringify(d))},d);
+ await page.goto('/');await page.locator('[data-view-key=inbox]').click();
+}
+test('组件展厅实际控件、草稿、嵌套弹层逐层关闭及任务数据隔离',async({page})=>{
+ await seed(page);
+ const before=await page.evaluate(()=>localStorage.getItem('todo-workbench-v1'));
+ await page.locator('.rail').getByRole('button',{name:'设置',exact:true}).click();
+ await page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'组件展厅',exact:true}).click();
+ const gallery=page.locator('.component-gallery');
+ await gallery.getByRole('textbox',{name:'演示搜索'}).fill('示例');
+ await gallery.getByRole('button',{name:'清除搜索内容'}).click();
+ await expect(gallery.getByRole('textbox',{name:'演示搜索'})).toHaveValue('');
+ await gallery.getByRole('button',{name:'演示数值草稿增加'}).click();
+ await expect(gallery.getByRole('spinbutton',{name:'演示数值草稿'})).toHaveValue('1');
+ await gallery.getByRole('spinbutton',{name:'演示数值草稿'}).fill('');
+ await expect(gallery.getByRole('spinbutton',{name:'演示数值草稿'})).toHaveValue('');
+ await gallery.getByRole('switch',{name:'演示开关'}).click();
+ await expect(gallery.getByRole('switch',{name:'演示开关'})).toHaveAttribute('aria-checked','true');
+ await page.screenshot({path:'test-results/design-system-gallery.png',animations:'disabled'});
+ await gallery.getByRole('button',{name:'演示提醒',exact:true}).click();
+ const reminder=page.getByRole('dialog',{name:'演示提醒编辑'});
+ await reminder.getByRole('button',{name:'演示提醒日期',exact:true}).click();
+ const date=page.getByRole('dialog',{name:'演示提醒日期选择器'});
+ await expect(date).toBeVisible();
+ await page.evaluate(()=>window.dispatchEvent(new Event('todo-close-transient',{cancelable:true})));
+ await expect(date).toBeHidden();await expect(reminder).toBeVisible();
+ await page.evaluate(()=>window.dispatchEvent(new Event('todo-close-transient',{cancelable:true})));
+ await expect(reminder).toBeHidden();
+ expect(await page.evaluate(()=>localStorage.getItem('todo-workbench-v1'))).toBe(before);
+});
+test('每个视图独立排序并重载恢复、桌面布局预设',async({page})=>{
+ await seed(page);
+ const menu=page.getByRole('button',{name:'分组、排序与顺序'});
+ const choose=async(label,value)=>{await menu.click();await page.getByRole('menuitem',{name:new RegExp('^'+label)}).hover();await page.getByRole('menuitemradio',{name:value,exact:true}).click()};
+ await choose('排序','标题');await choose('顺序','降序');
+ await expect(page.locator('.task-row').first()).toContainText('任务 3');
+ await page.locator('[data-view-key=today]').click();
+ await menu.click();await expect(page.getByRole('menuitem',{name:/^排序.*手动/})).toBeVisible();await page.keyboard.press('Escape');
+ await page.reload();await page.locator('[data-view-key=inbox]').click();await menu.click();
+ await expect(page.getByRole('menuitem',{name:/^排序.*标题/})).toBeVisible();await expect(page.getByRole('menuitem',{name:/^顺序.*降序/})).toBeVisible();await page.keyboard.press('Escape');
+ await page.locator('.rail').getByRole('button',{name:'设置',exact:true}).click();
+ await page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'外观与布局'}).click();
+ await page.getByRole('button',{name:'专注',exact:true}).click();
+ await page.getByRole('dialog',{name:'设置与数据管理'}).getByRole('button',{name:'关闭',exact:true}).click();
+ await expect(page.locator('.sidebar')).toBeHidden();
+ await page.reload();await expect(page.locator('.sidebar')).toBeHidden();
+});

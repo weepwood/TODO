@@ -1,4 +1,6 @@
-import React,{useEffect,useState} from 'react';
+import {FieldMessage} from '../design-system/FieldFeedback.jsx';
+import {useTransientPopover,popoverGeometry} from "../design-system/popover.js";
+import React,{useEffect,useState,useId} from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import {DayPicker} from 'react-day-picker';
 import {zhCN} from 'react-day-picker/locale';
@@ -6,10 +8,10 @@ import {CalendarDays,ChevronDown} from 'lucide-react';
 import {dayKey,shiftDay,validDate} from '../core/domain.js';
 import 'react-day-picker/style.css';
 export function DatePicker({value,onChange,label='计划日期',required=false}){
- const [open,setOpen]=useState(false),[draft,setDraft]=useState(value||''),[error,setError]=useState(false);const today=dayKey();
+ const [open,setOpen]=useState(false),[draft,setDraft]=useState(value||''),[error,setError]=useState(false);const today=dayKey(),errorId=useId();
  const choose=date=>{if(required&&!date)return;onChange(date);setOpen(false)};
- useEffect(()=>{if(!open)return;const close=()=>setOpen(false);window.addEventListener('todo-close-transient',close);return()=>window.removeEventListener('todo-close-transient',close)},[open]);
- return <Popover.Root open={open} onOpenChange={v=>{setOpen(v);if(v){setDraft(value||'');setError(false)}}}><Popover.Trigger asChild><button type="button" className="date-trigger" aria-label={label}><CalendarDays size={15}/>{value||'设置日期'}<ChevronDown size={13}/></button></Popover.Trigger><Popover.Portal><Popover.Content className="date-popover" aria-label={label+"选择器"} align="end" sideOffset={6} collisionPadding={12}><form className="date-direct" onSubmit={e=>{e.preventDefault();if((!required&&!draft)||validDate(draft))choose(draft);else setError(true)}}><input aria-label={label+'直接输入'} type="text" placeholder="YYYY-MM-DD" autoComplete="off" maxLength={10} aria-invalid={error||undefined} value={draft} onChange={e=>{setDraft(e.target.value);setError(false)}}/><button type="submit" className="secondary compact">应用</button>{error&&<small role="alert">日期无效</small>}</form><div className="date-presets">{[['今天',today],['明天',shiftDay(today,1)],['下周',shiftDay(today,7)],['清除','']].filter(([,d])=>!required||d).map(([n,d])=><button type="button" key={n} onClick={()=>choose(d)}>{n}</button>)}</div><DayPicker mode="single" required={required} locale={zhCN} defaultMonth={value?new Date(value+'T12:00:00'):new Date()} selected={value?new Date(value+'T12:00:00'):undefined} onSelect={date=>choose(date?dayKey(date):'')} showOutsideDays weekStartsOn={1}/></Popover.Content></Popover.Portal></Popover.Root>
+ useTransientPopover(open,()=>setOpen(false));
+ return <Popover.Root open={open} onOpenChange={v=>{setOpen(v);if(v){setDraft(value||'');setError(false)}}}><Popover.Trigger asChild><button type="button" className="date-trigger" aria-label={label}><CalendarDays size={15}/>{value||'设置日期'}<ChevronDown size={13}/></button></Popover.Trigger><Popover.Portal><Popover.Content className="date-popover" aria-label={label+"选择器"} {...popoverGeometry}><form className="date-direct" onSubmit={e=>{e.preventDefault();if((!required&&!draft)||validDate(draft))choose(draft);else setError(true)}}><input aria-label={label+'直接输入'} type="text" placeholder="YYYY-MM-DD" autoComplete="off" maxLength={10} aria-invalid={error||undefined} aria-describedby={error?errorId:undefined} value={draft} onChange={e=>{setDraft(e.target.value);setError(false)}}/><button type="submit" className="secondary compact">应用</button><FieldMessage id={errorId} error={error?"日期无效，请使用 YYYY-MM-DD":undefined}/></form><div className="date-presets">{[['今天',today],['明天',shiftDay(today,1)],['下周',shiftDay(today,7)],['清除','']].filter(([,d])=>!required||d).map(([n,d])=><button type="button" key={n} onClick={()=>choose(d)}>{n}</button>)}</div><DayPicker mode="single" required={required} locale={zhCN} defaultMonth={value?new Date(value+'T12:00:00'):new Date()} selected={value?new Date(value+'T12:00:00'):undefined} onSelect={date=>choose(date?dayKey(date):'')} showOutsideDays weekStartsOn={1}/></Popover.Content></Popover.Portal></Popover.Root>
 }
 export function DateControl({value,onChange,label}){
  const [draft,setDraft]=useState(value);

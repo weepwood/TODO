@@ -1,3 +1,4 @@
+import {CheckInput} from "../../design-system/Controls.jsx";
 import React,{useEffect,useRef,useState} from 'react';
 import {invoke} from '@tauri-apps/api/core';
 import {native,desktopNative} from '../../platform/runtime.js';
@@ -84,7 +85,7 @@ export function UpdatePanel({storage,scope,blocked,pauseSync}){
  const cancel=async()=>{if(!androidNative)return;try{await invoke('plugin:todo-mobile|update_cancel');setNativeStatus('正在取消…')}catch(e){fail(e)}};
  return <section className="update-panel" aria-label="软件更新">
   <div className="update-heading"><div><h3>软件更新</h3><p className="muted small">当前版本 {pkg.version} · {channel==='preview'?'预发行渠道':'稳定渠道'}</p></div><span className="small muted">{signed?'签名发行版':'开发 / 测试版'}</span></div>
-  <label className="small"><input type="checkbox" checked={auto} onChange={e=>{setAuto(e.target.checked);localStorage.setItem('todo-update-auto',e.target.checked?'1':'0')}}/> 自动检查更新（仅检查，不自动安装）</label>
+  <label className="small"><CheckInput checked={auto} onChange={e=>{setAuto(e.target.checked);localStorage.setItem('todo-update-auto',e.target.checked?'1':'0')}}/> 自动检查更新（仅检查，不自动安装）</label>
   {state!=='idle'&&<p role="status" className="small">{messages[state]||state}{nativeStatus?' · '+nativeStatus:''}</p>}
   {release&&<div className="update-release"><strong>V{release.version}</strong><p className="small">{release.notes||'版本更新'}</p><small>{new Date(release.publishedAt).toLocaleDateString()}</small></div>}
   {state==='downloading'&&<><progress aria-label="更新下载进度" max={progress.total||1} value={progress.total?Math.min(progress.received,progress.total):undefined}/><p className="muted small">{Math.round(progress.received/1024/1024*10)/10} MB{progress.total?' / '+Math.round(progress.total/1024/1024*10)/10+' MB':''}</p></>}

@@ -1,0 +1,78 @@
+/* Shared controls: one structure across modules, layout belongs to consumers. */
+.shared-search{display:flex;align-items:center;gap:var(--space-2);width:100%;min-width:0;min-height:var(--control-height);padding:4px 8px;border:1px solid transparent;border-radius:var(--radius-control);background:var(--panel);color:var(--muted)}
+.shared-search>input{flex:1;width:0;min-width:0;background:transparent;border:0;padding:4px 0;box-shadow:none;color:var(--text)}
+.shared-search:focus-within{border-color:var(--accent)}
+.shared-search .search-clear{flex:none;width:26px;height:26px}
+.planner .backlog-filter .shared-search{min-width:0}
+.shared-check,.shared-radio{accent-color:var(--accent);flex-shrink:0}
+.shared-segment{gap:var(--space-1)}
+.shared-segment>button{border-radius:var(--radius-control)}
+.shared-switch{width:40px;height:24px;border-radius:999px;flex:none;padding:3px;background:var(--muted);display:flex;align-items:center;justify-content:flex-start}
+.shared-switch[aria-checked=true]{background:var(--accent)}
+.shared-switch>span{width:18px;height:18px;border-radius:50%;background:white;transform:translateX(0)}
+.shared-switch[aria-checked=true]>span{transform:translateX(16px)}
+@media(prefers-reduced-motion:no-preference){.shared-switch,.shared-switch>span{transition:background-color var(--motion-fast),transform var(--motion-fast)}}
+@media(max-width:860px){.shared-search{min-height:var(--control-touch-height)}.shared-search>input{font-size:16px}.shared-search .search-clear{width:44px;height:44px}}
+@media(forced-colors:active){.shared-switch{border:1px solid ButtonText}.shared-switch>span{background:ButtonText}.shared-switch[aria-checked=true]{background:Highlight}.shared-switch[aria-checked=true]>span{background:HighlightText}}
+.component-gallery{display:grid;gap:var(--space-3);min-width:0}
+.component-gallery>section{display:grid;gap:var(--space-2);padding:var(--space-3);background:var(--panel);border-radius:var(--radius-surface)}
+.component-gallery h3{font-size:var(--font-heading)}
+.gallery-row{display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-2)}
+.gallery-row label{display:flex;gap:5px;align-items:center}
+.component-gallery .field{display:grid;grid-template-columns:minmax(80px,1fr) minmax(0,1.6fr);gap:12px;align-items:start}
+.component-gallery .field>span{padding-block:8px}
+.component-gallery .field>*:last-child{width:100%;min-width:0}
+.component-gallery :is(.number-control,.time-control,.shared-search){background:var(--bg);border-color:var(--line)}
+.component-gallery :is(.number-control,.time-control,.shared-search):focus-within{border-color:var(--accent)}
+.component-gallery .number-control[data-invalid=true]{border-color:var(--danger)}
+.component-gallery :is(.number-step,.time-picker-trigger){background:var(--panel)}
+@media(max-width:480px){.component-gallery .field{grid-template-columns:minmax(0,1fr);gap:4px}.component-gallery .field>span{padding-block:0}}
+/* Authoritative number/time geometry. Consumers can set width or surface
+   via contextual properties; no internal padding/height overrides needed. */
+.number-control,.time-control{display:flex;align-items:center;min-width:0;max-width:100%;height:var(--control-height);padding:3px;gap:3px;border:1px solid transparent;border-radius:var(--radius-control);background:var(--panel);overflow:hidden}
+.time-control{display:inline-flex;width:132px}
+.number-value{display:flex;align-items:center;justify-content:center;flex:1;min-width:0;height:100%;gap:3px}
+.number-control .number-value>.number-field,.time-control>input{border:0;border-radius:0;box-shadow:none;background:transparent;min-width:0;max-width:none;width:0;flex:1;height:100%;font-variant-numeric:tabular-nums;color:var(--text)}
+.number-control .number-value>.number-field{text-align:center;padding:0 4px;font-weight:550;appearance:textfield}
+.number-field::-webkit-inner-spin-button,.number-field::-webkit-outer-spin-button{appearance:none;margin:0}
+.time-control>input{padding:0 8px;outline-offset:-2px}
+.number-step,.time-picker-trigger{height:100%;width:30px;flex:none;display:grid;place-items:center;border:0;border-radius:var(--radius-small);background:var(--bg);color:var(--muted);padding:0}
+.number-step:disabled{opacity:.35}
+.number-unit{flex:none;color:var(--muted);font-size:10px;padding-inline-end:4px}
+.number-control:focus-within,.time-control:focus-within{border-color:var(--accent)}
+.number-step:not(:disabled):hover,.time-picker-trigger:hover,.time-picker-trigger[data-state=open]{background:var(--active);color:var(--accent-text)}
+.command-palette .shared-search{min-height:44px}
+html[data-focus-mode=enhanced] .shared-search:focus-within{box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 15%,transparent)}
+.field-control{display:grid;gap:5px;min-width:0}
+.field-with-feedback>span{align-self:start;padding-block:6px}
+.field-feedback{display:flex;gap:5px;align-items:flex-start;color:var(--muted);font-size:var(--font-caption);line-height:1.5;overflow-wrap:anywhere;min-width:0}
+.field-feedback>svg{margin-top:2px;flex:none}
+.field-feedback[data-tone=error],.field-required{color:var(--danger)}
+.field-feedback[data-tone=success]{color:var(--success,#26866e)}
+.field-control>:is(input,textarea)[aria-invalid=true],.field-control .number-control[data-invalid=true],.time-control[data-invalid=true],.date-control[data-invalid=true]{border-color:var(--danger)}
+.field-sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.date-direct>.field-feedback{grid-column:1/-1;flex-basis:100%}
+.list-caption .group-collapse{flex:1;min-width:0;display:flex;align-items:center;gap:7px;text-align:left;padding:4px 2px;border-radius:var(--radius-small);color:inherit;font:inherit}
+.group-collapse>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.group-collapse>small{margin-inline-start:auto}
+.group-collapse:not(:disabled):hover{background:var(--hover)}
+@media(prefers-reduced-motion:no-preference){.number-step,.time-picker-trigger{transition:background-color var(--motion-fast),color var(--motion-fast)}}
+@media(max-width:860px){.number-control,.time-control{height:50px;padding:2px}.number-step,.time-picker-trigger{width:44px;min-height:44px}.number-control .number-field,.time-control>input{font-size:16px}.group-collapse{min-height:44px}}
+@media(forced-colors:active){.field-feedback[data-tone=error]{color:CanvasText}.field-control .number-control[data-invalid=true],.time-control[data-invalid=true],.date-control[data-invalid=true]{border:2px solid CanvasText}}
+/* Gallery uses theme surfaces, not a hardcoded light palette. */
+.gallery-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3)}
+.gallery-heading h3{margin:0 0 4px}
+.component-gallery>section{border:1px solid var(--line);padding:var(--space-4);gap:var(--space-3)}
+.component-gallery>section>header{display:grid;gap:4px}
+.gallery-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:var(--space-2)}
+.gallery-sample{display:grid;gap:6px;min-width:0;background:var(--bg);padding:var(--space-3);border-radius:var(--radius-control)}
+.gallery-caption{color:var(--muted);font-size:var(--font-caption)}
+.gallery-swatches{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--space-2)}
+.gallery-swatches>div{display:grid;gap:4px;text-align:center}
+.gallery-swatches i{display:block;height:32px;border-radius:var(--radius-small);border:1px solid var(--line)}
+.component-gallery .field-control>input{border:1px solid var(--line);border-radius:var(--radius-control);min-height:var(--control-height);padding:6px 9px;background:var(--bg)}
+.component-gallery .field-control>input[aria-invalid=true]{border-color:var(--danger)}
+.component-gallery .field-control .number-control{width:100%}
+@media(max-width:860px){.gallery-heading{flex-wrap:wrap}.component-gallery>section{padding:var(--space-3)}.gallery-row label,.gallery-heading button{min-height:44px}.component-gallery .field-control>input{min-height:44px}}
+.link-add>.field-feedback{grid-column:1/-1;flex-basis:100%}
+.shortcut-settings>.field-feedback{margin-block:var(--space-2)}
