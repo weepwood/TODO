@@ -396,3 +396,8 @@ Node.js 20+，npm ci；npm test；npm run build；npm run test:e2e（默认本�
 - 用户截图指出独立提醒的展开日历与计划日期不一致。提取 components/DatePicker.jsx，DateTimeControl复用，删除旧提醒月历与重复CSS，统一日期弹层层级/最大高度；保留提醒草稿、取消、清除及外部冲突语义。原 task-fields 继续兼容导出。更新原提醒浏览器测试，仍验证非法日期、取消、保存后重载、附加提醒和嵌套日期选择。
 - 审计 docs/ui-component-audit.md：31个SmartSelect、6个TimeControl、6个NumberField、5个DatePicker、2个DateControl调用点，单一DayPicker实现；3处未迁移业务数字输入、搜索/分段/复选框/弹层等剩余差距。源码统计不是实例数。
 - JSX及CSS解析、git diff --check通过。Mac内存压力2，未绕过资源门禁；当前改动的完整浏览器CI、真实截图及原生Back验收未完成，不构建安装包。
+
+### 任务行安静状态与快捷键配置
+- PR #15 f5ffdec 完整浏览器CI 45613288260成功，合并93d1a1b，本地main同步，Pages 45614910494成功。独立worktree v12-clean-rows-shortcuts。
+- 隐藏常态选择框/拖动手柄、未选中短胶囊，保留Hover/键盘/批量状态及布局占位；桌面增加显式选择模式。快捷键说明移入设置，新增12项应用内可编辑映射、冲突检测、清除/恢复默认、本地持久化，原生系统快捷键不改。
+- 快捷键单测3/3、JSX/CSS解析及Web生产构建通过；首轮专项浏览器18/20，旧快捷键、虚拟列表、范围选择、面板及其他回归通过。两个新测试因默认今天而非收集箱、安排明天后任务离开今天列表失败；改为明确进入收集箱并断言实际明日日期，原功能断言不删除。审阅shortcut-settings.png确认设置界面及改键J。最后两项重测因Mac内存压力2交PR CI，未声称通过。日志artifacts/TODO/clean-rows.log。不构建安装包。
