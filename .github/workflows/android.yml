@@ -2,7 +2,7 @@ name: Android ARM64 基础验收（测试 APK）
 on:
   workflow_dispatch:
   push:
-    branches: [feat/cross-platform-foundation]
+    branches: [main]
     paths:
       - '.github/workflows/android.yml'
       - 'src-tauri/tauri.android.conf.json'
@@ -30,6 +30,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android
+      - name: Set up Android command-line tools
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
       - name: Android SDK and NDK
         run: |
           sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358"
@@ -53,8 +55,6 @@ jobs:
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose android-qa/TODO-Android-QA-arm64.apk
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging android-qa/TODO-Android-QA-arm64.apk > android-qa/APK_INFO.txt
           grep -F "package: name='com.weepwood.todo.qa.android'" android-qa/APK_INFO.txt
-          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging android-qa/TODO-Android-QA-arm64.apk > android-qa/badging.txt
-          grep -F "package: name='com.weepwood.todo.qa.android'" android-qa/badging.txt
           unzip -l android-qa/TODO-Android-QA-arm64.apk | grep 'lib/arm64-v8a/.*\.so'
           (cd android-qa && sha256sum *.apk > SHA256SUMS.txt)
           printf '%s\n' "$GITHUB_SHA" > android-qa/BUILD_COMMIT.txt
