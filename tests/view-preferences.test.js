@@ -45,3 +45,15 @@ test('completed visibility defaults to hidden and independent lists can override
  assert.equal(normalizeView({completed:'invalid'}).completed,'inherit');
  assert.deepEqual(readViewPreferences({getItem:()=>JSON.stringify(state)}),state);
 });
+
+test('详情栏偏好按模块存储，兼容旧版并可恢复自动模式',async()=>{
+ const {updateDetailPreference,normalizeDetailPreferences}=await import('../src/core/view-preferences.js');
+ let state=readViewPreferences({getItem:()=>null});
+ assert.deepEqual(state.detailPreferences,{});
+ state=updateDetailPreference(state,'tasks',false);
+ state=updateDetailPreference(state,'calendar',true);
+ assert.deepEqual(readViewPreferences({getItem:()=>JSON.stringify(state)}).detailPreferences,{tasks:false,calendar:true});
+ assert.deepEqual(updateDetailPreference(state,'tasks',undefined).detailPreferences,{calendar:true});
+ assert.deepEqual(normalizeDetailPreferences({tasks:'false',calendar:true,unknown:true}),{calendar:true});
+ assert.equal(updateDetailPreference(state,'unknown',true),state);
+});

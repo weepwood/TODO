@@ -62,3 +62,19 @@ test('手机回顾周期、无水平溢出及返回任务',async({page})=>{
  await expect(dialog).toHaveCount(0);
  await expect(page.getByRole('textbox',{name:'任务标题',exact:true})).toHaveValue('普通任务');
 });
+
+test('长回顾独立滚动，标题、周期与导出操作保持可见',async({page})=>{
+ await page.setViewportSize({width:1440,height:600});await seed(page);
+ await page.getByRole('button',{name:'统计',exact:true}).click();
+ await page.getByRole('button',{name:'任务回顾',exact:true}).click();
+ const dialog=page.getByRole('dialog',{name:'任务回顾'}),body=dialog.locator('.review-scroll');
+ await expect(body).toBeVisible();
+ expect(await body.evaluate(el=>el.scrollHeight>el.clientHeight)).toBe(true);
+ const title=dialog.getByRole('heading',{name:'任务回顾',exact:true}),toolbar=dialog.locator('.review-toolbar'),footer=dialog.getByRole('button',{name:'导出 Markdown'});
+ const before=await title.boundingBox();
+ await body.evaluate(el=>el.scrollTop=el.scrollHeight);
+ expect((await title.boundingBox()).y).toBe(before.y);
+ await expect(toolbar).toBeInViewport();await expect(footer).toBeInViewport();
+ expect((await toolbar.boundingBox()).y).toBeGreaterThanOrEqual(before.y+before.height);
+ await page.screenshot({path:'test-results/review-fixed-layout.png',animations:'disabled'});
+});

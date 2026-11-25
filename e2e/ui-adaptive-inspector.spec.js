@@ -47,3 +47,23 @@ test('深色主题空详情使用主题语义颜色，无水平溢出',async({pa
  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.screenshot({path:'test-results/inspector-empty-dark.png',animations:'disabled'});
 });
+
+test('桌面详情栏独立偏好刷新恢复，设置可恢复自动模式',async({page})=>{
+ await page.setViewportSize({width:1600,height:900});await page.goto('/');
+ const aside=page.locator('aside.details'),toggle=page.getByRole('button',{name:'切换详情面板'});
+ await expect(aside.locator('.detail-empty')).toBeVisible();
+ await toggle.click();await expect(aside).toHaveCount(0);
+ await page.reload();await expect(aside).toHaveCount(0);
+ await page.locator('.rail').getByRole('button',{name:'统计',exact:true}).click();
+ await toggle.click();await expect(aside.locator('.detail-empty')).toBeVisible();
+ await page.locator('.rail').getByRole('button',{name:'任务',exact:true}).click();
+ await expect(aside).toHaveCount(0);
+ await page.getByRole('button',{name:'设置',exact:true}).click();
+ await page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'外观与布局'}).click();
+ const modes=page.getByRole('group',{name:'详情栏显示方式'});
+ await expect(modes.getByRole('button',{name:'收起',exact:true})).toHaveAttribute('aria-pressed','true');
+ await modes.getByRole('button',{name:'自动',exact:true}).click();
+ await page.keyboard.press('Escape');await expect(aside.locator('.detail-empty')).toBeVisible();
+ await page.reload();await expect(aside.locator('.detail-empty')).toBeVisible();
+ await page.setViewportSize({width:1280,height:900});await expect(aside).toHaveCount(0);
+});
