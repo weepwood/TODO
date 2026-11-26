@@ -19,6 +19,7 @@ test('清单分组预览、提交并撤销',async({page})=>{
  await page.getByRole('button',{name:'撤销',exact:true}).click();await expect.poll(async()=>(await stored(page)).tasks.find(t=>t.id==='a').listId).toBe('inbox');
 });
 test('补充段鼠标拉伸实际提交、容量反馈及冲突重排',async({page})=>{
+ const fixedClock=new Date();fixedClock.setHours(8,0,0,0);await page.clock.setFixedTime(fixedClock);
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await seed(page);await page.getByRole('button',{name:'每日规划',exact:true}).click();
  const handle=page.getByRole('button',{name:'调整时长 多段任务 · 补充段 10:00'});await handle.scrollIntoViewIfNeeded();const box=await handle.boundingBox(),h=await page.locator('.time-block-body').evaluate(el=>parseFloat(el.style.getPropertyValue('--hour-size'))),x=box.x+box.width/2,y=box.y+box.height/2;
  await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x,y+h/2,{steps:5});await expect(page.getByLabel('规划容量预览')).toContainText('剩余');await snap(page,'resize-preview');expect((await stored(page)).tasks[0].planSegments[0].minutes).toBe(30);await page.mouse.up();await expect.poll(async()=>(await stored(page)).tasks[0].planSegments[0].minutes).toBe(60);

@@ -1,6 +1,7 @@
 import {chooseOption} from './select-helper.js';
 import {test,expect} from '@playwright/test';
 test('快速录入、智能清单、备注链接及批量规划',async({page})=>{
+ const fixedClock=new Date();fixedClock.setHours(8,0,0,0);await page.clock.setFixedTime(fixedClock);
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');
  await page.getByRole('button',{name:'新建任务',exact:true}).click();
  await page.getByRole('textbox',{name:'快速任务名称'}).fill('高优任务 !3');

@@ -1,5 +1,9 @@
 # TODO 外部 AI 接入（第二批，本地候选）
 
+## AI 实际使用集成候选（2026-11-26，本分支最新）
+基于056d798，核对3d47350五个规划领域模块及测试逐文件一致，独立候选feat/ai-use-candidate仅补入未集成的4个UI文件及7个浏览器测试文件，不合并原分支。未新增业务操作。独立Mac候选com.weepwood.todo.qa.aiuse，定向38/38、Rust16/16、浏览器26/26、真实原生6/6；实际Codex会话通过QA限定包装器读取共享Skill、自主创建1项任务及context，日回顾并发触发单队列保护。共享Skill补充串行/原UUID重试；ChatGPT RDC按原UUID恢复review并实际执行任务查询、批量预览/提交及规划预览，最终12个合成任务、44份saved、5份预期cancelled、SQLite integrity ok。Claude Code登录正常但真实会话100秒超时、无调用回执，不认定通过；未修改登录配置、未新增付费资源，既有模型额度可能消耗。全局CLI v3契约及QA doctor通过，正式应用未替换、正式数据库/账号/同步未操作；不推送合并发布。详见第五十三节与docs/ai-integration/actual-use-closure.md。
+
+
 ## AI 任务管理深化 v3（2026-11-26，本分支最新）
 基于 CLI d528ccf，精确复用规划3d47350五个领域核心模块及测试（未合并原分支或搬入其UI变更）。增加10项管理操作，累计30项：context/plan-preview/plan-explain/reflow-preview/changes-preview/split-preview/preview-apply/changes-undo/audit/review。仅明确高级授权；真实同工作空间预览回执引用、15分钟有效期、用户确认、完整工作空间指纹和重算、截止/冲突/自动化效果保护；安全字段逆操作，不支持任意撤销或删除。7天v3回执逻辑过期，后续提交清理正文、保留去重墓碑；旧v2保持。详见 docs/ai-integration/cli-management.md、cli-schema.json。真实独立Mac原生6组、11项合成任务/41份saved/5份cancelled、Rust16/16、领域38/38、浏览器6/6、云协议3/3。用户级CLI与共享Skill已更新，正式应用未替换，模型与正式同步待验收。不增加付费资源、不推送合并发布。详见第五十二节。
 

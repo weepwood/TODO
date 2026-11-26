@@ -3,6 +3,7 @@ import {initialState,newTask,dayKey,shiftDay} from '../src/domain.js';
 import {chooseOption} from './select-helper.js';
 const stored=page=>page.evaluate(()=>JSON.parse(localStorage.getItem('todo-workbench-v1')));
 test('跨日多段规划保留预计时长，任务详情显示补充段',async({page})=>{
+ const fixedClock=new Date();fixedClock.setHours(8,0,0,0);await page.clock.setFixedTime(fixedClock);
  const s=initialState(),today=dayKey();
  s.tasks=[{...newTask('多段验收','inbox',today,'split'),duration:600}];
  await page.addInitScript(d=>{if(!localStorage.getItem('todo-workbench-v1'))localStorage.setItem('todo-workbench-v1',JSON.stringify(d))},s);

@@ -10,6 +10,7 @@ description: 当用户明确要求使用 TODO 创建、查询、安排、修改�
 - 查询采用最小必要范围：`todo today`、`todo upcoming`、`todo overdue`、`todo search "关键词"`、`todo show ID`、`todo catalog`；也可 run query 过滤清单/标签/状态、calendar 查询日期范围、stats 回顾。用户明确指定清单时按权限使用 lists/catalog 解析 ID；不输出无关任务。读取结果可能含私人内容，不转发外部。
 - 修改前先 show/query/catalog 获取最新 version（不得编造）；update/complete/move/postpone/reopen/restore/series/undo-completion 等按 schema 提交 ID 和 version。已有重复任务规则修改必须明确 scope=series；普通属性默认当前 occurrence，系列暂停/恢复/结束须明确用户意图。批量或复杂安排先展示影响范围。v2 的撤销仅限普通任务完成回执；v3 另有经预览提交的安全字段逆操作，禁止泛化为任意撤销。禁止删除、清空、管理账户或迁移数据库。
 - entity-create/rename 支持 list/tag/section；habit-create/check、focus-start/change 走相同契约，打卡、计时及分类修改均需用户明确意图。专注操作须在应用活动时提交（30秒后拒绝）。禁止虚构专注时长或完成记录。
+- 同一个绑定工作空间只有一个持久化请求可处理中（包括只读查询）。必须串行调用：等待当前请求 saved/cancelled 后再发下一条，不并行发起 context/review 或其他业务调用。若返回 another capture/operation is pending，保留该请求 UUID 和完全相同请求内容，先等待前一操作结束，再有界重试；若 received 则只轮询该 UUID 的 status，不提交新 UUID。不要因模型工具并发而重复创建。
 - saved 才表示本机保存成功或查询结果已持久化；received 只是排队，稍后使用原 UUID 执行 todo status；应用关闭时请用户启动新版并打开绑定工作空间。cancelled/error 报告实际原因，版本冲突重新查询并让用户核对，不盲目重试。sync_status=not_checked 不代表云端同步。查询回执也仅留在本机。采用正常 JSON 编码及安全参数传递，避免拼接不可信 shell 文本。
 - CLI First、MCP Optional、Cloud Optional；本地 MCP 可选 describe_operations/run_operation，遵守同一版本、权限与回执约定。禁止直接访问 SQLite、账户凭据或正式云 API。ChatGPT RDC 仅在用户授权本机操作时调用；普通远程 ChatGPT 不能直接运行 Mac CLI。AI 客户端仍受自身权限约束。
 
