@@ -4,7 +4,7 @@ export function listDrafts(storage,tasks){
  const byId=new Map(tasks.map(t=>[t.id,t])),rows=[];
  for(const key of keys){if(typeof key!=='string'||!key.startsWith(prefix))continue;
   let id;try{id=decodeURIComponent(key.slice(prefix.length));if(noteDraftKey(id)!==key)continue}catch{continue}
-  const task=byId.get(id);try{const draft=readNoteDraft(storage,id);if(draft)rows.push({id,title:task?.title||'原任务不存在',status:!task||task.deletedAt?'orphaned':task.notes===draft.base?'current':'stale',...draft})}catch(e){rows.push({id,title:task?.title||'原任务不存在',status:'invalid',error:e.message})}
+  const task=byId.get(id);try{const draft=readNoteDraft(storage,id);if(draft)rows.push({base:draft.base,text:draft.text,at:draft.at,id,title:task?.title||'原任务不存在',status:!task||task.deletedAt?'orphaned':task.notes===draft.base?'current':'stale'})}catch(e){rows.push({id,title:task?.title||'原任务不存在',status:'invalid',error:e.message})}
  }
  return rows.sort((a,b)=>String(b.at||'').localeCompare(String(a.at||''))||a.id.localeCompare(b.id));
 }

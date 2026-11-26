@@ -1,0 +1,8 @@
+import React,{useMemo} from 'react';
+import {elapsedDay,elapsedDayBlocks,clockOffset} from '../core/day-timeline.js';
+import {eventColor} from '../core/workspace-visual.js';
+export default function ElapsedDayTimeline({tasks,date,lists,select,conflicts,hourHeight=56}){
+ const day=elapsedDay(date),blocks=useMemo(()=>elapsedDayBlocks(tasks,date),[tasks,date]);
+ if(!day)return <p role="status">此本地日期无法安全显示。</p>;
+ return <section className="elapsed-day-timeline" aria-label="实际经过时间轴"><p className="muted small">当日实际 {day.minutes/60} 小时 · 重复小时以 UTC 偏移区分。此时间轴只读，点击任务进入详情编辑。</p><div className="time-block-layout"><div className="time-labels" aria-hidden="true">{Array.from({length:Math.ceil(day.minutes/60)},(_,i)=><span key={i} style={{top:i*hourHeight}}>{clockOffset(day.start+i*3600000)}</span>)}</div><div className="time-block-body" style={{height:day.minutes/60*hourHeight,'--hour-size':hourHeight+'px'}}>{blocks.map(t=>{const style={top:t.startMinute/60*hourHeight,height:Math.max(3,(t.endMinute-t.startMinute)/60*hourHeight-2),left:'calc('+t.lane/t.columns*100+'% + 2px)',width:'calc('+100/t.columns+'% - 4px)','--block-color':eventColor(lists.find(l=>l.id===t.listId)?.color,t.external)},label=t.title+' '+t.displayStart+' → '+t.displayEnd;return t.external?<div key={t.id} className={"time-block external"+(style.height<38?" short":"")} style={style} title={label}><strong>{t.title}</strong><small>{t.displayStart}–{t.displayEnd}</small></div>:<button type="button" key={t.id} className={'time-block '+(style.height<38?'short ':'')+(conflicts.has(t.id)?'conflict':'')} style={style} aria-label={label} title={label} onClick={()=>select(t.ownerId||t.id)}><strong>{t.title}</strong><small>{t.displayStart}–{t.displayEnd}</small></button>})}</div></div></section>
+}

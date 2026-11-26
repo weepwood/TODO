@@ -556,3 +556,10 @@
 .attachment-preview-viewport[data-zoom=true] .attachment-image-preview{max-width:none;max-height:none;width:auto;height:auto}
 .attachment-preview-actions{margin-bottom:var(--space-2);flex-wrap:wrap}
 @media(min-width:601px){.dialog.professional-form-dialog .field{display:grid;grid-template-columns:minmax(76px,auto) minmax(0,1fr);gap:12px;align-items:center}.dialog.professional-form-dialog .field>span{white-space:nowrap}.dialog.professional-form-dialog .field>:last-child{width:100%;min-width:0}}
+.restore-field-diff{margin-block:var(--space-2)}
+.restore-value-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2);margin-top:var(--space-2)}
+.restore-value-pair>div{min-width:0;padding:var(--space-2);border:1px solid var(--line);border-radius:var(--radius-surface)}
+.restore-value-pair pre{font:inherit;white-space:pre-wrap;overflow-wrap:anywhere;max-height:160px;overflow:auto;margin:var(--space-1) 0 0}
+@media(max-width:600px){.restore-value-pair{grid-template-columns:minmax(0,1fr)}}
+.dialog.professional-form-dialog :is(.dialog-actions,.workspace-actions)>button{min-height:var(--control-height)}
+@media(pointer:coarse){.dialog.professional-form-dialog :is(.dialog-actions,.workspace-actions)>button{min-height:44px}}

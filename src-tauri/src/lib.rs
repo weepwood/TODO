@@ -180,7 +180,7 @@ fn native_notify(scope:String,task_id:String,at:String,title:String,db:tauri::St
  if guard.as_deref()!=Some(scope.as_str()){return Err("workspace is no longer active".into())}
  let c=db.0.lock().map_err(|e|e.to_string())?;
  let key=format!("{}:{}",task_id,at);
- match deliver_reminder(&c,&scope,&key,Local::now().timestamp(),||app.notification().builder().title("TODO").body(&title).show().map_err(|e|e.to_string()))?{true=>Ok(()),false=>Err("notification retry scheduled".into())}
+ match deliver_reminder(&c,&scope,&key,Local::now().timestamp(),||app.notification().builder().title("TODO").body(&title).action_type_id("todo-reminder-navigation-v1").show().map_err(|e|e.to_string()))?{true=>Ok(()),false=>Err("notification retry scheduled".into())}
 
 }
 #[tauri::command]
@@ -234,7 +234,7 @@ fn schedule(app:tauri::AppHandle){
   let _=c.execute("DELETE FROM reminder_retry WHERE scope=?1 AND next_at<?2",params![scope,now.timestamp()-7*86400]);
   for (id,at,title) in reminder_candidates(&state,now){
    let key=format!("{}:{}",id,at);
-   let _=deliver_reminder(&c,&scope,&key,Local::now().timestamp(),||app.notification().builder().title("TODO").body(&title).show().map_err(|e|e.to_string()));
+   let _=deliver_reminder(&c,&scope,&key,Local::now().timestamp(),||app.notification().builder().title("TODO").body(&title).action_type_id("todo-reminder-navigation-v1").show().map_err(|e|e.to_string()));
   }
  });
 }

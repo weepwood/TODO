@@ -41,3 +41,11 @@ export function previewOverlaps(segments,id,start,end){
  if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start)return false;
  return segments.some(t=>{if(t.id===id||typeof t.time!=='string'||typeof t.endTime!=='string')return false;const a=clockMinutes(t.time),b=clockMinutes(t.endTime);return Number.isFinite(a)&&Number.isFinite(b)&&a<end&&start<b});
 }
+
+// A continuation is the visible tail of an existing block; adjust only its
+// original elapsed duration, never create or move a second task.
+export function resizeContinuation(duration,visibleMinutes,delta){
+ if(!Number.isFinite(delta)||!Number.isInteger(duration)||!Number.isInteger(visibleMinutes)||visibleMinutes<1||visibleMinutes>duration)return duration;
+ const carried=duration-visibleMinutes,min=carried+1;
+ return Math.max(min,Math.min(1440,Math.round((duration+delta)/15)*15));
+}

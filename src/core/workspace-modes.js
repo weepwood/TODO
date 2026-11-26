@@ -32,4 +32,4 @@ export function previewModeImport(storage,raw){
  if(old.length+added.length>30)throw Error('合计超过30份模式');
  return {added,skipped,baseline:JSON.stringify(old)};
 }
-export function applyModeImport(storage,preview){const old=readModes(storage);if(JSON.stringify(old)!==preview.baseline)throw Error('当前配置已变化，请重新预览');const next=[...old,...preview.added];if(next.length>30||!next.every(valid)||new Set(next.map(r=>r.name)).size!==next.length)throw Error('配置无效');storage.setItem(MODE_KEY,JSON.stringify(next));return next}
+export function applyModeImport(storage,preview){const old=readModes(storage);if(JSON.stringify(old)!==preview.baseline)throw Error('当前配置已变化，请重新预览');const next=[...old,...preview.added.map(portableMode)];if(next.length>30||!next.every(valid)||new Set(next.map(r=>r.name)).size!==next.length)throw Error('配置无效');storage.setItem(MODE_KEY,JSON.stringify(next));return next}

@@ -5,6 +5,7 @@ export const blockMinutes=t=>Number.isInteger(t.planMinutes)&&t.planMinutes>=1&&
 export const validBlock=t=>(t.planMinutes===undefined||t.planMinutes===null||Number.isInteger(t.planMinutes)&&t.planMinutes>=1&&t.planMinutes<=1440)&&validPlanSegments(t.planSegments)&&(t.planLocked===undefined||typeof t.planLocked==='boolean');
 export function blockPatch(task,fields){
  if(Object.hasOwn(fields,'planSegments')&&!validPlanSegments(fields.planSegments))return null;
+ const date=fields.date??task.date,time=fields.time??task.time;if(date&&time&&(date!==task.date||time!==task.time)&&uniqueWallInstant(date,time)===null)return null;
  if(task.planLocked&&['date','time','planMinutes','planSegments','anchor'].some(k=>Object.hasOwn(fields,k)&&JSON.stringify(fields[k])!==JSON.stringify(task[k])))return null;
  return fields.planLocked===true?{...fields,planMinutes:Math.max(1,Math.min(1440,Math.round(blockMinutes(task))))}:fields;
 }

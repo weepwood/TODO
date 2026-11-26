@@ -26,3 +26,11 @@ export function desktopSelection({ids,checked,selected,anchor,clicked,range,togg
  const result=next.includes(clicked)?next.filter(id=>id!==clicked):[...next,clicked];
  return {checked:result,anchor:clicked,selected:result.includes(clicked)?clicked:result.at(-1)||null};
 }
+
+export function taskBuckets(tasks,group,currentList,query,lists){
+ const collect=key=>{const by=new Map();for(const t of tasks){const k=key(t);if(!by.has(k))by.set(k,[]);by.get(k).push(t)}return by};
+ if(group==='section'&&currentList&&!query){const by=collect(t=>t.sectionId||'');return [...currentList.sections.map(s=>({id:s.id,name:s.name,section:s,items:by.get(s.id)||[]})),{id:'unassigned',name:'未分组',items:by.get('')||[]}]}
+ if(group==='list'){const by=collect(t=>t.listId),names=new Map(lists.map(l=>[l.id,l.name]));return [...new Set([...names.keys(),...by.keys()])].filter(id=>by.has(id)).map(id=>({id:'list:'+id,name:names.get(id)||'未归属清单',items:by.get(id)}))}
+ if(group==='date'){const by=collect(t=>t.date||'');return [...by.keys()].sort().map(date=>({id:date||'none',name:date||'未安排',items:by.get(date)}))}
+ return [{id:'all',name:'任务列表',items:tasks}];
+}

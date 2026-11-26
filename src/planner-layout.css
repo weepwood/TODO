@@ -34,3 +34,6 @@
 .weekly-planner-grid h3{margin:0 0 8px;font-size:var(--font-size-body,14px)}
 .weekly-planner-dialog .weekly-hours-list{max-height:none;overflow:visible}
 @media(max-width:700px){.weekly-planner-grid{grid-template-columns:minmax(0,1fr);gap:12px}.dialog.weekly-planner-dialog{width:calc(100vw - 24px)}}
+.elapsed-day-timeline .time-block-layout{grid-template-columns:110px minmax(0,1fr)}
+.elapsed-day-timeline .time-labels span{font-size:11px;white-space:nowrap}
+@media(max-width:600px){.elapsed-day-timeline .time-block-layout{grid-template-columns:96px minmax(0,1fr)}}
