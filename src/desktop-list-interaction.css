@@ -33,7 +33,5 @@
 @media(prefers-reduced-motion:reduce){.task-view-menu,.task-view-options{animation:none!important;transition:none!important}}
 /* One global search surface, no duplicate sidebar field. */
 .global-search-trigger:hover,.global-search-trigger:focus-visible{color:var(--accent-text);background:var(--hover)}
-.command-palette .palette-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
-.palette-search-all{display:flex;align-items:center;gap:5px}
 .search-query-summary{color:var(--muted);font-size:12px;overflow-wrap:anywhere;margin:4px 0}
-@media(max-width:860px){.task-view-menu.task-view-options{min-width:210px}.palette-search-all{min-height:44px}}
+@media(max-width:860px){.task-view-menu.task-view-options{min-width:210px}}

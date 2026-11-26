@@ -2,7 +2,22 @@
 .palette-scopes{display:flex;gap:5px;padding:8px 0 4px}
 .palette-scopes button{min-height:32px;padding:5px 12px;border-radius:7px;color:var(--muted);font-size:12px}
 .palette-scopes button[aria-pressed=true]{background:var(--active);color:var(--accent-text);font-weight:600}
-.palette-option{min-height:44px}
+/* Search dialog: one owner for internal geometry and selection. */
+.dialog.command-palette{width:min(600px,calc(100vw - 28px));max-width:none;display:flex;flex-direction:column;gap:var(--space-2);overflow:hidden;max-height:min(85dvh,calc(100dvh - 24px))}
+.command-palette>:not(.palette-results){flex:none}
+.command-palette>.dialog-head,.command-palette>.dialog-description{margin:0}
+.palette-results{min-height:0;max-height:360px;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:2px 4px}
+.palette-option{display:flex;align-items:center;gap:10px;min-height:44px;padding:7px 10px;border-radius:var(--radius-control);color:var(--muted);cursor:pointer}
+.palette-option[data-active=true]{background:var(--active);color:var(--accent-text);outline:1px solid var(--accent);outline-offset:-1px}
+.palette-option>svg{flex:none}
+.palette-option span{min-width:0;flex:1;display:grid;gap:3px}
+.palette-option strong,.palette-option small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.palette-option strong{font-weight:500;color:var(--text);font-size:var(--font-body)}.palette-option small{font-size:var(--font-caption)}
+.palette-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:8px;font-size:12px;color:var(--muted)}
+.palette-search-all{display:flex;align-items:center;gap:5px}
+.command-palette .palette-empty{padding:12px;text-align:center;margin:0;display:grid;gap:4px}
+@media(forced-colors:active){.palette-option[data-active=true]{outline:2px solid Highlight;outline-offset:-2px}.palette-scopes button[aria-pressed=true]{outline:2px solid Highlight;outline-offset:-2px}}
+@media(max-height:480px){.dialog.command-palette{max-height:calc(100dvh - 16px);padding:var(--space-2);gap:4px}.command-palette>.dialog-description{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.command-palette .palette-scopes{padding:0}.command-palette .palette-footer{padding-top:4px}}
 .points-ledger-tools{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:12px 0}
 .points-ledger-tools .ledger-search{flex:1;min-width:140px}
 .points-trend .points-day{border:0;background:transparent;padding:0;border-radius:5px;min-width:0;cursor:pointer;color:var(--muted)}
@@ -15,6 +30,7 @@
 @media(max-width:860px){
  .command-palette .palette-scopes button{min-height:44px;flex:1}
  .command-palette .palette-option{min-height:48px}
+ .palette-search-all{min-height:44px}
  .reward-filters label{min-height:44px}
  .reward-catalog-row{flex-wrap:wrap}
  .reward-catalog-row>div:first-child{flex-basis:100%}

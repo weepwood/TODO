@@ -49,16 +49,7 @@
 .v2 .detail-content .field>:last-child{justify-self:stretch;min-width:0;max-width:100%}
 .v2 .detail-content .date-trigger{justify-content:space-between;min-height:32px}
 
-/* Command palette and consistent bounded controls */
-.command-palette{width:min(600px,calc(100vw - 28px));max-width:none}
-.palette-results{max-height:min(46dvh,360px);overflow:auto;margin:8px -4px 4px;padding:0 4px}
-.palette-option{display:flex;align-items:center;gap:10px;min-height:38px;padding:7px 10px;border-radius:6px;color:var(--muted);cursor:pointer}
-.palette-option[data-active=true]{background:var(--active);color:var(--accent-text)}
-.palette-option span{min-width:0;flex:1;display:grid;gap:3px}
-.palette-option strong,.palette-option small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.palette-option strong{font-weight:500;color:var(--text);font-size:13px}.palette-option small{font-size:11px}
-.palette-footer{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px;font-size:11px;color:var(--muted)}
-.palette-empty{padding:12px}
+/* Bounded date and time controls. Command palette layout belongs to command-points.css. */
 .date-direct{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:4px 2px 8px}.date-direct input{flex:1;padding:5px 6px}.date-direct small{flex-basis:100%;color:var(--danger)}
 .agenda-time{display:grid;gap:4px;padding:7px 0 9px;color:var(--muted);font-size:11px}
 .agenda-time label{display:flex;align-items:center;justify-content:space-between;gap:6px}.agenda-time input{padding:4px 6px}.agenda-time small{font-size:10px;line-height:1.5}
