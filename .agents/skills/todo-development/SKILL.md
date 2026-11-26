@@ -3,6 +3,7 @@ name: todo-development
 description: 当开发 TODO 的新业务功能、补齐页面或进行产品路线盘点时使用；先复用现有能力再实现。
 ---
 # TODO 产品增量
+先判断需求是否为核心场景的真实缺口：记录、组织、安排、执行、完成、回顾。默认完善已有能力，不新增模块、配置或数据模型；复杂项目管理及目标层级暂缓，不因开源资产易获取就扩张范围。已有功能不擅自删除。
 1. 读 AGENTS.md 顶部当前阶段、docs/FEATURES.md、docs/functional-roadmap.md、docs/OPEN-SOURCE.md。先确认 HEAD 和实际页面入口。
 2. 搜索 src/core、src/features、src/components 与 package-lock.json，标明已存在/部分/缺失；按项目功能闭环一次性开发。
 3. 有通用能力需求先查全局 find-skills、frontend-ui-engineering 与 UI-Vault 交付索引；有匹配现成实现则复用，不自动安装依赖。

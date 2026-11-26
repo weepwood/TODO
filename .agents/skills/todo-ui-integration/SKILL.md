@@ -3,6 +3,7 @@ name: todo-ui-integration
 description: 当新增 TODO 页面、对话框、控件或交互时使用，优先复用既有组件和 UI-Vault 交互契约。
 ---
 # TODO UI 集成
+- 默认减少操作步骤、重复入口和可见控件，优先合理默认值与渐进呈现。不新增独立页面或设置来承载已有等价能力，保留低频功能的可发现性。
 - 读 DESIGN.md 当前规范、docs/design-system.md、docs/ui-component-audit.md、docs/OPEN-SOURCE.md。现有 src/ui.jsx Modal/Menu/Field/ActionButton、SmartSelect/SearchSelect、DateTimeControl、TaskViewMenu 优先。
 - Radix 负责焦点、键盘和浮层；dnd-kit 负责拖拽，FullCalendar 负责日历，Tiptap/Markdown 负责编辑。不要另造基础控件。
 - 参照 UI-Vault component-handoff Skill 和 Foundation Registry 的原语契约；先核对许可证、版本、Token 映射与宿主依赖。已有等价原语时不复制适配器，不导入全套样式。

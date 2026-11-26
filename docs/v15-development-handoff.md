@@ -442,3 +442,7 @@
 基线a8e4349。全局本机 /Volumes/data/AI-Development/reuse/ 建立只读参考索引：137份全局技能（agents50、Codex6、Claude81），加现有Foundation8和UI-Vault4为149份，149个不同内容哈希、1组同名不同内容frontend-design；30份锁定来源文件夹哈希、22份顶层声明版本，缺失元数据不猜测。依据实际技能内容建立轻量路由、开源索引和工作流模板，未安装/升级/删除全局技能；Foundation正处于独立未提交开发，未写入其目录。UI-Vault本地a0def2b，阅读component-handoff、Registry文档和MIT Foundation React原语契约，不复制无必要适配器。全局AGENTS增加复用入口。TODO新增3个专属Skill，.agents/skills为唯一原文，.claude/skills相对链接及CLAUDE.md显式回退；实际客户端自动发现尚未运行验证。
 
 产品盘点以源码与既有入口建立docs/FEATURES.md，docs/OPEN-SOURCE.md登记直接依赖锁版本、包许可声明及文件名、开源候选/采用决策，非完整许可审计。实际功能示范：原智能清单只有保存路径，新增临时高级任务筛选，复用SmartDialog、smartMatches、Radix公共Modal/SmartSelect、原任务导航及saveSmart；从侧栏智能清单、命令面板和搜索结果可进入，AND/OR组合条件、实时结果、20项分页、打开任务、可选显式保存；关闭不创建清单。未新增依赖或领域模型，未动真实数据。生产构建与真实Chromium定向4/4通过（2新用例、2既有统一搜索用例；含390px移动端分页/空态/取消/无水平溢出）。日志 artifacts/TODO/ai-reuse-build.log、ai-reuse-search-final.log。仅必要验证，未执行长测、全量CI或原生包。下一批按功能矩阵优先核实目标与任务关联、规划及资料的真正缺口，沿用4197、中文本地提交，不推送、不合并、不发布。
+
+## 四十二、产品克制范围调整（2026-11-26）
+
+用户明确希望 TODO 不增加功能复杂度，保持克制、简约、实用。基线1496894；保留现有业务及数据，不自动删除或新增能力。优先日常记录、组织、安排、执行、完成与必要回顾的实际可用性；合理默认、减少重复入口和步骤、低频功能渐进呈现。暂缓多层目标/里程碑、企业项目管理、复杂自动化、新知识库、多工作区等扩张候选；Skill 与开源复用仅用于降低成本。更新 AGENTS、DESIGN、FEATURES、路线及三个项目 Skill，历史计划不自动执行。此批仅规范文档，不改产品代码或数据，不启动测试/构建，保持4197，中文本地提交，不推送、不合并、不发布。
