@@ -41,3 +41,16 @@
 .history-diff-values{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:start;font-size:.85em;overflow-wrap:anywhere}
 .history-diff-values>span{min-width:0;white-space:pre-wrap}
 .history-diff-row>.text-link{justify-self:start}
+
+.operation-history{min-width:0;overflow-wrap:anywhere}
+.operation-history .history-version{display:grid;grid-template-columns:minmax(0,1fr);align-items:start;gap:8px}
+.operation-history .record-row>div{min-width:0;max-width:100%;overflow-wrap:anywhere}
+.history-version-actions{display:flex;flex-wrap:wrap;gap:6px}
+.operation-history .history-diff-values{padding:6px 8px;border-radius:6px;background:var(--panel)}
+.operation-history .history-diff-values>span{overflow-wrap:anywhere;word-break:break-word}
+@media(max-width:600px){.operation-history .history-diff-values{grid-template-columns:minmax(0,1fr);gap:4px}.operation-history .history-diff-values>span:nth-child(2){transform:rotate(90deg);justify-self:start}}
+
+.operation-history .history-version>div:first-child{display:grid;gap:4px}
+.operation-history .history-version small{display:block;line-height:1.45;color:var(--muted)}
+.operation-history .history-version-detail,.operation-history .history-recovery-preview{max-height:none}
+@media(max-width:600px){.operation-history .history-version-list{max-height:190px}.operation-history .history-version-actions{gap:4px}.operation-history .history-version-actions button{min-height:36px}}

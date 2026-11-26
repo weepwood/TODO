@@ -93,6 +93,7 @@ pub(super) fn append_history(c:&Connection,scope:&str,prior:Option<&Value>,next:
    (None,Some(t))=>rows.push(json!({"id":id,"created":true,"afterHash":fingerprint(t)})),
    (Some(_),None)=>rows.push(json!({"id":id,"removed":true})),
    (Some(a),Some(b))=>{
+    if a==b{continue}
     let (Some(am),Some(bm))=(a.as_object(),b.as_object())else{continue};
     let changed:Vec<_>=am.keys().chain(bm.keys()).collect::<BTreeSet<_>>().into_iter().filter(|k|*k!="activity"&&a.get(*k)!=b.get(*k)).collect();
     let changed_names:BTreeSet<&str>=changed.iter().map(|k|k.as_str()).collect();
@@ -205,6 +206,24 @@ mod tests{
   let bytes:i64=c.query_row("SELECT sum(length(CAST(body AS BLOB))) FROM operation_history WHERE scope='guest'",[],|r|r.get(0)).unwrap();
   assert_eq!(h["head"],305);assert_eq!(h["entries"].as_array().unwrap().len(),300);
   println!("history_benchmark tasks=1000 saves=305 retained=300 p50_ms={:.3} p95_ms={:.3} max_ms={:.3} read_ms={:.3} body_bytes={bytes}",ms[152],ms[289],ms[304],read);
+ }
+ #[test]#[ignore]fn history_file_benchmark_10000(){
+  use std::time::Instant;
+  let dir=std::env::temp_dir().join(format!("todo-history-bench-{}",uuid::Uuid::new_v4()));std::fs::create_dir(&dir).unwrap();
+  let path=dir.join("bench.sqlite3");let mut c=Connection::open(&path).unwrap();super::super::schema(&c).unwrap();
+  let mut a=json!({"version":2,"tasks":(0..10000).map(|i|json!({"id":format!("qa-{i}"),"title":format!("synthetic task {i}"),"notes":"synthetic","priority":0,"activity":(0..if i<1000{20}else{3}).map(|j|json!({"id":format!("qa-{i}-{j}"),"kind":"priority","category":"property","operation":format!("op-{j}"),"changes":[{"field":"priority","before":"0","after":"1"}]})).collect::<Vec<_>>() })).collect::<Vec<_>>()});
+  let raw=a.to_string();assert!(raw.len()<16_000_000);
+  let bytes=raw.len();super::super::save(&mut c,"guest",&raw).unwrap();let mut ms=vec![];
+  for i in 0..24{
+   let t=&mut a["tasks"][i];t["priority"]=json!(3);
+   t["activity"].as_array_mut().unwrap().push(json!({"id":format!("new-{i}"),"kind":"priority","category":"property","changes":[{"field":"priority","before":"0","after":"3"}]}));
+   let raw=a.to_string();let start=Instant::now();super::super::save(&mut c,"guest",&raw).unwrap();ms.push(start.elapsed().as_secs_f64()*1000.0);
+  }
+  ms.sort_by(|a,b|a.total_cmp(b));let start=Instant::now();let h=history_read(&c,"guest",true,300).unwrap();let read=start.elapsed().as_secs_f64()*1000.0;
+  assert_eq!(h["head"],24);assert_eq!(c.query_row("PRAGMA integrity_check",[],|r|r.get::<_,String>(0)).unwrap(),"ok");
+  let db=std::fs::metadata(&path).unwrap().len();let wal=std::fs::metadata(dir.join("bench.sqlite3-wal")).map(|m|m.len()).unwrap_or(0);
+  println!("file_benchmark tasks=10000 activity_events=47000 saves=24 initial_snapshot_bytes={bytes} p50_ms={:.3} p95_ms={:.3} max_ms={:.3} read_ms={:.3} db_bytes={db} wal_bytes={wal}",(ms[11]+ms[12])/2.0,ms[22],ms[23],read);
+  drop(c);std::fs::remove_dir_all(dir).unwrap();
  }
  #[test]fn journal_is_atomic_private_scoped_and_monotonic(){
   let mut c=Connection::open_in_memory().unwrap();super::super::schema(&c).unwrap();

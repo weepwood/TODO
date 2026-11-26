@@ -1,4 +1,5 @@
 //! Shared SQLite storage, snapshots, backup and index transactions.
+use sha2::{Digest,Sha256};
 use super::*;
 pub(super) fn valid_scope(s:&str)->bool { s=="guest" || (s.len()==36 && s.chars().all(|c|c.is_ascii_hexdigit()||c=='-')) }
 pub(super) fn schema(c:&Connection)->rusqlite::Result<()> {
@@ -7,6 +8,47 @@ pub(super) fn schema(c:&Connection)->rusqlite::Result<()> {
 }
 pub(super) fn save(c:&mut Connection,scope:&str,body:&str)->Result<(),String>{save_with_store(c,scope,body,None)}
 pub(super) fn save_with_store(c:&mut Connection,scope:&str,body:&str,store:Option<&str>)->Result<(),String>{save_with_receipt(c,scope,body,store,None)}
+// The main WebView is trusted to establish human approval. Independently
+// bind the final history receipt to its persisted preview and exact mutation.
+fn validate_history_commit(c:&Connection,scope:&str,id:&str,prior:&serde_json::Value,next:&serde_json::Value,result:&serde_json::Value,now:i64)->Result<(),String>{
+ use serde_json::Value;
+ let raw:String=c.query_row("SELECT text FROM direct_capture_requests WHERE scope='cli-op:'||?1 AND id=?2",params![scope,id],|r|r.get(0)).map_err(|e|e.to_string())?;
+ let request:Value=serde_json::from_str(&raw).map_err(|e|e.to_string())?;
+ let preview=request["previewId"].as_str().ok_or("missing preview")?;
+ if request["confirm"]!=true||result["preview_id"]!=preview||result["userConfirmation"]["method"]!="desktop-modal"{return Err("history confirmation missing".into())}
+ let at=chrono::DateTime::parse_from_rfc3339(result["userConfirmation"]["at"].as_str().unwrap_or("")).map_err(|_|"invalid confirmation time")?.timestamp();
+ if at>now+1{return Err("history confirmation time is in the future".into())}
+ let raw:String=c.query_row("SELECT m.result FROM cli_operation_meta m JOIN direct_capture_requests d USING(scope,id) WHERE m.scope='cli-op:'||?1 AND m.id=?2 AND m.kind='history-preview' AND d.status='saved' AND m.result IS NOT NULL",params![scope,preview],|r|r.get(0)).map_err(|_|"history preview unavailable")?;
+ let p:Value=serde_json::from_str(&raw).map_err(|e|e.to_string())?;
+ let generated=chrono::DateTime::parse_from_rfc3339(p["generatedAt"].as_str().unwrap_or("")).map_err(|_|"invalid preview time")?.timestamp();
+ if generated>at||at-generated>900{return Err("history preview expired".into())}
+ let head:i64=c.query_row("SELECT version FROM operation_history_head WHERE scope=?1",[scope],|r|r.get(0)).optional().map_err(|e|e.to_string())?.unwrap_or(0);
+ if p["head"]!=head||p["workspaceVersion"]!=format!("{:x}",Sha256::digest(prior.to_string().as_bytes())){return Err("history preview stale".into())}
+ for k in ["rows","conflicts","pointsImpact"]{if p[k]!=result[k]{return Err("history receipt differs from preview".into())}}
+ let rows=p["rows"].as_array().filter(|r|!r.is_empty()).ok_or("empty preview")?;
+ if result["affected"]!=rows.len(){return Err("history affected count mismatch".into())}
+ let mut expected=prior.clone();
+ let tasks=expected["tasks"].as_array_mut().ok_or("missing tasks")?;
+ let mut seen=std::collections::BTreeSet::new();
+ for row in rows{
+  let id=row["id"].as_str().ok_or("invalid task id")?;
+  if !seen.insert(id){return Err("duplicate history row".into())}
+  let t=tasks.iter_mut().find(|t|t["id"]==id).and_then(Value::as_object_mut).ok_or("history task missing")?;
+  let fields=row["fields"].as_object().filter(|m|!m.is_empty()).ok_or("empty history fields")?;
+  for (k,v) in fields{
+   if !["title","priority","listId","sectionId","tags","date","time","anchor","duration","deadline","planMinutes","planSegments","deletedAt","status","stage","completedAt"].contains(&k.as_str()){return Err("protected history field".into())}
+   let before=&v["before"];let after=&v["after"];
+   if before["present"]==true{if t.get(k)!=before.get("value"){return Err("history field changed".into())}}
+   else if before["present"]!=false||t.contains_key(k){return Err("history field presence changed".into())}
+   if after["present"]==true{t.insert(k.clone(),after.get("value").ok_or("missing history value")?.clone());}
+   else if after["present"]==false{t.remove(k);}else{return Err("invalid history field".into())}
+  }
+ }
+ // Activity is produced by the existing shared editor, not supplied by the CLI.
+ let strip=|mut v:Value|{if let Some(ts)=v["tasks"].as_array_mut(){for t in ts{if let Some(m)=t.as_object_mut(){m.remove("activity");}}}v};
+ if strip(expected)!=strip(next.clone()){return Err("history mutation exceeds preview".into())}
+ Ok(())
+}
 fn save_with_receipt(c:&mut Connection,scope:&str,body:&str,store:Option<&str>,receipt:Option<&serde_json::Value>)->Result<(),String>{
  if !valid_scope(scope)||body.len()>16_000_000{return Err("无效工作空间或数据过大".into())}
  let state:serde_json::Value=serde_json::from_str(body).map_err(|e|e.to_string())?;
@@ -32,6 +74,13 @@ fn save_with_receipt(c:&mut Connection,scope:&str,body:&str,store:Option<&str>,r
   Some((queue_scope,id.to_owned(),status.to_owned(),raw))
  }else{None};
  let prior:Option<String>=tx.query_row("SELECT body FROM snapshots WHERE scope=?1",[scope],|r|r.get(0)).optional().map_err(|e|e.to_string())?;
+ if let Some((queue,id,status,_))=&op{
+  let kind:String=tx.query_row("SELECT kind FROM cli_operation_meta WHERE scope=?1 AND id=?2",params![queue,id],|r|r.get(0)).map_err(|e|e.to_string())?;
+  if kind=="history-apply"&&status=="saved"{
+   let old=serde_json::from_str(prior.as_deref().ok_or("missing prior snapshot")?).map_err(|e|e.to_string())?;
+   validate_history_commit(&tx,scope,id,&old,&state,&receipt.unwrap()["result"],now)?;
+  }
+ }
  if prior.as_deref()!=Some(body){
  tx.execute("INSERT OR IGNORE INTO backups SELECT scope,body,?2 FROM snapshots WHERE scope=?1 AND NOT EXISTS(SELECT 1 FROM backups WHERE scope=?1 AND saved_at>?2-3600)",params![scope,now]).map_err(|e|e.to_string())?;
  tx.execute("DELETE FROM backups WHERE scope=?1 AND saved_at NOT IN (SELECT saved_at FROM backups WHERE scope=?1 ORDER BY saved_at DESC LIMIT 24)",[scope]).map_err(|e|e.to_string())?;
@@ -61,6 +110,13 @@ fn save_with_receipt(c:&mut Connection,scope:&str,body:&str,store:Option<&str>,r
  if let Some((queue_scope,id,status,result))=op{
   if tx.execute("UPDATE direct_capture_requests SET status=?3,text='' WHERE scope=?1 AND id=?2 AND status='pending'",params![&queue_scope,&id,&status]).map_err(|e|e.to_string())?!=1{return Err("operation state changed".into())}
   if tx.execute("UPDATE cli_operation_meta SET result=?3 WHERE scope=?1 AND id=?2",params![&queue_scope,&id,&result]).map_err(|e|e.to_string())?!=1{return Err("operation receipt missing".into())}
+ }
+ #[cfg(test)]
+ if let Ok(marker)=std::env::var("TODO_TEST_HISTORY_PRECOMMIT_MARKER"){
+  // Force dirty SQLite pages into the WAL before the parent kills this test process.
+  tx.cache_flush().map_err(|e|e.to_string())?;
+  std::fs::write(marker,b"precommit").map_err(|e|e.to_string())?;
+  loop{std::thread::park();}
  }
  tx.commit().map_err(|e|e.to_string())
 }

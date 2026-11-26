@@ -350,11 +350,23 @@ mod tests{
   let store=json!({"todo-workbench-v1":next.to_string()}).to_string();
   let id="00000000-0000-4000-8000-000000000099";
   let payload=json!({"op":"history-apply","previewId":"00000000-0000-4000-8000-000000000098","confirm":true});
-  let result=json!({"id":id,"status":"saved","result":{"affected":1}});
+  let preview_id="00000000-0000-4000-8000-000000000098";
+  let stamp=Local::now().to_rfc3339();
+  let rows=json!([{"id":"qa","fields":{"priority":{"before":{"present":true,"value":3},"after":{"present":true,"value":0}}}}]);
+  let preview_result=json!({"head":0,"generatedAt":stamp,"workspaceVersion":format!("{:x}",Sha256::digest(base.to_string().as_bytes())),"rows":rows,"conflicts":[],"pointsImpact":null});
+  let result=json!({"id":id,"status":"saved","result":{"affected":1,"preview_id":preview_id,"rows":rows,"conflicts":[],"pointsImpact":null,"userConfirmation":{"method":"desktop-modal","at":stamp}}});
   {
    let mut c=Connection::open(&path).unwrap();super::super::schema(&c).unwrap();
    super::super::save(&mut c,"guest",&base.to_string()).unwrap();bind(&c,"guest").unwrap();set_advanced(&c,"guest",true).unwrap();
+   enqueue_operation(&mut c,"guest",preview_id,json!({"op":"history-preview","version":1})).unwrap();
+   let initial_store=json!({"todo-workbench-v1":base.to_string()}).to_string();
+   super::super::persist_store_receipt(&mut c,"guest",&initial_store,Some(&json!({"id":preview_id,"status":"saved","result":preview_result}))).unwrap();
    enqueue_operation(&mut c,"guest",id,payload.clone()).unwrap();
+   let mut invalid=result.clone();invalid["result"]["userConfirmation"]=Value::Null;
+   assert!(super::super::persist_store_receipt(&mut c,"guest",&store,Some(&invalid)).unwrap_err().contains("confirmation"));
+   let mut extra=next.clone();extra["tasks"][0]["title"]=json!("unapproved");
+   let extra_store=json!({"todo-workbench-v1":extra.to_string()}).to_string();
+   assert!(super::super::persist_store_receipt(&mut c,"guest",&extra_store,Some(&result)).unwrap_err().contains("exceeds preview"));
    c.execute_batch("CREATE TRIGGER qa_failure BEFORE UPDATE ON cli_operation_meta BEGIN SELECT RAISE(ABORT,'injected'); END;").unwrap();
    assert!(super::super::persist_store_receipt(&mut c,"guest",&store,Some(&result)).is_err());
    assert_eq!(super::super::operation_history::history_read(&c,"guest",true,300).unwrap()["head"],0);
@@ -375,6 +387,79 @@ mod tests{
    assert_eq!(c.query_row("PRAGMA integrity_check",[],|r|r.get::<_,String>(0)).unwrap(),"ok");
   }
   std::fs::remove_file(path).unwrap();
+ }
+ // Child-process fault injection runs only under the Rust test harness.
+ #[test]fn history_crash_child(){
+  let Ok(dir)=std::env::var("TODO_TEST_HISTORY_CRASH_DIR")else{return};
+  let dir=std::path::PathBuf::from(dir);
+  let mut c=Connection::open(dir.join("qa.sqlite3")).unwrap();
+  let store=std::fs::read_to_string(dir.join("store.json")).unwrap();
+  let result:Value=serde_json::from_str(&std::fs::read_to_string(dir.join("receipt.json")).unwrap()).unwrap();
+  super::super::persist_store_receipt(&mut c,"guest",&store,Some(&result)).unwrap();
+  std::fs::write(dir.join("committed"),b"committed").unwrap();
+  loop{std::thread::park();}
+ }
+ #[test]#[ignore]fn history_wal_process_kill(){
+  use std::{process::{Command,Stdio},time::{Duration,Instant}};
+  let dir=std::env::temp_dir().join(format!("todo-history-crash-{}",uuid::Uuid::new_v4()));std::fs::create_dir(&dir).unwrap();
+  let db=dir.join("qa.sqlite3");
+  let id="00000000-0000-4000-8000-000000000091";
+  let preview_id="00000000-0000-4000-8000-000000000092";
+  let base=json!({"version":2,"tasks":[{"id":"qa","title":"synthetic","priority":3}]});
+  let mut next=base.clone();next["tasks"][0]["priority"]=json!(0);
+  let stamp=Local::now().to_rfc3339();
+  let rows=json!([{"id":"qa","fields":{"priority":{"before":{"present":true,"value":3},"after":{"present":true,"value":0}}}}]);
+  let result=json!({"id":id,"status":"saved","result":{"affected":1,"preview_id":preview_id,"rows":rows,"conflicts":[],"pointsImpact":null,"userConfirmation":{"method":"desktop-modal","at":stamp}}});
+  let payload=json!({"op":"history-apply","previewId":preview_id,"confirm":true});
+  let store=json!({"todo-workbench-v1":next.to_string()}).to_string();
+  std::fs::write(dir.join("store.json"),&store).unwrap();std::fs::write(dir.join("receipt.json"),result.to_string()).unwrap();
+  {
+   let mut c=Connection::open(&db).unwrap();super::super::schema(&c).unwrap();super::super::save(&mut c,"guest",&base.to_string()).unwrap();bind(&c,"guest").unwrap();set_advanced(&c,"guest",true).unwrap();
+   enqueue_operation(&mut c,"guest",preview_id,json!({"op":"history-preview","version":1})).unwrap();
+   let p=json!({"head":0,"generatedAt":stamp,"workspaceVersion":format!("{:x}",Sha256::digest(base.to_string().as_bytes())),"rows":rows,"conflicts":[],"pointsImpact":null});
+   super::super::persist_store_receipt(&mut c,"guest",&json!({"todo-workbench-v1":base.to_string()}).to_string(),Some(&json!({"id":preview_id,"status":"saved","result":p}))).unwrap();
+   enqueue_operation(&mut c,"guest",id,payload.clone()).unwrap();
+  }
+  for precommit in [true,false]{
+   let marker=dir.join(if precommit{"precommit"}else{"committed"});
+   let mut cmd=Command::new(std::env::current_exe().unwrap());cmd.args(["history_crash_child","--nocapture"]).env("TODO_TEST_HISTORY_CRASH_DIR",&dir).stdout(Stdio::null()).stderr(Stdio::null());
+   if precommit{cmd.env("TODO_TEST_HISTORY_PRECOMMIT_MARKER",&marker);}
+   let mut child=cmd.spawn().unwrap();let start=Instant::now();
+   while !marker.exists()&&start.elapsed()<Duration::from_secs(10){if child.try_wait().unwrap().is_some(){break}std::thread::sleep(Duration::from_millis(20));}
+   let ready=marker.exists();let wal=std::fs::metadata(dir.join("qa.sqlite3-wal")).map(|m|m.len()).unwrap_or(0);
+   let _=child.kill();let status=child.wait().unwrap();assert!(ready&&wal>0&&!status.success(),"child did not reach boundary");
+   let mut c=Connection::open(&db).unwrap();
+   let raw:String=c.query_row("SELECT body FROM snapshots WHERE scope='guest'",[],|r|r.get(0)).unwrap();
+   assert_eq!(serde_json::from_str::<Value>(&raw).unwrap(),if precommit{base.clone()}else{next.clone()});
+   let h=super::super::operation_history::history_read(&c,"guest",true,300).unwrap();assert_eq!(h["head"],if precommit{0}else{1});
+   assert_eq!(receipt(&c,"guest",id).unwrap()["status"],if precommit{"received"}else{"saved"});
+   assert_eq!(c.query_row("PRAGMA integrity_check",[],|r|r.get::<_,String>(0)).unwrap(),"ok");
+   if !precommit{assert_eq!(enqueue_operation(&mut c,"guest",id,payload.clone()).unwrap()["status"],"saved");}
+   println!("crash boundary={} wal_bytes={} integrity=ok head={} receipt={}",if precommit{"precommit"}else{"postcommit-before-ack"},wal,h["head"],receipt(&c,"guest",id).unwrap()["status"]);
+  }
+  std::fs::remove_dir_all(dir).unwrap();
+ }
+ #[test]fn every_v4_operation_has_explicit_scope_gate(){
+  let schema:Value=serde_json::from_str(include_str!("../../docs/ai-integration/cli-schema.json")).unwrap();
+  let advertised=schema["operations"].as_object().unwrap();
+  let actual:std::collections::BTreeSet<_>=OPERATIONS.iter().chain(MANAGEMENT).chain(HISTORY).copied().collect();
+  assert_eq!(actual.len(),34);
+  assert_eq!(actual,advertised.keys().map(String::as_str).collect());
+  let id="00000000-0000-4000-8000-000000000093";
+  let base=json!({"version":2,"tasks":[]});
+  for kind in actual{
+   let mut c=Connection::open_in_memory().unwrap();super::super::schema(&c).unwrap();
+   super::super::save(&mut c,"guest",&base.to_string()).unwrap();bind(&c,"guest").unwrap();
+   let payload=json!({"op":kind});
+   if kind=="create"{assert_eq!(enqueue_operation(&mut c,"guest",id,payload).unwrap()["status"],"received");continue}
+   assert!(enqueue_operation(&mut c,"guest",id,payload.clone()).unwrap_err().contains("advanced"));
+   set_advanced(&c,"guest",true).unwrap();
+   assert_eq!(enqueue_operation(&mut c,"guest",id,payload).unwrap()["status"],"received");
+  }
+  let mut c=Connection::open_in_memory().unwrap();super::super::schema(&c).unwrap();super::super::save(&mut c,"guest",&base.to_string()).unwrap();bind(&c,"guest").unwrap();set_advanced(&c,"guest",true).unwrap();
+  c.execute_batch("DROP TABLE operation_history_head; DROP TABLE cli_management_v3;").unwrap();
+  for kind in HISTORY.iter().chain(MANAGEMENT){assert!(enqueue_operation(&mut c,"guest",id,json!({"op":kind})).unwrap_err().contains("updated native application"))}
+  assert_eq!(enqueue_operation(&mut c,"guest",id,json!({"op":"catalog"})).unwrap()["status"],"received");
  }
  #[test]fn advanced_access_is_explicit_and_cannot_change_while_pending(){
   let mut c=Connection::open_in_memory().unwrap();super::super::schema(&c).unwrap();
