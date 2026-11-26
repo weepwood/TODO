@@ -6,7 +6,7 @@ pub(super) fn reset_capture_window(app:&tauri::AppHandle){if let Some(w)=app.get
 pub(super) fn request_quick_capture(app:&tauri::AppHandle){
  let active=app.state::<ActiveScope>();let capture=app.state::<QuickCapture>();
  let decision=if let (Ok(current),Ok(mut state))=(active.0.lock(),capture.0.lock()){
-  if let Some(scope)=current.as_deref(){if let Some(d)=state.direct.as_mut(){if let Ok(c)=app.state::<Database>().0.lock(){d.saved=matches!(direct_status(&c,&d.scope,&d.id).ok().flatten().as_deref(),Some("saved"|"cancelled"));}}if state.pending.is_none(){let reset=state.scope.as_deref()!=Some(scope)||state.direct.as_ref().is_some_and(|d|d.saved);if reset{state.begin(scope);if let Ok(c)=app.state::<Database>().0.lock(){if let Ok(Some(mut d))=pending_direct(&c,scope){d.generation=state.generation;state.direct=Some(d);}}}Some(reset)}else{None}}else{None}
+  if let Some(scope)=current.as_deref(){if let Some(d)=state.direct.as_mut(){if let Ok(c)=app.state::<Database>().0.lock(){d.saved=matches!(direct_status(&c,&d.scope,&d.id).ok().flatten().as_deref(),Some("saved"|"cancelled"));}}if state.pending.is_none(){let reset=state.scope.as_deref()!=Some(scope)||state.direct.as_ref().is_some_and(|d|d.saved);if reset{state.begin(scope);if let Ok(c)=app.state::<Database>().0.lock(){if let Ok(Some(mut d))=pending_legacy_direct(&c,scope){if d.batch_count.is_none(){d.generation=state.generation;state.direct=Some(d);}}}}Some(reset)}else{None}}else{None}
  }else{None};
  let opened=if let (Some(reset),Some(w))=(decision,app.get_webview_window("capture")){
   if reset{let _=app.emit_to("capture","todo-capture-reset",());}

@@ -10,6 +10,7 @@ export function nativeOpenCapture(){return invoke('native_open_capture')}
 
 // Main is the only writer. A request remains pending until Rust verifies its
 // UUID in the committed SQLite snapshot; retrying cannot append a second task.
+const requestIds=req=>req.batch_count==null?[req.id]:Array.from({length:req.batch_count},(_,i)=>req.id+":"+(i+1));
 export function useDirectCapture({uid,storage,data,blocked,edit,onSaved}){
  const latest=useRef(null);latest.current={data,blocked,edit,onSaved};const inFlight=useRef(false);
  useEffect(()=>{if(!desktopNative||!storage?.flush)return;let disposed=false,attempt=null;
@@ -22,10 +23,21 @@ export function useDirectCapture({uid,storage,data,blocked,edit,onSaved}){
    if(disposed)return;
    // An attempted task is never appended again in this session. If it was
    // undone before the first commit, terminate the outstanding request.
-   if(!latest.current.data.tasks.some(t=>t.id===attempt.id)){await invoke('native_direct_cancel_pending',{scope,id:attempt.id});attempt=null;return}
+   if(!requestIds(attempt).every(id=>latest.current.data.tasks.some(t=>t.id===id))){await invoke('native_direct_cancel_pending',{scope,id:attempt.id});attempt=null;return}
    return;
   }
   const req=await invoke('native_direct_pending',{scope});if(disposed||!req||req.scope!==scope||latest.current.blocked)return;
+  if(req.batch_count!=null){
+   const ids=requestIds(req),present=ids.filter(id=>latest.current.data.tasks.some(t=>t.id===id)).length;
+   if(present===ids.length){attempt=req;return}
+   if(present){await invoke('native_direct_cancel_pending',{scope,id:req.id});return}
+   const {prepareExternalTasks}=await import('../../core/external-capture.js');
+   const {appendCapture}=await import('../../core/professional-workflow.js');
+   if(disposed||latest.current.blocked)return;
+   const make=d=>appendCapture(d,prepareExternalTasks(d,{id:req.id,tasks:JSON.parse(req.text)},new Date(req.created_at*1000)));
+   try{if(make(latest.current.data)===latest.current.data)throw Error('invalid batch')}catch{await invoke('native_direct_cancel_pending',{scope,id:req.id});return}
+   attempt=req;latest.current.edit(d=>{try{return make(d)}catch{return d}},'device');return;
+  }
   if(!latest.current.data.tasks.some(t=>t.id===req.id)){
    const {quickParse}=await import('../../core/advanced.js');const {newTask,dayKey}=await import('../../core/domain.js');
    if(disposed||latest.current.blocked)return;const parsed=quickParse(req.text,dayKey(new Date(req.created_at?req.created_at*1000:Date.now())));if(!parsed.title){await invoke('native_direct_cancel_pending',{scope,id:req.id});return}

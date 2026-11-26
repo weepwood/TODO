@@ -45,3 +45,5 @@
 - 本机公共索引：/Volumes/data/AI-Development/reuse/OPEN-SOURCE.md。不可用时依本文件及官方上游。
 
 - AI 接入独立工具包：官方 @modelcontextprotocol/sdk 1.32.2 (MIT，v1维护线)、zod 4.6.7 (MIT)，仅测试 pg 8.23.1 (MIT)；本地 LICENSE 已检查，独立锁文件，不加入前端依赖。参考 Todoist API 幂等及 Supabase Edge Functions 认证；未复制第三方产品代码。
+
+- 本地CLI复用现有Rust/SQLite/Tauri，原Cargo.lock已有sha2 0.10.9和uuid 1.29.3，本次声明为直接依赖（请求摘要/UUID），未新增锁定包或前端依赖。官方MCP SDK沿用既有版本。

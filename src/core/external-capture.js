@@ -26,13 +26,17 @@ export function normalizeExternalTasks(rows){
  });
 }
 // Absolute local wall-clock inputs only. No server-time relative dates or private local defaults.
-export function buildExternalCapture(state,request,now=new Date()){
+export function prepareExternalTasks(state,request,now=new Date()){
  const data=migrateState(state),rows=normalizeExternalTasks(request.tasks);
  const tasks=rows.map((r,i)=>{
   const list=data.lists.find(l=>l.id===(r.listId??'inbox'));if(!list)fail('目标清单不存在，请拒绝该请求并重新提交',409);
   const t=taskFromCapture({parsed:{title:r.title,date:r.date||'',time:r.time||'',priority:r.priority??0},list,today:dayKey(now),now});
   return {...t,id:request.id+':'+(i+1),createdAt:now.toISOString(),notes:r.notes??'',duration:r.duration??t.duration,priority:r.priority??t.priority,...(r.deadline?{deadline:r.deadline}:{}),reminderAt:r.reminderAt||''};
  });
+ return tasks;
+}
+export function buildExternalCapture(state,request,now=new Date()){
+ const data=migrateState(state),tasks=prepareExternalTasks(data,request,now);
  const next=appendCapture(data,tasks);if(next===data)fail('无法追加任务，请检查工作空间与数量限制',409);
  const recorded=recordTaskChanges(data,next,{id:request.id,at:now.toISOString(),source:'device',session:'external:'+request.token_id});
  try{assertCloudCapacity(recorded)}catch{fail("工作空间容量不足",409)}

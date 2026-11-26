@@ -1,4 +1,28 @@
 # TODO 外部 AI 接入（第二批，本地候选）
+
+## 当前首选：本地 CLI（2026-11-26）
+本地开发使用 CLI First、MCP Optional、Cloud Optional；远程OAuth暂缓，已验证的独立QA云端能力保留。Mac 原生候选新增 --cli 模式，复用 direct_capture_requests 与主窗口保存事务；没有独立服务、云端令牌或AI聊天页。
+一次性使用：先启动包含本次代码的新版桌面应用，在设置→账号与同步→本地 CLI 接入→绑定当前工作空间。访客无需登录，已有账号沿用原同步。CLI 绑定固定工作空间，不随登录切换；绑定的账号未处于活动状态时只排队，直到该账号再次打开。解除绑定禁止后续默认录入，不自动取消已经提交的请求。操作系统同一用户属于本机信任边界，不是针对同用户恶意程序的安全沙箱。旧应用不能消费新命名空间；正式桌面应用尚未替换、正式数据库未迁移、未绑定真实工作空间。
+命令已安装在 ~/.local/bin/todo（本机PATH已核验）；安装器 scripts/install-local-cli.sh 接受明确验证的原生二进制，按SHA256保存到 ~/.local/libexec/todo-cli/<digest>/todo，不覆盖既有同名程序或修改shell配置。当前安装的是独立QA编译候选的CLI入口（仅 --cli 模式），默认指向正式macOS应用数据目录但不会创建缺失数据库或旧版schema；尚未更新正式应用时 doctor 会失败。Linux/Windows默认数据位置及原生实际使用尚未验收。
+```sh
+todo --help
+todo doctor
+todo lists
+todo add "检查项目开发进度" --date tomorrow --priority high --request-id "$(uuidgen)"
+todo batch --file tasks.json --request-id "$(uuidgen)"
+todo status <原请求UUID>
+```
+批量支持stdin --file -、1–50项、256KiB；字段沿用外部接入契约，标题必填。--wait 0–60秒（默认5秒）；received仅排队、saved仅SQLite提交完成、cancelled取消、error失败，sync_status=not_checked不证明云同步。重复提交须同UUID及相同规范化内容；跨日重试建议绝对日期。待处理CLI批次每工作空间最多1个，旧版快捷录入的独立待处理条目可能并存，由主窗口顺序处理。CLI不会启动或覆盖现有应用，不读取全部任务或提供删除/修改。CLI只写队列和显式绑定，已保存任务由主窗口通过 prepareExternalTasks/appendCapture/useWorkspaceEdit 处理，记录活动；Rust在原保存事务内验证全部确定性任务ID后才标记saved，保留请求摘要以便去重；旧版文本录入协议保留。
+全局 Skill：项目 skills/todo-cli/SKILL.md 为源码，本机 ~/.agents/skills/todo-cli/SKILL.md 为稳定安装副本，~/.claude/skills/todo-cli 为到该目录的链接，中央reuse路由已登记。Codex/Claude使用前重新打开会话，明确要求“使用TODO记录……”，ChatGPT RDC显式读取该Skill；不自动记录、绑定或读取数据库。仅验证文件存在及内容一致，真实模型自动发现/自然语言自主调用尚未验证。模型客户端本身仍需正常模型使用权限。
+MCP 可选：stdio无TODO_API_URL时默认本地CLI，也可显式 TODO_MCP_BACKEND=local；TODO_CLI_BIN=todo 或绝对命令路径；TODO_CLI_DATA_DIR仅隔离测试使用。MCP request_key哈希派生稳定UUID，三工具复用CLI；不执行shell拼接。云端兼容旧TODO_API_URL配置或显式TODO_MCP_BACKEND=cloud，远程HTTP继续使用云端凭据。
+```toml
+[mcp_servers.todo]
+command = "node"
+args = ["/absolute/path/TODO/integrations/ai/mcp.mjs"]
+env = { TODO_MCP_BACKEND = "local" }
+```
+本机真实验收证据 artifacts/TODO/local-cli：独立app identifier com.weepwood.todo.qa.localcli，合成云地址127.0.0.1:9，实际macOS WebView和SQLite：运行单条saved、关闭后批量received、重启saved、同键重试相同回执、不同内容冲突拒绝；SDK stdio经已安装命令到原生WebView单条/批量/查询/重试实际通过。6项任务、4份saved回执、SQLite integrity_check=ok。QA专用WebView探针实际点击设置绑定按钮，外部doctor确认成功；探针仅隔离编译，未进入仓库/安装CLI。Rust13/13，领域/ACL13/13，旧录入浏览器4/4（模拟IPC），原云端协议回归3/3（隔离PG），隔离生产前端构建通过。未验收真实账号绑定后的跨设备同步或真实模型会话；不以本地回执冒充云端同步。无正式应用替换、不新增付费资源，4197/4318保留。
+
 本批仅新增任务录入能力，不建 AI 聊天页、模型服务、任务读取/编辑/删除 API 或 Agent 平台。正式 Supabase 未修改，4197/普通构建默认关闭接入 UI。
 
 ## 架构与状态
