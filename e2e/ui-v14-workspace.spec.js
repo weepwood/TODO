@@ -12,7 +12,7 @@ test('规则折叠不丢失配置，执行记录筛选和实际时间图表',asy
  const config={auto:false,lastRun:'',rules:[{id:'r',name:'周期检查',list:'all',condition:'today',extra:'todo',match:'all',action:'high',trigger:'daily',enabled:true}]};
  await page.addInitScript(({d,config})=>{if(!localStorage.getItem('todo-workbench-v1'))localStorage.setItem('todo-workbench-v1',JSON.stringify(d));localStorage.setItem('todo-workflow-rules-v1',JSON.stringify(config))},{d,config});
  await page.setViewportSize({width:1440,height:900});await page.goto('/');
- await page.locator('[data-view-key=today]').click();await page.getByRole('button',{name:'自动化',exact:true}).click();
+ await page.locator('[data-view-key=today]').click();await page.getByRole('button',{name:'今日更多操作'}).click();await page.getByRole('menuitem',{name:'自动化',exact:true}).click();
  const dialog=page.getByRole('dialog',{name:'任务工作流自动化'});
  await expect(dialog.getByLabel('规则流程 1')).toContainText('且');
  await dialog.getByRole('button',{name:'折叠规则 1'}).click();await expect(dialog.getByRole('textbox',{name:'规则名称 1'})).toBeHidden();

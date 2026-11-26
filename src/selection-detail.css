@@ -198,6 +198,8 @@
 .v2 .sidebar .sidebar-row[data-editable=true]:is(:hover,:focus-within,:has(>.sidebar-row-actions[data-state=open]))>.sidebar-row-actions{opacity:1}
 .v2 .sidebar .sidebar-row>.sidebar-row-actions:hover{background:var(--hover)}
 .v2 .sidebar .section-label>.icon-button{opacity:0}
+/* Empty collections need a visible first action; populated sections retain hover affordances. */
+.v2 .sidebar .section-label[data-empty-section=true]>.icon-button{opacity:1}
 .v2 .sidebar .section-label:is(:hover,:focus-within)>.icon-button,.v2 .sidebar .section-label>.icon-button[data-state=open]{opacity:1}
 @media(prefers-reduced-motion:no-preference){.v2 .sidebar .sidebar-row-count,.v2 .sidebar .sidebar-row>.sidebar-row-actions,.v2 .sidebar .section-label>.icon-button{transition:opacity var(--ui-fast)}}
 /* Touch: keep both count and a discoverable action; reserve the same track

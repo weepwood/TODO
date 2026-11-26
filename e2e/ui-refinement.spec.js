@@ -53,7 +53,7 @@ test('统计概览优先，积分跳转与双主题布局',async({page})=>{
  await page.goto('/');await page.getByRole('button',{name:'统计',exact:true}).click();
  await expect(page.getByRole('heading',{name:'任务概览'})).toBeVisible();
  const a=await page.getByRole('heading',{name:'任务概览'}).boundingBox(),b=await page.getByRole('heading',{name:'任务积分',exact:true}).boundingBox();expect(a.y).toBeLessThan(b.y);
- await page.locator('.stats-jump').getByRole('button',{name:'任务积分'}).click();
+ await page.locator('.stats-jump').getByRole('button',{name:'跳转到…'}).click();await page.getByRole('menuitem',{name:'任务积分',exact:true}).click();
  await expect(page.getByRole('heading',{name:'任务积分',exact:true})).toBeInViewport();
  await page.screenshot({path:'test-results/refinement-points.png',animations:'disabled'});
 });

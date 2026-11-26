@@ -8,7 +8,7 @@ async function seed(page,theme='light'){
 }
 test('独立自动化编排、异常定位、复制禁用及保存往返',async({page})=>{
  await page.setViewportSize({width:1440,height:900});await seed(page);
- await page.getByRole('button',{name:'自动化工作台',exact:true}).click();
+ await page.getByRole('button',{name:'今日更多操作'}).click();await page.getByRole('menuitem',{name:'自动化工作台',exact:true}).click();
  const surface=page.getByRole('region',{name:'任务工作流自动化'});await expect(surface).toBeVisible();
  await surface.getByRole('button',{name:/异常报告/}).click();await expect(surface).toContainText('目标清单已移除');
  await surface.getByRole('button',{name:'编辑规则',exact:true}).click();await expect(surface.getByRole('textbox',{name:'规则名称 1'})).toBeVisible();
@@ -17,10 +17,10 @@ test('独立自动化编排、异常定位、复制禁用及保存往返',async(
  await surface.getByRole('button',{name:'执行预览',exact:true}).click();await expect(surface.getByText('执行预览 · 0 项')).toBeVisible();
  await surface.getByRole('button',{name:'保存规则',exact:true}).click();await expect(surface).toContainText('规则已保存');
  await surface.getByRole('button',{name:'规则编排',exact:true}).click();await page.screenshot({path:'test-results/studio-workflow.png',animations:'disabled'});
- await surface.getByRole('button',{name:'返回',exact:true}).click();await page.getByRole('button',{name:'自动化工作台',exact:true}).click();await expect(page.getByRole('textbox',{name:'规则名称 2'})).toHaveValue('检查规则 副本');
+ await surface.getByRole('button',{name:'返回',exact:true}).click();await page.getByRole('button',{name:'今日更多操作'}).click();await page.getByRole('menuitem',{name:'自动化工作台',exact:true}).click();await expect(page.getByRole('textbox',{name:'规则名称 2'})).toHaveValue('检查规则 副本');
 });
 test('自动化草稿保护覆盖清单和模块导航，保存后正常离开',async({page})=>{
- await seed(page);await page.getByRole('button',{name:'自动化工作台',exact:true}).click();
+ await seed(page);await page.getByRole('button',{name:'今日更多操作'}).click();await page.getByRole('menuitem',{name:'自动化工作台',exact:true}).click();
  const surface=page.getByRole('region',{name:'任务工作流自动化'}),name=surface.getByRole('textbox',{name:'规则名称 1'});
  await name.fill('未保存配置');await expect(surface).toContainText('存在未保存的规则配置');
  page.once('dialog',d=>d.dismiss());await page.locator('.rail').getByRole('button',{name:'统计',exact:true}).click();

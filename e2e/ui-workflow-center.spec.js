@@ -12,7 +12,7 @@ test('创建触发与字段级执行报告撤销，不重复触发',async({page}
  await page.locator('[data-view-key=today]').click();
  await page.getByRole('textbox',{name:'新任务名称'}).fill('新建验收');await page.getByRole('button',{name:'添加',exact:true}).click();
  await expect.poll(async()=>(await task(page,'新建验收'))?.priority).toBe(3);
- await page.getByRole('button',{name:'自动化',exact:true}).click();
+ await page.getByRole('button',{name:'今日更多操作'}).click();await page.getByRole('menuitem',{name:'自动化',exact:true}).click();
  const dialog=page.getByRole('dialog',{name:'任务工作流自动化'});await expect(dialog).toContainText('事件触发 · 1 项');
  await page.screenshot({path:'test-results/workflow-center-report.png',animations:'disabled'});
  page.once('dialog',d=>d.accept());await dialog.getByRole('button',{name:'撤销',exact:true}).click();

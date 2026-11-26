@@ -22,6 +22,9 @@ TODO 定位为简洁实用的个人任务管理工具，而非通用项目管理
 ## AI 复用路由（当前生效）
 每批需求先读 docs/FEATURES.md 与 docs/OPEN-SOURCE.md，检查现有实现，再按需读取 .agents/skills/todo-development、todo-domain-rules、todo-ui-integration 的 SKILL.md。全局通用技能与复用索引见 /Volumes/data/AI-Development/reuse/README.md，UI-Vault 优先作为公共 UI 资产参考。无必要不复制通用 Skill、不安装新依赖、不创建重复框架。Claude Code 使用 CLAUDE.md 与 .claude/skills 相对链接；不能自动发现时显式读取原文。先功能闭环，再必要验证，更新覆盖矩阵。
 
+## 产品体验第一批（2026-11-26）
+已基于6d73408审查8个主模块桌面及390px浏览器页面：今日低频入口收纳、空分类创建可发现、桌面连续录入焦点、详情摘要/分区展开及属性排序、日历等价入口归一、窄屏规划、统计跳转焦点和习惯输入语义。沿用既有Radix、FullCalendar及CSS语义Token；没有新功能模型/依赖。保留现有看板、四象限、专注、设置等已可用实现，不为了覆盖专项机械重构。真实后续缺陷以实际使用复现为准；继续暂缓性能/RC等专项。详见第四十三节。
+
 ## 产品与开发约定
 
 参考滴答清单与 Things 3 的个人任务管理工作台。早期快速迭代，普通改动允许直接提交 main，不强制 PR、Release 或 CI/CD，不绕过分支保护。关联功能集中完成，中文 Git commit，保留必要本地测试与构建。优先复用成熟组件。

@@ -1,6 +1,6 @@
 import React,{useEffect,useRef,useState} from 'react';
 const sections=[['plan','计划'],['organization','属性'],['notes','备注'],['checklist','检查'],['children','子任务'],['relations','关联'],['resources','附件'],['activity','记录']];
-export function DetailNavigation({order=sections.map(([id])=>id)}){
+export function DetailNavigation({order=sections.map(([id])=>id),onReveal}){
  const ordered=order.map(id=>sections.find(([key])=>key===id)).filter(Boolean);
  const nav=useRef(null),[active,setActive]=useState('plan');
  useEffect(()=>{
@@ -24,7 +24,8 @@ export function DetailNavigation({order=sections.map(([id])=>id)}){
   const host=nav.current?.closest('.detail-content'),target=host?.querySelector('[data-detail-section="'+id+'"]');
   if(!target)return;
   setActive(id);
-  host.scrollTo({top:host.scrollTop+target.getBoundingClientRect().top-nav.current.getBoundingClientRect().bottom-12,behavior:'instant'});
+  onReveal?.(id);
+  requestAnimationFrame(()=>{if(!nav.current||!target.isConnected)return;host.scrollTo({top:host.scrollTop+target.getBoundingClientRect().top-nav.current.getBoundingClientRect().bottom-12,behavior:'instant'})});
  };
  return <nav className="detail-navigation" aria-label="任务详情分区" ref={nav}>{ordered.map(([id,label])=><button key={id} type="button" aria-current={active===id?'location':undefined} onClick={()=>go(id)}>{label}</button>)}</nav>;
 }

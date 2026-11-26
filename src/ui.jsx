@@ -19,10 +19,10 @@ function MenuItems({api:Api,items}){
   return <Api.Item key={i} className={'dropdown-item menu-action '+(item.danger?'danger':'')} data-checked={item.checked||undefined} disabled={item.disabled} onSelect={item.run} aria-label={typeof item.label==='string'?item.label:undefined} title={item.tooltip||(typeof item.label==='string'?item.label:undefined)}>{content}</Api.Item>;
  });
 }
-export function Menu({items,trigger,open,onOpenChange,className=''}){
+export function Menu({items,trigger,open,onOpenChange,onCloseAutoFocus,className=''}){
  const [local,setLocal]=useState(false),shown=open??local,change=onOpenChange??setLocal;
  useTransientPopover(shown,()=>change(false));
- return <Dropdown.Root open={shown} onOpenChange={change}><Dropdown.Trigger asChild>{trigger||<button className="icon-button" aria-label="更多操作"><MoreHorizontal size={18}/></button>}</Dropdown.Trigger><Dropdown.Portal><Dropdown.Content className={'dropdown '+className} {...popoverGeometry}><MenuItems api={Dropdown} items={items}/></Dropdown.Content></Dropdown.Portal></Dropdown.Root>
+ return <Dropdown.Root open={shown} onOpenChange={change}><Dropdown.Trigger asChild>{trigger||<button className="icon-button" aria-label="更多操作"><MoreHorizontal size={18}/></button>}</Dropdown.Trigger><Dropdown.Portal><Dropdown.Content className={'dropdown '+className} onCloseAutoFocus={onCloseAutoFocus} {...popoverGeometry}><MenuItems api={Dropdown} items={items}/></Dropdown.Content></Dropdown.Portal></Dropdown.Root>
 }
 export function Empty({title='暂无任务',hint='添加一项任务开始吧。',Icon}){return <div className="empty">{Icon&&<div className="empty-icon"><Icon size={28}/></div>}<h3>{title}</h3><p>{hint}</p></div>}
 export function Field({label,children,...feedback}){if(Object.keys(feedback).length)return <FeedbackField label={label} {...feedback}>{children}</FeedbackField>;return <label className="field"><span>{label}</span>{children}</label>}
