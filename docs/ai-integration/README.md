@@ -73,6 +73,13 @@ Claude Code：本地 .mcp.json 示例（不要把真实密钥写入文件）：
 - Deno 2.9.7 check/bundle 生成单文件部署候选；edge-runtime-qa.mjs 运行实际 bundle，用环回上游模拟 Supabase Auth/PostgREST 并执行真实 PG RPC。创建、幂等、跨账号拒绝通过。TODO_EDGE_QA_PORT 仅在上游为 127.0.0.1 时允许启用，正常 Edge 入口不变。不是正式 Supabase Edge Runtime 部署或真实 Auth。
 - 连接 Supabase 项目清单已核对：仅正式 TODO 活动，无独立测试项目/开发分支；未唤醒其他项目。新项目涉及组织与费用确认，正式项目完全不修改。没有使用真实模型或账号凭据。
 
+## 独立云测试环境（2026-11-26，已部署，正向身份验收待完成）
+经用户明确确认0美元/月报价，新建独立项目 TODO-AI-QA，东京 ap-northeast-1，ref `lwwmhwefdwfuprphmybn`，PostgreSQL 17.12，ACTIVE_HEALTHY。正式 TODO ref `xepkhnatnpvopnlqnrrz` 保持不变。创建前确认独立项目空库、零用户。仅测试项目应用已有三个工作空间迁移及 schema.sql 草案；云迁移历史依次为 20261126111802 todo_workspace_sync、20261126111807 todo_task_delta、20261126111812 todo_read_task_deltas、20261126111817 todo_external_intake_qa。管理工具生成的迁移历史版本与本地原始文件名不同，正式迁移草案仍不进入默认发布链。
+Deno bundle 以固定 npm:@supabase/supabase-js@2.119.2 外置依赖生成部署候选 deploy.js（53626字节），仅测试项目部署 todo-external v1 ACTIVE，verify_jwt=false（内部逐路由鉴权）。本机真实 HTTPS 访问验证：无凭据创建、无效账号JWT、无效外部令牌创建、匿名直读令牌表、匿名直调内部RPC均返回401。数据库实际查询证实三表均启用RLS，anon不能读任何表、authenticated仅可读工作空间（受owner RLS约束），内部两表及gateway RPC只授予service_role。安全顾问两项INFO为内部表有意无用户策略，不是需要向普通用户开放的缺陷。
+真实测试用户尚未创建：通过 Auth Admin API 初始化合成用户的临时入口 todo-qa-bootstrap v1 曾部署至独立QA，调用被工具安全检查阻止，未绕过；立即替换为仅返回410的无业务代码 v2，verify_jwt=true。管理工具无删除入口，遗留停用函数可在QA控制台删除。数据库复核 auth.users、workspace、token、request 均为0。临时生成的凭据文件已清除，未获取正式密钥。应通过 QA 控制台 Authentication → Users → Add user → Create user 建立两个独立合成测试身份（确认邮箱选项仅用于测试，不发送真实邀请），再在独立浏览器或本机安全凭据环境验证真实Auth、RLS、任务回执与同步。不得绕过工具安全检查、临时放宽生产鉴权或把测试密码粘贴进对话。真实 Codex/Claude 模型会话、外部OAuth AS和ChatGPT插件仍未完成。未开放额外付费项目或资源；0美元/月仅为创建报价，不代表无限免费用量。
+测试控制台：https://supabase.com/dashboard/project/lwwmhwefdwfuprphmybn
+测试 API：https://lwwmhwefdwfuprphmybn.supabase.co/functions/v1/todo-external
+
 ## 独立真实接入验收顺序（待授权）
 1. 明确独立 Supabase 测试项目及组织/费用，项目 ref 必须不同于正式 TODO 的 xepkhnatnpvopnlqnrrz；不要复用其他项目。创建后确认 ACTIVE_HEALTHY；先审查新空项目，再通过 Supabase CLI 或管理工具逐项应用既有3个工作空间迁移及 schema.sql 候选（生成正式迁移须经 CLI，当前本机无CLI/Docker）。核对 Data API grant、RLS、service_role EXECUTE、anon/authenticated 禁止内部 RPC 和 token 表访问。
 2. 使用生成的 Edge 单文件候选部署独立项目的 todo-external（只该函数 verify_jwt=false，内部逐路由鉴权）；正式项目不部署。验证无凭据401、测试账号真实 Supabase Auth getUser、双账号 RLS，手动审批、自动创建、幂等及回执；先用全新合成测试账号、空工作空间。通过前不得开启真实用户数据或正式构建入口。
