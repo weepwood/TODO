@@ -80,6 +80,11 @@ Deno bundle 以固定 npm:@supabase/supabase-js@2.119.2 外置依赖生成部署
 测试控制台：https://supabase.com/dashboard/project/lwwmhwefdwfuprphmybn
 测试 API：https://lwwmhwefdwfuprphmybn.supabase.co/functions/v1/todo-external
 
+## 真实测试身份与独立联调入口（2026-11-26）
+用户已在独立QA控制台创建2名测试用户，数据库确认两者邮箱已确认；本轮检查时auth.sessions、workspace、token、request均0，尚无实际登录凭据或会话。没有读取密码哈希、真实账号密钥或正式登录状态。独立Vite预览 http://127.0.0.1:4318/ 已启动（仅环回，VITE_SUPABASE_URL固定QA、VITE_TODO_EXTERNAL_API=1、IDB pilot关闭），保持4197与普通构建不变。
+新增 integrations/ai/cloud-qa.mjs（用户在本机TTY执行），只接受固定QA ref及明确确认，使用公开key。两账号密码在本机交互隐藏输入，仅进程内使用；三次真实Supabase密码登录及getUser，两账号RLS；对新QA账号初始化空工作空间，若已有非[AI-QA]前缀任务则拒绝继续。两个独立浏览器上下文使用真实同账号的独立Auth会话，不模拟任何HTTP/数据库响应；网络仅允许QA预览及QA项目。实际UI审批、REST幂等、官方MCP stdio三个工具、云端任务回执、双浏览器保存和刷新回读。测试完成/失败尽力撤销本轮令牌并退出测试会话；保留带[AI-QA]前缀的测试任务用于核对，不删除用户数据。无模型调用或费用；真实Codex/Claude模型调用和ChatGPT OAuth仍需独立客户端授权，不将协议测试冒充模型验收。
+本机启动器：/Volumes/data/AI-Development/artifacts/TODO/ai-stage2/run-real-ai-qa.command（仅QA公开key、ref、报告路径，不含密码或令牌）。在Mac终端执行该文件，输入A/B测试邮箱和隐藏密码。结果成功后生成同目录real-cloud-report.json，仅阶段、计数、版本和时间，不保存账号信息/密码/令牌。当前仅已运行--preflight和真实浏览器访客设置检查：精确QA配置、真实HTTP401、登录控件、无其他网络origin均通过；有凭据的正向流程尚未运行，报告未生成。请勿将密码发送给聊天或写入仓库，不使用正式账号。初次预检发现Vite环境JSON有空格，已改为结构化解析复验通过。
+
 ## 独立真实接入验收顺序（待授权）
 1. 明确独立 Supabase 测试项目及组织/费用，项目 ref 必须不同于正式 TODO 的 xepkhnatnpvopnlqnrrz；不要复用其他项目。创建后确认 ACTIVE_HEALTHY；先审查新空项目，再通过 Supabase CLI 或管理工具逐项应用既有3个工作空间迁移及 schema.sql 候选（生成正式迁移须经 CLI，当前本机无CLI/Docker）。核对 Data API grant、RLS、service_role EXECUTE、anon/authenticated 禁止内部 RPC 和 token 表访问。
 2. 使用生成的 Edge 单文件候选部署独立项目的 todo-external（只该函数 verify_jwt=false，内部逐路由鉴权）；正式项目不部署。验证无凭据401、测试账号真实 Supabase Auth getUser、双账号 RLS，手动审批、自动创建、幂等及回执；先用全新合成测试账号、空工作空间。通过前不得开启真实用户数据或正式构建入口。

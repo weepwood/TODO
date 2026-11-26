@@ -464,3 +464,6 @@
 
 ## 四十六、独立Supabase云测试项目实际部署（2026-11-26）
 基线524b845。用户明确确认0美元/月创建报价，独立TODO-AI-QA ref lwwmhwefdwfuprphmybn，东京ap-northeast-1，ACTIVE_HEALTHY，PG17.12，部署前public表和auth.users均0。使用Supabase连接器仅在该ref应用四份迁移（20261126111802、07、12、17）；Deno外置固定npm依赖部署包53626字节，todo-external v1 ACTIVE、verify_jwt=false，内部逐路径鉴权。真实HTTPS无凭据/无效JWT/无效外部令牌/匿名直读令牌表/匿名内部RPC五项均401；首轮Python本机证书链检查失败，改用Node正常TLS未关闭校验。真实库三表RLS开启、内部两表anon/authenticated无SELECT、内部RPC仅service_role EXECUTE，安全顾问2项INFO为预期无用户策略。尝试通过Auth Admin API初始化合成账号，临时受限函数已部署但调用被安全检查屏蔽；未绕过，立即将todo-qa-bootstrap替换为verify_jwt=true、仅410的v2，无业务代码，管理工具无删除函数能力。复核用户、工作空间、令牌、请求均0，清除生成的私有临时凭据。下一步QA控制台创建两名测试用户，真实Auth/RLS正向、同步、模型调用及ChatGPT OAuth仍未通过。没有额外付费授权、没有改正式TODO或4197、不推送不合并不发布。真实验收与待办见接入手册。
+
+## 四十七、真实测试用户与本机联调准备（2026-11-26）
+基线ccf1ae4，QA真实数据库确认2名邮箱已确认用户，会话/工作空间/令牌/请求均0。4318独立环回Vite预览启用AI接入并绑定QA项目，保持4197/正式项目和普通构建不动。新增integrations/ai/cloud-qa.mjs，通过本机TTY隐藏密码输入，固定QA ref、真实三会话Auth/getUser、RLS/审批/回执幂等、实际MCP stdio到云端、双浏览器持久化/刷新，保留明确[AI-QA]测试任务且结束撤销测试令牌/退出会话；无真实凭据存盘或聊天输出。尚无测试密码或会话，未执行正向流程，不伪造报告。已实际运行预检（Vite环境JSON空格导致初次断言失败，结构化解析后通过）、真实访客登录UI、HTTP401、精确QA绑定和0意外网络origin。启动器artifacts/TODO/ai-stage2/run-real-ai-qa.command，仅含公开key及QA配置；实际报告real-cloud-report.json待本机用户输入后生成。真实模型/ChatGPT授权仍独立，未增加付费资源或正式数据变更，不推送不合并不发布。
