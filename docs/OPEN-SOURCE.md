@@ -43,3 +43,5 @@
 - Vikunja（主体 AGPL-3.0-or-later）：https://github.com/go-vikunja/vikunja/blob/main/LICENSE ，仅参考产品范式；直接复用前审查许可。
 - 候选 shadcn/ui、cmdk、TanStack Table、Recharts、rrule、Motion：按实际缺口选择，未采用版本、许可需逐项核验，不安装。
 - 本机公共索引：/Volumes/data/AI-Development/reuse/OPEN-SOURCE.md。不可用时依本文件及官方上游。
+
+- AI 接入独立工具包：官方 @modelcontextprotocol/sdk 1.32.2 (MIT，v1维护线)、zod 4.6.7 (MIT)，仅测试 pg 8.23.1 (MIT)；本地 LICENSE 已检查，独立锁文件，不加入前端依赖。参考 Todoist API 幂等及 Supabase Edge Functions 认证；未复制第三方产品代码。

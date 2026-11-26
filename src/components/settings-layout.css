@@ -79,3 +79,6 @@
  .settings-dialog.dialog{height:calc(100dvh - 24px)}
  .settings-dialog .dialog-head{min-height:48px;padding-block:6px}
 }
+
+.external-capture-panel{display:grid;gap:var(--space-3);min-width:0;margin-top:var(--space-3)}
+.external-token{display:flex;flex-wrap:wrap;gap:8px;min-width:0}.external-token p{flex-basis:100%}.external-token input{flex:1;min-width:100px}.external-note{white-space:pre-wrap;overflow-wrap:anywhere}.external-request .record-row>span{min-width:0;overflow-wrap:anywhere}
