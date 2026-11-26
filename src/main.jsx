@@ -75,6 +75,7 @@ import {recordRecovery} from './recovery-history.js';
 
 import './design-system/tokens.css';
 import './styles.css';
+import './design-system/overlays.css';
 import './workbench.css';
 import './workbench-interactions.css';
 import './layouts/mobile/android.css';

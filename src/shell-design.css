@@ -32,7 +32,7 @@
 .note-workbench .note-reading{max-width:100%}
 @media(min-width:861px){
  .v2 .toolbar,.v2 .detail-header{height:var(--shell-header)}
- .v2 .task-content{padding-inline:var(--shell-content-gap)}
+ .v2 .task-content{padding:28px var(--shell-content-gap)}
  .v2 .sidebar .brand{padding-top:9px}
  .v2 .sidebar .section-label{padding-top:18px}
  .v2 .sidebar .nav-row{gap:9px}
@@ -42,6 +42,7 @@
  .app.v2[data-sidebar-hidden=true]>.sidebar{display:none}
 }
 @media(max-width:860px){
+ .v2.compact-mobile .task-content{padding:14px 14px 20px}
  .v2.compact-mobile .breadcrumb{display:none}
  .v2.compact-mobile .task-content>.heading h1{font-size:24px}
  .v2.compact-mobile .mobile-nav{background:var(--bg);isolation:isolate}

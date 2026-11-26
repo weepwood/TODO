@@ -42,7 +42,7 @@
 @media(hover:hover) and (pointer:fine){.smart-select-trigger:hover{background:var(--hover)}.settings-navigation button:hover:not(.active){background:var(--hover)}}
 @media(max-width:860px){
  .app.v2.compact-mobile{--control-height:44px;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
- .v2.compact-mobile .task-content{padding:20px 16px;scrollbar-gutter:auto}
+ .v2.compact-mobile .task-content{scrollbar-gutter:auto}
  .v2.compact-mobile .heading{gap:12px;align-items:flex-start;margin-bottom:14px}
  .v2.compact-mobile .heading h1{font-size:27px}
  .v2.compact-mobile .toolbar{min-height:58px;gap:4px;padding:0 8px}
@@ -62,7 +62,7 @@
  .v2.compact-mobile .quick-add{min-height:50px;padding:7px 9px}
  .v2.compact-mobile .quick-add input{font-size:16px}
  .v2.compact-mobile .quick-add button{min-height:44px;font-size:14px;padding:8px 10px}
- :root[data-density] .v2.compact-mobile .task-row,.v2.compact-mobile .task-row{min-height:62px;gap:5px;padding:5px 2px}
+
  .v2.compact-mobile .task-body span{font-size:15px;line-height:1.45}
  .v2.compact-mobile .task-body small{font-size:12px}
  .v2.compact-mobile .task-body{min-height:44px;justify-content:center}
@@ -84,10 +84,10 @@
  .v2.compact-mobile .tag-chip{min-height:36px;font-size:13px}
  .smart-select-trigger{min-height:44px;font-size:14px}
  .smart-select-option{min-height:46px;font-size:15px;padding:10px 12px}
- .dropdown [role=menuitem]{min-height:44px;display:flex;align-items:center}
+
  .dialog:not(.mobile-more-sheet){max-width:calc(100vw - 20px)}
- .dialog :is(.primary,.secondary,.dialog-input){min-height:44px;font-size:14px}
- .dialog-head .icon-button{width:44px;height:44px}
+
+
  .v2.compact-mobile .bulk-bar .text-link{min-height:44px}
  .v2.compact-mobile .detail-content .check-add{min-height:44px}
  .v2.compact-mobile .detail-content .notes{min-height:110px}

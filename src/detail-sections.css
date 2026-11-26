@@ -10,7 +10,7 @@
 .detail-section-card [hidden]{display:none!important}
 .detail-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px;margin:0}
 .detail-facts>div{min-width:0;display:grid;gap:3px}
-.detail-facts dt{font-size:11px;color:var(--muted)}
+.detail-facts dt{font-size:var(--font-caption);color:var(--muted)}
 .detail-facts dd{margin:0;font-size:13px;color:var(--text);font-weight:500;line-height:1.5;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
 .detail-summary-stack{display:grid;gap:8px}
 .detail-summary-stack p{margin:0}
@@ -62,16 +62,16 @@
 /* Property inspector: permanent geometry and quiet native controls. */
 .property-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;min-width:0}
 .editable-property{display:grid;gap:2px;min-width:0}
-.property-label{font-size:11px;color:var(--muted)}
-.property-value{min-width:0;display:flex;align-items:center;min-height:32px;font-size:13px;font-weight:500;font-variant-numeric:tabular-nums}
+.property-label{font-size:var(--font-caption);color:var(--muted)}
+.property-value{min-width:0;display:flex;align-items:center;min-height:var(--control-height);font-size:var(--font-body);font-weight:500;font-variant-numeric:tabular-nums}
 .property-readonly{padding:4px 5px;overflow-wrap:anywhere;min-width:0}
 .property-trigger,.property-list-value{display:flex;align-items:center;gap:5px;min-width:0}
-.property-trigger{width:100%;justify-content:space-between;text-align:left;padding:5px;border-radius:6px;min-height:32px;font:inherit;color:var(--text)}
+.property-trigger{width:100%;justify-content:space-between;text-align:left;padding:5px;border-radius:var(--radius-control);min-height:var(--control-height);font:inherit;color:var(--text)}
 .property-trigger>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .property-trigger>svg{flex:none;color:var(--muted);opacity:0}
 .property-trigger:hover,.property-trigger:focus-visible,.property-trigger[data-state=open]{background:var(--hover)}
 .property-trigger:is(:hover,:focus-visible,[data-state=open])>svg{opacity:1}
-.v2 .detail-content[data-inspector=true] .property-value :is(.smart-select-trigger,.date-trigger,.time-control,.number-control){width:100%;min-width:0;min-height:32px;height:32px;border:1px solid transparent;background:transparent;box-shadow:none;padding-inline:4px;font:inherit}
+.v2 .detail-content[data-inspector=true] .property-value :is(.smart-select-trigger,.date-trigger,.time-control,.number-control){width:100%;min-width:0;min-height:var(--control-height);height:var(--control-height);border:1px solid transparent;background:transparent;box-shadow:none;padding-inline:4px;font:inherit}
 .v2 .detail-content[data-inspector=true] .property-value :is(.smart-select-trigger,.date-trigger,.time-control,.number-control):is(:hover,:focus-within,[data-state=open]){background:var(--hover);border-color:var(--line)}
 .v2 .detail-content[data-inspector=true] .property-value :is(.smart-select-trigger,.date-trigger,.time-control,.number-control):focus-within{border-color:var(--accent)}
 .v2 .detail-content[data-inspector=true] .property-value :is(.number-field,.time-control>input){min-width:0;font:inherit;background:transparent;padding-inline:0}
@@ -93,8 +93,8 @@
 .property-popover-actions{display:flex;justify-content:flex-end;gap:8px}
 .property-edit-hint{font-size:11px;color:var(--muted)}
 @media(max-width:860px),(pointer:coarse){
- .property-value,.property-trigger{min-height:44px}
- .v2 .detail-content[data-inspector=true] .property-value :is(.smart-select-trigger,.date-trigger,.time-control,.number-control){min-height:44px}
+ .property-value,.property-trigger{min-height:var(--control-touch-height)}
+ .v2 .detail-content[data-inspector=true] .property-value :is(.smart-select-trigger,.date-trigger,.time-control,.number-control){min-height:var(--control-touch-height);height:var(--control-touch-height)}
  .v2 .detail-content[data-inspector=true] .property-value :is(.number-step,.time-picker-trigger,.smart-select-chevron,.date-trigger>svg:last-child){opacity:1}
  .property-trigger>svg{opacity:1}
 }

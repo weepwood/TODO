@@ -21,6 +21,11 @@
  --popup-z-date:1300;
  --control-touch-height:44px;
  --row-gap:var(--space-1);
+ --task-row-height:48px;
+ --task-row-padding:7px;
+ --dialog-width:480px;
+ --dialog-padding:var(--space-4);
+ --dialog-radius:var(--radius-large);
  --nav-gap:var(--space-1);
  --marker-idle:5px;
  --marker-active:19px;
@@ -44,8 +49,10 @@
 /* Density and type scale apply to real controls. Gallery may scope the same
    tokens without writing appearance preferences or changing the app root. */
 :root[data-density=compact],.component-gallery[data-preview-density=compact]{--control-height:32px}
+:root[data-density=compact]{--task-row-height:42px;--task-row-padding:4px}
 :root[data-density=regular],.component-gallery[data-preview-density=regular]{--control-height:36px}
 :root[data-density=relaxed],.component-gallery[data-preview-density=relaxed]{--control-height:40px}
+:root[data-density=relaxed]{--task-row-height:56px;--task-row-padding:10px}
 :root[data-font=small],.component-gallery[data-preview-font=small]{--control-font:11px;--numeric-font:12px}
 :root[data-font=normal],.component-gallery[data-preview-font=normal]{--control-font:12px;--numeric-font:14px}
 :root[data-font=large],.component-gallery[data-preview-font=large]{--control-font:14px;--numeric-font:16px}

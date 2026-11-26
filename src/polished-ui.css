@@ -17,7 +17,7 @@
  .v2.compact-mobile .workspace-title h1{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
  .v2.compact-mobile .workspace-title .muted{margin:0;font-size:13px}
  .v2.compact-mobile .heading{padding-bottom:12px;gap:10px}
- .v2.compact-mobile .task-content{padding-top:14px}
+
  .v2.compact-mobile .task-more{touch-action:manipulation}
  .v2.compact-mobile .bulk-bar{min-height:40px;margin-bottom:4px}
  .v2.compact-mobile .quick-add{margin-bottom:2px}

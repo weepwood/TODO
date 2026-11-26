@@ -7,7 +7,7 @@
 .v2 .sidebar .section-label{font-size:11px;letter-spacing:0}
 .v2 .sidebar .nav-row{padding-inline:9px}
 .v2 .heading{align-items:end;padding-bottom:12px}
-.v2 .task-content{padding-inline:clamp(20px,3vw,42px)}
+
 .v2 .task-group{margin-bottom:22px}
 .v2 .task-row:not(.selected):not(.checked){border-radius:5px}
 .v2 .task-body span{font-weight:500}
@@ -78,7 +78,7 @@ input[type=checkbox]:disabled{opacity:.5;cursor:default}
  .mobile-toolbar-title{display:block;font-size:16px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
  .v2.compact-mobile .toolbar>.grow{min-width:0}
  .v2.compact-mobile .heading{align-items:flex-start}
- .v2.compact-mobile .task-content{padding:18px 14px}
+
  .v2.compact-mobile .heading .muted{font-size:13px}
  .v2.compact-mobile .quick-add{margin-bottom:5px}
  .v2.compact-mobile .bulk-bar{min-height:44px;margin-bottom:5px}
