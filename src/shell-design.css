@@ -78,3 +78,9 @@
 @media(min-width:861px) and (prefers-reduced-motion:no-preference){
  body:not(.resizing-panels) .app.v2:not(.compact-mobile){transition:grid-template-columns var(--motion-layout) var(--motion-ease)}
 }
+
+/* Save failures must expose recovery actions without hiding the current draft. */
+.workspace-save-error{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);flex-wrap:wrap;overflow-wrap:anywhere}
+.workspace-save-error>div{display:flex;gap:var(--space-2);flex-wrap:wrap}
+.workspace-save-error button{min-height:var(--control-height)}
+@media(max-width:860px){.workspace-save-error button{min-height:44px}}

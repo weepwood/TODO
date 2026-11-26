@@ -16,3 +16,14 @@ test('同日后续重复实例也禁止直接恢复历史，避免并行实例',
  const rows=[t,later];
  assert.equal(reopenTask(rows,t.id),rows);
 });
+
+test('备份或主数据写入配额失败时保留原有持久数据',()=>{
+ const d=initialState(),next={...d,theme:'dark'},old=JSON.stringify(d),backup=JSON.stringify({...d,theme:'light'});
+ for(const failKey of [BACKUP_KEY,STORAGE_KEY]){
+  const m=new Map([[STORAGE_KEY,old],[BACKUP_KEY,backup],[BACKUP_KEY+'-at','0']]);
+  const storage={getItem:k=>m.get(k)||null,setItem:(k,v)=>{if(k===failKey)throw new DOMException('quota','QuotaExceededError');m.set(k,v)}};
+  assert.throws(()=>saveState(storage,next),e=>e.name==='QuotaExceededError');
+  assert.equal(m.get(STORAGE_KEY),old);
+  assert.equal(m.get(BACKUP_KEY),failKey===BACKUP_KEY?backup:old);
+ }
+});

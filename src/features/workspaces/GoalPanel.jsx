@@ -7,7 +7,7 @@ export function GoalPanel({insights:v,storage,live=false,print=false,reportDate,
  const [editing,setEditing]=useState(false),[draft,setDraft]=useState(defaultGoals),[saveError,setSaveError]=useState('');
  useLayoutEffect(()=>{onEditingChange?.(editing);return ()=>onEditingChange?.(false)},[editing,onEditingChange]);
  const version=goalAt(goal.rows,reportDate),current=goalAt(goal.rows,today);
- const goals=(rows)=><div className="insight-goals">{rows.map(([key,name,actual,unit])=>{const target=live?(version?.goals[key]||0):0;return <div key={key}><div className="record-row"><strong>{name}</strong><span>{actual} {unit}{target>0?' / '+target+' '+unit:''}</span></div>{target>0&&<><progress aria-label={name+'目标进度'} value={Math.min(actual,target)} max={target}/><small>{Math.round(actual/target*100)}%</small></>}{!target&&<small className="muted">{live?(version?'未设置目标':'当日无已知目标版本'):'仅保存实际进展'}</small>}</div>})}</div>;
+ const goals=(rows)=><div className="insight-goals">{rows.map(([key,name,actual,unit])=>{const target=live?(version?.goals[key]||0):0;return <div key={key}><div className="goal-progress-label">{name}</div><div className="goal-progress-value"><strong>{actual}</strong><span>{unit}{target>0?' / '+target+' '+unit:''}</span></div>{target>0&&<><progress aria-label={name+'目标进度'} value={Math.min(actual,target)} max={target}/><small>{Math.round(actual/target*100)}%</small></>}{!target&&<small className="muted">{live?(version?'未设置目标':'当日无已知目标版本'):'仅保存实际进展'}</small>}</div>})}</div>;
  if(!v)return null;
  return <div className={standalone?'goal-panel goal-panel-standalone':'goal-panel'}>
  <h3>{v.month} 月度进展（截至本报告日期）</h3>{goals([['completed','完成任务',v.monthlyCompleted,'项'],['focusMinutes','专注时间',v.monthlyFocus,'分钟']])}
