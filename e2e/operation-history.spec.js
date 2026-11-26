@@ -21,14 +21,15 @@ test('现有历史入口展示版本、选择性恢复与实际应用确认（�
  await expect.poll(()=>page.evaluate(()=>JSON.parse(JSON.parse(localStorage.getItem('qa-history-store'))['todo-workbench-v1']).tasks.length)).toBe(1);
  await page.evaluate(()=>{
   const t=JSON.parse(JSON.parse(localStorage.getItem('qa-history-store'))['todo-workbench-v1']).tasks[0];
-  window.__qaJournal={intact:true,head:1,entries:[{version:1,at:Date.now()/1000,source:'cli',kind:'update',count:1,body:{rows:[{id:t.id,fields:{title:{before:{present:true,value:'历史旧标题'},after:{present:true,value:t.title}}},protected:[]}],protectedWorkspace:[]}}]};
+  const groupId='00000000-0000-4000-8000-000000000123';
+  window.__qaJournal={intact:true,head:2,entries:[{version:2,at:Date.now()/1000,source:'cli',groupId,kind:'update',count:1,body:{rows:[{id:t.id,fields:{title:{before:{present:true,value:'历史中间标题'},after:{present:true,value:t.title}}},protected:[]}],protectedWorkspace:[]}},{version:1,at:Date.now()/1000,source:'cli',groupId,kind:'update',count:1,body:{rows:[{id:t.id,fields:{title:{before:{present:true,value:'历史旧标题'},after:{present:true,value:'历史中间标题'}}},protected:[]}],protectedWorkspace:[]}}]};
  });
  await page.locator('.rail').getByRole('button',{name:'命令面板',exact:true}).click();
  await page.getByRole('combobox',{name:'搜索命令与任务'}).fill('历史归档检索');
  await page.keyboard.press('Enter');
  await page.getByText('操作版本与恢复（本机）',{exact:true}).click();
  await expect(page.getByText('V1 · CLI')).toBeVisible();
- await page.getByRole('button',{name:'恢复预览',exact:true}).click();
+ await page.getByRole('button',{name:'恢复操作组',exact:true}).first().click();
  await expect(page.getByText(/恢复预览 · 1 项可恢复/)).toBeVisible();
  await expect(page.getByText(/历史旧标题/)).toBeVisible();
  await page.getByRole('button',{name:'确认恢复所示变更'}).click();

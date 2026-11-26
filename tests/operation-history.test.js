@@ -74,3 +74,49 @@ test('invalid selections and later trash lifecycle cannot silently restore earli
   await assert.rejects(buildHistoryPreview(d,{op:'history-preview',version:1,selection},j,now),e=>e.code==='INVALID_ARGUMENT');
  }
 });
+
+test('operation group creation followed by selected field edits can be withdrawn without erasing activity',async()=>{
+ const {recordTaskChanges}=await import('../src/core/task-activity.js');
+ const initial=state([]),created=recordTaskChanges(initial,state([task('a')]),{id:'create-request',at:now.toISOString(),source:'device',session:'qa'});
+ const edited=recordTaskChanges(created,{...created,tasks:[{...created.tasks[0],priority:3}]},{id:'edit-request',at:now.toISOString(),source:'device',session:'qa'});
+ const j=journal(entry(2,[row('a',{priority:field(0,3)})],'cli',{requestId:'edit-request'}),entry(1,[{id:'a',created:true,afterHash:await digest(created.tasks[0])}],'cli',{requestId:'create-request'}));
+ const p=await buildHistoryPreview(edited,{op:'history-preview',groupId:id},j,now);
+ assert.equal(p.next.tasks[0].deletedAt,now.toISOString());
+ assert.equal(p.next.tasks[0].priority,3);assert.deepEqual(Object.keys(p.rows[0].fields),['deletedAt']);
+ assert.deepEqual(p.next.tasks[0].activity,edited.tasks[0].activity);
+ const redo=await buildHistoryPreview(p.next,{op:'history-preview',version:3},journal(entry(3,[row('a',{deletedAt:field(null,now.toISOString())})]),...j.entries),now);
+ assert.deepEqual(redo.next.tasks[0],edited.tasks[0]);
+ // Another device supplied an event that is not part of the selected group.
+ const remote={...edited,tasks:[{...edited.tasks[0],activity:[...edited.tasks[0].activity,{...edited.tasks[0].activity.at(-1),id:'remote:priority',operation:'remote'}]}]};
+ const partial=await buildHistoryPreview(remote,{op:'history-preview',groupId:id},j,now);
+ assert.equal(partial.next.tasks[0].deletedAt,null);assert(partial.conflicts.length);
+});
+test('linked creations can be trashed together, but an excluded or changed dependent protects its ancestors',async()=>{
+ const parent=task('parent'),child=task('child',{parentId:'parent'}),dependent=task('dependent',{dependsOn:['child']});
+ const d=state([parent,child,dependent]);
+ const j=journal(entry(1,await Promise.all(d.tasks.map(async t=>({id:t.id,created:true,afterHash:await digest(t)})))));
+ const all=await buildHistoryPreview(d,{op:'history-preview',version:1},j,now);
+ assert.equal(all.rows.length,3);assert(all.next.tasks.every(t=>t.deletedAt));
+ const part=await buildHistoryPreview(d,{op:'history-preview',version:1,selection:[{id:'parent'},{id:'child'}]},j,now);
+ assert.equal(part.rows.length,0);assert.equal(part.conflicts.length,2);
+ const changed=state([parent,child,{...dependent,title:'remote edit'}]);
+ const refused=await buildHistoryPreview(changed,{op:'history-preview',version:1},j,now);
+ assert.equal(refused.rows.length,0);assert.equal(refused.conflicts.length,3);
+});
+test('compensation merges independent remote fields and preserves real focus history; same-field conflict stays explicit',async()=>{
+ const {mergeTasks}=await import('../src/services/sync-merge.js');
+ const {recordTaskChanges}=await import('../src/core/task-activity.js');
+ const base=state([task('a',{priority:3}),task('b')]);
+ const prior=journal(entry(1,[row('a',{priority:field(0,3)})]));
+ const p=await buildHistoryPreview(base,{op:'history-preview',version:1},prior,now);
+ const local=recordTaskChanges(base,p.next,{id:'restore',at:now.toISOString(),source:'undo',session:'local'});
+ const session={id:'real-focus-fixture',taskId:'b',startedAt:now.toISOString(),mode:'stopwatch',seconds:120};
+ const remote=recordTaskChanges(base,{...base,tasks:[{...base.tasks[0],title:'remote title'},base.tasks[1]],sessions:[session]},{id:'remote',at:now.toISOString(),source:'manual',session:'remote'});
+ const merged=mergeTasks(base,local,remote);
+ assert(merged);assert.equal(merged.tasks[0].title,'remote title');assert.equal(merged.tasks[0].priority,0);assert.deepEqual(merged.sessions,[session]);
+ assert(merged.tasks[0].activity.some(e=>e.operation==='restore'));assert(merged.tasks[0].activity.some(e=>e.operation==='remote'));
+ assert.equal(mergeTasks(base,local,{...base,tasks:[{...base.tasks[0],priority:2},base.tasks[1]]}),null);
+ const created=journal(entry(1,[{id:'a',created:true,afterHash:await digest(base.tasks[0])}]));
+ const trash=await buildHistoryPreview(base,{op:'history-preview',version:1},created,now);
+ assert.equal(mergeTasks(base,trash.next,remote),null);
+});

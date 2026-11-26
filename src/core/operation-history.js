@@ -18,12 +18,29 @@ const classification=['listId','sectionId','tags'];
 const safe=['title','priority',...schedule,...classification,'deletedAt'];
 const ordinary=t=>t&&t.status==='pending'&&t.stage!=='doing'&&t.repeat==='none'&&!t.seriesId&&!t.previousId&&!t.seriesHold&&!t.planLocked;
 const touches=(row,keys)=>row.created||row.removed||row.unattributed||Object.hasOwn(row.fields||{},'deletedAt')||row.protected?.some(k=>['status','stage','repeat','seriesId','previousId','seriesHold','planLocked','deletedAt','remindedAt','extraReminders','reminderAt','completedAt'].includes(k))||Object.keys(row.fields||{}).some(k=>keys.includes(k));
-const used=(d,t)=>d.timer?.taskId===t.id||d.sessions?.some(s=>s.taskId===t.id)||d.tasks.some(x=>!x.deletedAt&&x.id!==t.id&&(x.parentId===t.id||x.dependsOn?.includes(t.id)||x.previousId===t.id));
+const executionUsed=(d,t)=>d.timer?.taskId===t.id||d.sessions?.some(s=>s.taskId===t.id);
+const references=(x,id)=>x.id!==id&&(x.parentId===id||x.dependsOn?.includes(id)||x.previousId===id);
+const used=(d,t)=>executionUsed(d,t)||d.tasks.some(x=>!x.deletedAt&&references(x,t.id));
 const delivered=t=>!!t.remindedAt||t.extraReminders?.some(r=>r.sentAt);
 const taskMap=d=>new Map(d.tasks.map(t=>[t.id,t]));
 const applyField=(t,k,v)=>{if(v.present)t[k]=v.value;else delete t[k]};
 const describe=(t,k)=>field(t,k);
 const selectionFor=(selection,id)=>!selection?{id}:selection.find(s=>s.id===id);
+// Prove an exact creation record after undoing later selected fields. Activity
+// is never deleted from the actual task. Only for proof, omit events attributed
+// to later selected commits. Unattributed/remote events and lost history fail
+// the original full-record hash check.
+async function matchesCreation(task,hash,laterSelected){
+ if(await digest(task)===hash)return true;
+ if(!Array.isArray(task.activity)||!laterSelected.length)return false;
+ const ids=new Set(laterSelected.map(e=>e.requestId).filter(Boolean));
+ const activity=task.activity.filter(e=>!ids.has(e.operation));
+ if(activity.length===task.activity.length)return false;
+ if(await digest({...task,activity})===hash)return true;
+ if(!activity.length){const {activity:_,...without}=task;return await digest(without)===hash}
+ return false;
+}
+
 // A history read must refer to the exact committed native workspace, not an
 // earlier journal fetched while the asynchronous native store was draining.
 export async function snapshotFingerprint(raw){
@@ -48,7 +65,7 @@ export async function buildHistoryPreview(d,request,journal,now=new Date()){
  const integer=v=>Number.isSafeInteger(v)&&v>=0;
  let selected;
  if(request.version!==undefined){check(integer(request.version)&&request.version>0,'INVALID_ARGUMENT','版本无效');selected=entries.filter(e=>e.version===request.version)}
- else if(request.groupId!==undefined){check(typeof request.groupId==='string'&&/^[0-9a-f-]{36}$/i.test(request.groupId),'INVALID_ARGUMENT','操作组无效');selected=entries.filter(e=>e.groupId===request.groupId)}
+ else if(request.groupId!==undefined){check(typeof request.groupId==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(request.groupId),'INVALID_ARGUMENT','操作组无效');selected=entries.filter(e=>e.groupId?.toLowerCase()===request.groupId.toLowerCase())}
  else{check(integer(request.afterVersion)&&request.afterVersion<head,'INVALID_ARGUMENT','历史时刻无效');selected=entries.filter(e=>e.version>request.afterVersion&&e.source==='cli')}
  check(selected.length,'HISTORY_NOT_FOUND','所选历史无可用操作');
  // Group and time restoration require the entire retained range, never silently truncate.
@@ -61,21 +78,24 @@ export async function buildHistoryPreview(d,request,journal,now=new Date()){
   check(Array.isArray(sel)&&sel.length>=1&&sel.length<=50&&sel.every(s=>s&&typeof s==='object'&&!Array.isArray(s))&&new Set(sel.map(s=>s.id)).size===sel.length,'INVALID_ARGUMENT','选择范围无效');
   for(const s of sel){shape(s,['id','fields']);check(typeof s.id==='string'&&s.id.length>0&&selected.some(e=>e.body.rows.some(r=>r.id===s.id))&&(s.fields===undefined||Array.isArray(s.fields)&&s.fields.length&&s.fields.every(k=>safe.includes(k))&&new Set(s.fields).size===s.fields.length),'INVALID_ARGUMENT','选择字段无效')}
  }
- const chosen=new Set(selected.map(e=>e.version)),initial=taskMap(d),working=new Map(initial),conflicts=[],changed=new Set(),blockedFields=new Map();
+ const chosen=new Set(selected.map(e=>e.version)),initial=taskMap(d),working=new Map(initial),conflicts=[],changed=new Set(),blockedFields=new Map(),trashCandidates=new Map();
  const blocked=(id,version,reason,fields=[],comparison)=>{conflicts.push({id,version,reason,fields,...(comparison?{comparison}:{})});if(id){const set=blockedFields.get(id)||new Set();for(const k of fields.length?fields:safe)set.add(k);blockedFields.set(id,set)}};
  for(const e of range){
   if(!chosen.has(e.version))continue;
   if(e.body.protectedWorkspace?.length)blocked(null,e.version,'工作空间级变化仅记录，不自动恢复',e.body.protectedWorkspace);
   for(const row of e.body.rows){
    const s=selectionFor(sel,row.id);if(!s)continue;
-   const t=working.get(row.id),original=initial.get(row.id);
+   const t=working.get(row.id);
    const later=range.filter(x=>x.version>e.version&&!chosen.has(x.version)).flatMap(x=>x.body.rows.filter(r=>r.id===row.id));
    if(!ordinary(t)||d.timer?.taskId===t.id){blocked(row.id,e.version,'任务不存在、已执行、重复或锁定');continue}
    if(row.removed){blocked(row.id,e.version,'永久删除不恢复');continue}
    if(row.unattributed){blocked(row.id,e.version,'同一次保存中来源无法明确，禁止自动恢复');continue}
    if(row.created){
-    if(s.fields||t.deletedAt||used(d,t)||delivered(t)||later.length||await digest(original)!==row.afterHash){blocked(row.id,e.version,'新建任务已有后续使用、修改或不适合撤回');continue}
-    working.set(row.id,{...t,deletedAt:now.toISOString()});changed.add(row.id);continue;
+    const laterSelected=range.filter(x=>x.version>e.version&&chosen.has(x.version)&&x.body.rows.some(r=>r.id===row.id));
+    if(s.fields||t.deletedAt||executionUsed(d,t)||delivered(t)||later.length||blockedFields.get(row.id)?.size||!await matchesCreation(t,row.afterHash,laterSelected)){
+     blocked(row.id,e.version,'新建任务已有后续使用、修改或不适合撤回');continue;
+    }
+    trashCandidates.set(row.id,e.version);continue;
    }
    if(row.protected?.length){blocked(row.id,e.version,'受保护字段不恢复',row.protected);if(row.protected.some(k=>['status','stage','repeat','seriesId','previousId','seriesHold','planLocked','completedAt','points'].includes(k)))continue}
    const fields=Object.keys(row.fields||{}),requested=fields.filter(k=>!s.fields||s.fields.includes(k));
@@ -92,6 +112,24 @@ export async function buildHistoryPreview(d,request,journal,now=new Date()){
    }
    if(applied){working.set(row.id,out);changed.add(row.id)}
   }
+ }
+ // A dependency can be removed only if every live task referring to it
+ // is itself proven and selected for trash. Iterate to a fixed point: if a
+ // child is rejected, its parent/prerequisite may no longer be removable.
+ let pruned=true;
+ while(pruned){
+  pruned=false;
+  for(const [id,version] of trashCandidates){
+   if([...working.values()].some(t=>!t.deletedAt&&!trashCandidates.has(t.id)&&references(t,id))){
+    trashCandidates.delete(id);blocked(id,version,'仍有未撤回的子任务或依赖任务');pruned=true;
+   }
+  }
+ }
+ for(const id of trashCandidates.keys()){
+  // Keep the task's last visible content inside the trash. Reconstructed
+  // earlier fields are only evidence for the group withdrawal; restoring
+  // this compensation later must recover the exact last visible content.
+  working.set(id,{...initial.get(id),deletedAt:now.toISOString()});changed.add(id);
  }
  const next={...d,tasks:d.tasks.map(t=>working.get(t.id))};
  const rows=[...changed].flatMap(id=>{const a=initial.get(id),b=working.get(id),fields=safe.filter(k=>!sameRecord(field(a,k),field(b,k)));return fields.length?[{id,title:a.title,fields:Object.fromEntries(fields.map(k=>[k,{before:describe(a,k),after:describe(b,k)}]))}]:[]});
