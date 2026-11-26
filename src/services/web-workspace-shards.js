@@ -48,7 +48,7 @@ export function joinSnapshot(parts){
  values[STORAGE_KEY]=JSON.stringify({...meta,tasks:order.map(id=>tasks.get(id))});validate(values);return values;
 }
 export function diffParts(before,after){return {put:[...after].filter(([key,value])=>before.get(key)!==value),remove:[...before.keys()].filter(key=>!after.has(key))}}
-export async function makeRecovery(scope,values){checkScope(scope);const state=validate(values),file={format:'todo-sharded-recovery-v1',scope,count:state.tasks.length,sha256:await semanticDigest(values),values:{...values}};if(utf8.encode(JSON.stringify(file)).length>MAX_FILE)throw Error('恢复文件超过64 MiB');return file}
+export async function makeRecovery(scope,values){checkScope(scope);values={...values};const state=validate(values),file={format:'todo-sharded-recovery-v1',scope,count:state.tasks.length,sha256:await semanticDigest(values),values:{...values}};if(utf8.encode(JSON.stringify(file)).length>MAX_FILE)throw Error('恢复文件超过64 MiB');return file}
 export async function parseRecovery(raw,scope){
  checkScope(scope);if(typeof raw!=='string'||new TextEncoder().encode(raw).length>MAX_FILE)throw Error('恢复文件超过64 MiB');
  const file=JSON.parse(raw);if(file?.format!=='todo-sharded-recovery-v1'||file.scope!==scope)throw Error('恢复文件格式或作用域不匹配');
@@ -118,13 +118,14 @@ async function commitParts(db,base,parts,legacy,{archive=false,guard=false,check
  return {...base,revision:revision+Number(changed),parts,manifest,metrics:{puts:delta.put.length+Number(changed)+(archive&&changed?1:0),deletes:delta.remove.length,bytes:delta.put.reduce((n,[,v])=>n+utf8.encode(v).length,0),headerBytes:changed?utf8.encode(JSON.stringify({revision:revision+1,mode:'active',manifest,sourceHash:base.sourceHash})).length:0}};
 }
 export async function commitShardWorkspace(db,base,values,legacy,options={}){
- const result=await commitParts(db,base,splitSnapshot(values),legacy,options);
+ values={...values};const result=await commitParts(db,base,splitSnapshot(values),legacy,options);
  return {...result,values:{...values}};
 }
-export async function retireShardWorkspace(db,base,legacy){
+export async function retireShardWorkspace(db,base,legacy,{guard=false,checkRuntime=()=>{}}={}){
+ checkRuntime();if(guard)assertShardWriter(legacy,base.sourceHash);
  const source=legacySnapshot(legacy);if(!source[STORAGE_KEY]||!exact(source,base.source)||await semanticDigest(source)!==await semanticDigest(base.values))throw Error('存在后续修改或原始数据已变化，不能无损回退；请导出恢复文件');
  await tx(db,'readwrite',(store,step)=>{store.get(headerKey(base.scope)).onsuccess=step(row=>{
-  checkVersion(row?.value,base.revision);if(!exact(legacySnapshot(legacy),source))throw Error('原始数据已变化');
+  checkVersion(row?.value,base.revision);checkRuntime();if(guard)assertShardWriter(legacy,base.sourceHash);if(!exact(legacySnapshot(legacy),source))throw Error('原始数据已变化');
   store.put(record(base.scope,'header','',{revision:base.revision+1,mode:'retired',manifest:base.manifest,sourceHash:base.sourceHash}));
  })});
 }
@@ -142,11 +143,11 @@ export function createShardStore(db,base,legacy,onStatus,{guard=false,checkRunti
  return {...storage,readCommitted:()=>readShardWorkspace(db,scope),metrics:()=>({...metrics,...storage.diagnostics()})};
 }
 
-export async function restoreShardRecovery(db,base,raw,legacy){
+export async function restoreShardRecovery(db,base,raw,legacy,options={}){
  const file=await parseRecovery(raw,base.scope);
- const saved=await commitShardWorkspace(db,base,file.values,legacy,{archive:true});
+ const saved=await commitShardWorkspace(db,base,file.values,legacy,{...options,archive:true});
  const check=await readShardWorkspace(db,base.scope);
- if(await semanticDigest(check.values)!==file.sha256)throw Error('恢复后摘要不匹配，请导出恢复记录');
+ if(!check||check.revision!==saved.revision||await semanticDigest(check.values)!==file.sha256)throw Error('恢复后摘要不匹配，请导出恢复记录');
  return saved;
 }
 export async function readPriorRecovery(db,scope,revision){

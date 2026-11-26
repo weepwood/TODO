@@ -1,9 +1,32 @@
 import {STORAGE_KEY,BACKUP_KEY,migrateState} from '../core/domain.js';
 import {STORE_KEYS} from './native-store.js';
 
+// Enforce the reference-reuse contract at the staging boundary. Frozen
+// objects are memoized weakly; shallow-frozen input is still traversed.
+// Only plain JSON graphs are eligible; reject mutable exotic objects/getters.
+const sealed=new WeakSet();
+export function sealWorkspace(value,visiting=new WeakSet()){
+ if(value===null||typeof value!=='object'){
+  if(typeof value==='function'||typeof value==='symbol'||typeof value==='bigint')throw Error('工作空间包含非JSON值');
+  return value;
+ }
+ if(sealed.has(value))return value;
+ if(visiting.has(value))throw Error('工作空间包含循环引用');
+ const proto=Object.getPrototypeOf(value);
+ if(Array.isArray(value)?proto!==Array.prototype:proto!==Object.prototype&&proto!==null)throw Error('工作空间包含非普通对象');
+ visiting.add(value);
+ for(const key of Reflect.ownKeys(value)){
+  const desc=Object.getOwnPropertyDescriptor(value,key);
+  if(!desc||!('value' in desc))throw Error('工作空间包含动态属性');
+  sealWorkspace(desc.value,visiting);
+ }
+ Object.freeze(value);visiting.delete(value);sealed.add(value);return value;
+}
+
 // The app's reducers replace changed task objects. Reference reuse is limited
 // to a single plan chain, never shared across workspaces or external imports.
 export function planStateParts(state,keys,bucket,previous=null){
+ sealWorkspace(state);
  migrateState(state); // retain full domain validation (including relationships)
  const groups=new Map(),ids=[],seen=new Set(),parts=new Map(),{tasks,...meta}=state;
  for(const task of tasks){
@@ -25,7 +48,7 @@ export function planStateParts(state,keys,bucket,previous=null){
  return {parts,groups,ids,reused,serialized};
 }
 export function createStateQueue(initial,write,onStatus=()=>{},now=Date.now){
- let state=JSON.parse(initial[STORAGE_KEY]),keys={...initial},raw=initial[STORAGE_KEY],committedState=state,committedKeys;
+ let state=sealWorkspace(JSON.parse(initial[STORAGE_KEY])),keys={...initial},raw=initial[STORAGE_KEY],committedState=state,committedKeys;
  delete keys[STORAGE_KEY];committedKeys=keys;
  let scheduled=false,running=false,error='',waiters=[],fullSerializations=0;
  const pending=()=>running||scheduled||state!==committedState||keys!==committedKeys;
@@ -42,6 +65,7 @@ export function createStateQueue(initial,write,onStatus=()=>{},now=Date.now){
  }
  function schedule(){if(running||scheduled)return;scheduled=true;notify();queueMicrotask(drain)}
  function stageWorkspace(next){
+  sealWorkspace(next);
   if(next===state)return;
   // Preserve existing hourly backup semantics. Serialize only when actually
   // taking a complete backup, exporting, or reading the compatibility API.
@@ -55,7 +79,7 @@ export function createStateQueue(initial,write,onStatus=()=>{},now=Date.now){
  }
  return {stageWorkspace,getItem:key=>key===STORAGE_KEY?stringify():keys[key]??null,
   setItem(key,value){if(!STORE_KEYS.includes(key))throw Error('unsupported workspace storage key');const v=String(value);
-   if(key===STORAGE_KEY){if(raw===v)return;const next=JSON.parse(v);migrateState(next);state=next;raw=v;schedule();return}
+   if(key===STORAGE_KEY){if(raw===v)return;const next=JSON.parse(v);migrateState(next);state=sealWorkspace(next);raw=v;schedule();return}
    if(keys[key]!==v){keys={...keys,[key]:v};schedule()}
   },
   removeItem(key){if(key===STORAGE_KEY)throw Error('不能移除主工作空间');if(Object.hasOwn(keys,key)){const next={...keys};delete next[key];keys=next;schedule()}},
