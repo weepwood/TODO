@@ -107,11 +107,15 @@ fn save_with_receipt(c:&mut Connection,scope:&str,body:&str,store:Option<&str>,r
  tx.execute("UPDATE direct_capture_requests SET status='saved',text='' WHERE scope=?1 AND status='pending' AND NOT EXISTS(SELECT 1 FROM cli_capture_meta m WHERE m.scope=direct_capture_requests.scope AND m.id=direct_capture_requests.id) AND id IN (SELECT json_extract(value,'$.id') FROM json_each(?2,'$.tasks'))",params![scope,body]).map_err(|e|e.to_string())?;
  // Structured batch receipt is committed only when every deterministic task ID exists.
  tx.execute("UPDATE direct_capture_requests AS d SET status='saved',text='' WHERE d.scope='cli:'||?1 AND d.status='pending' AND EXISTS(SELECT 1 FROM cli_capture_meta m WHERE m.scope=d.scope AND m.id=d.id AND m.task_count=(SELECT count(DISTINCT json_extract(t.value,'$.id')) FROM json_each(?2,'$.tasks') t WHERE json_extract(t.value,'$.id') IN (SELECT d.id||':'||n FROM (WITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM seq WHERE n<50) SELECT n FROM seq) WHERE n<=m.task_count)))",params![scope,body]).map_err(|e|e.to_string())?;
+ #[cfg(test)]
+ let shadow_prior_store:Option<String>=if super::incremental_shadow::active(){tx.query_row("SELECT body FROM workspace_store WHERE scope=?1",[scope],|r|r.get(0)).optional().map_err(|e|e.to_string())?}else{None};
  if let Some(store)=store{tx.execute("INSERT INTO workspace_store VALUES(?1,?2) ON CONFLICT(scope) DO UPDATE SET body=excluded.body WHERE workspace_store.body<>excluded.body",params![scope,store]).map_err(|e|e.to_string())?;}
  if let Some((queue_scope,id,status,result))=op{
   if tx.execute("UPDATE direct_capture_requests SET status=?3,text='' WHERE scope=?1 AND id=?2 AND status='pending'",params![&queue_scope,&id,&status]).map_err(|e|e.to_string())?!=1{return Err("operation state changed".into())}
   if tx.execute("UPDATE cli_operation_meta SET result=?3 WHERE scope=?1 AND id=?2",params![&queue_scope,&id,&result]).map_err(|e|e.to_string())?!=1{return Err("operation receipt missing".into())}
  }
+ #[cfg(test)]
+ super::incremental_shadow::before_commit(&tx,scope,body,store,prior.as_deref(),shadow_prior_store.as_deref())?;
  #[cfg(test)]
  if let Ok(marker)=std::env::var("TODO_TEST_HISTORY_PRECOMMIT_MARKER"){
   // Force dirty SQLite pages into the WAL before the parent kills this test process.

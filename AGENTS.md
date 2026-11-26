@@ -1,5 +1,9 @@
 # TODO 开发交接
 
+## 增量存储业务等价研究 R2（2026-11-26）
+基线41e2493，独立研究分支；仅cfg(test)同事务影子hook及research JS。现有共享编辑器生成12步新增/更新/删除/顺序/meta变更，独立重放、预算fallback/非法拒绝；真实native-store队列回执失败重试不越序。正式persist_store仍唯一权威，影子行/meta/kv/head与权威旧数据和新数据比较，同事务失败回滚；独立完整库对照历史正文、FTS、备份和store。真实JS历史预览/apply经正式Rust权限及回执校验，字段及5分普通生命周期恢复通过（测试确认非真人），R1哈希记录不替代历史。旧写者及同步meta漂移拒绝。Release Rust36/36、领域60/60，R1及正式强杀复验、新影子强杀2/2，320次保存8次checkpoint重启及备份、300正式历史保留通过。最终万级30次P50完整212.020ms/双轨797.994ms，P95 295.577/954.363ms，WAL7786832/8034032B；混合RSS1109213184B。JS万级20次plan P50 119.091ms、完整序列化9.087ms，补丁1475B与快照约5.44MB。双写非优化、未完成同等业务单写引擎、真实IPC/云同步/安装未验收，继续研究不采用。详见docs/ai-integration/incremental-business-r2.md，证据artifacts/TODO/incremental-business-r2。保护候选/main、真实数据，不合并发布安装。
+
+
 ## 增量持久化架构研究 R1（2026-11-26）
 基线47babb9，独立feat/incremental-storage-research，仅cfg(test) Rust实验，不接入应用/IPC/CLI、不改正式存储。参考Actual Budget/Joplin/SQLite官方文档和既有Web分片/云增量契约，任务行/独立元数据/256桶SHA256、workspace+task CAS、原子证据与幂等回执。完整Value与独立重算指纹验证，旧store语义往返、VACUUM INTO备份、旧源变化拒绝；无正式历史/回执迁移、任务新增删除重排、FTS/ACL/同步等业务等价。320次随机独立对照及双连接、ABA保护；四个真实测试进程强杀边界通过，Release Rust31/31、定向60/60。最终万级5活动/任务120次：完整persist_store P50/P95 224.468/307.430ms，原型2.948/4.247ms，WAL11449512→2970552B；完整导出校验359.256ms、全量输入解析定位45.711ms；独立内存30次RSS816250880/511672320B。非同业务能力、非应用端到端/长期SSD测量；只证明研究潜力，不采用正式存储。详见docs/ai-integration/incremental-storage-research.md，证据artifacts/TODO/incremental-storage-research。保护原候选/main、正式应用及真实数据，不合并发布安装。
 

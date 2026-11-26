@@ -343,6 +343,53 @@ mod tests{
   super::super::save(&mut c,other,&state.to_string()).unwrap();bind(&c,other).unwrap();
   assert!(receipt(&c,other,id).is_err());assert!(enqueue_operation(&mut c,"guest",id,payload).is_err());
  }
+ #[test]fn shadow_history_real_proposal_and_receipt(){
+  let (Ok(script),Ok(fixtures))=(std::env::var("TODO_R2_PROPOSAL"),std::env::var("TODO_R2_FIXTURES"))else{return};
+  use super::super::incremental_shadow as sh;
+  use std::{io::Write,process::{Command,Stdio}};
+  let fixture:Value=serde_json::from_str(&std::fs::read_to_string(fixtures).unwrap()).unwrap();
+  for lifecycle in [false,true]{
+  let (base,next)=if lifecycle{(fixture["steps"][3]["state"].clone(),fixture["steps"][4]["state"].clone())}else{let base=fixture["base"].clone();let mut next=base.clone();next["tasks"][0]["priority"]=json!(3);(base,next)};
+  let mut c=sh::db();let mut refdb=Connection::open_in_memory().unwrap();super::super::schema(&refdb).unwrap();
+  sh::persist(&mut c,"guest",&sh::wrapped(&base),None,json!({"kind":"snapshot"}),false).unwrap();
+  super::super::persist_store(&mut refdb,"guest",&sh::wrapped(&base).to_string()).unwrap();
+  let p=sh::delta(&c,"guest",&base,&next);sh::persist(&mut c,"guest",&sh::wrapped(&next),None,p,false).unwrap();
+  super::super::persist_store(&mut refdb,"guest",&sh::wrapped(&next).to_string()).unwrap();
+  let preview_id="00000000-0000-4000-8000-000000000071";let apply_id="00000000-0000-4000-8000-000000000072";
+  let preview_req=json!({"op":"history-preview","version":1});let apply_req=json!({"op":"history-apply","previewId":preview_id,"confirm":true});
+  for db in [&mut c,&mut refdb]{bind(db,"guest").unwrap();assert!(enqueue_operation(db,"guest",preview_id,preview_req.clone()).is_err());set_advanced(db,"guest",true).unwrap();enqueue_operation(db,"guest",preview_id,preview_req.clone()).unwrap();}
+  let run=|request:&Value,id:&str,reference:Value,d:&Value,journal:Value|{
+   let mut child=Command::new("node").arg(&script).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap();
+   child.stdin.take().unwrap().write_all(json!({"state":d,"request":request,"id":id,"reference":reference,"journal":journal}).to_string().as_bytes()).unwrap();
+   let out=child.wait_with_output().unwrap();assert!(out.status.success(),"{}",String::from_utf8_lossy(&out.stderr));
+   serde_json::from_slice::<Value>(&out.stdout).unwrap()
+  };
+  let j=super::super::operation_history::history_read(&c,"guest",true,300).unwrap();
+  let proposal=run(&preview_req,preview_id,Value::Null,&next,j.clone());
+  assert_eq!(proposal["next"],next);assert_eq!(proposal["result"]["rows"].as_array().unwrap().len(),1);
+  let pr=json!({"id":preview_id,"status":"saved","result":proposal["result"]});
+  let p=sh::delta(&c,"guest",&next,&next);sh::persist(&mut c,"guest",&sh::wrapped(&next),Some(&pr),p,false).unwrap();
+  super::super::persist_store_receipt(&mut refdb,"guest",&sh::wrapped(&next).to_string(),Some(&pr)).unwrap();
+  for db in [&mut c,&mut refdb]{enqueue_operation(db,"guest",apply_id,apply_req.clone()).unwrap();}
+  let result=run(&apply_req,apply_id,json!({"id":preview_id,"kind":"history-preview","status":"saved","result":proposal["result"]}),&next,j);
+  let restored=&result["next"];
+  if lifecycle{let task=restored["tasks"].as_array().unwrap().iter().find(|t|t["id"]=="b").unwrap();assert_eq!(task["status"],"pending");assert_eq!(task["points"],5);assert_eq!(result["result"]["pointsImpact"],json!({"before":5,"after":0}));}
+  else{assert_eq!(restored["tasks"][0]["priority"],0);}
+  let receipt_value=json!({"id":apply_id,"status":"saved","result":result["result"]});
+  let p=sh::delta(&c,"guest",&next,restored);
+  let mut invalid=receipt_value.clone();invalid["result"]["userConfirmation"]=Value::Null;
+  assert!(sh::persist(&mut c,"guest",&sh::wrapped(restored),Some(&invalid),p.clone(),false).unwrap_err().contains("confirmation"));
+  assert!(sh::persist(&mut c,"guest",&sh::wrapped(restored),Some(&receipt_value),p.clone(),true).is_err());sh::check(&c,"guest",&next);
+  assert_eq!(receipt(&c,"guest",apply_id).unwrap()["status"],"received");
+  sh::persist(&mut c,"guest",&sh::wrapped(restored),Some(&receipt_value),p.clone(),false).unwrap();
+  super::super::persist_store_receipt(&mut refdb,"guest",&sh::wrapped(restored).to_string(),Some(&receipt_value)).unwrap();
+  sh::check(&c,"guest",restored);sh::compare(&c,&refdb,"guest");
+  assert_eq!(receipt(&c,"guest",apply_id).unwrap(),receipt(&refdb,"guest",apply_id).unwrap());
+  let saved=receipt(&c,"guest",apply_id).unwrap();assert_eq!(saved["status"],"saved");
+  sh::persist(&mut c,"guest",&sh::wrapped(restored),Some(&receipt_value),p,false).unwrap();assert_eq!(receipt(&c,"guest",apply_id).unwrap(),saved);
+  println!("actual JS preview/apply lifecycle={lifecycle}; actual native guard, shadow rollback, advanced scope, receipt equality, duplicate retry passed");
+  }
+ }
  #[test]fn history_receipt_restart_and_lost_ack(){
   let path=std::env::temp_dir().join(format!("todo-history-qa-{}.sqlite3",uuid::Uuid::new_v4()));
   let base=json!({"version":2,"tasks":[{"id":"qa","title":"synthetic","priority":3}]});
