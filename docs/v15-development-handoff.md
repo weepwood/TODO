@@ -414,3 +414,11 @@
 之后Swap20.731MiB/s、defer，未绕过，不启动新的重型任务；闭包修复后的万级固定数量复测、全量单测与最新普通构建仍需完成，不能继承修复前277单测与构建。证据外置artifacts/TODO/v15-motion-polish/v16-rc-final-review/：unit.log、build.log、entry.json、import.log、fixed-count-before.json、ui-retainer-before.json、ui-retainer-after.json、ui-retainer-stream.log、ui-retainer-after.log等。继续冻结功能，真实账号/通知人工验收、Windows/Android、正式迁移部署、独立QA/CI仍待，保持4197、正式main、真实数据，不推送、不合并、不发布。
 
 **第三十七节最终补充（资源恢复后的实际复验）**：Swap恢复0.033/0.004MiB/s后，闭包修复版本全量279/279单测、普通构建2.53s/main493.97kB/gzip159.53kB、入口JS1107003/gzip339709/CSS269858字节；普通产物无试验标志。实际专注队列/CSV与层级导入2/2；最终固定数量与堆图专项2/2。相同万级夹具编辑0→48轮修复前72.313→81.449MB、修复后72.297→74.639MB，增长9.136→2.342MB，约减少74.4%；32→48轮修复前78.628→81.449MB、修复后74.515→74.639MB，后者近似趋稳。两次均任务10000、最终正文5709234字节、活动48条、DOM854/异常0。最终堆图92103610B/919613节点，新增断言旧编辑对象0、仅初始00一项通过，未削减历史。上述为相同夹具顺序对照（非随机、非小时级），不能证明长期无泄漏；本轮没有完成修复后小时级，初始有界引用和真实账号/通知/跨平台/正式迁移及独立QA/CI仍待。证据closure-unit-build.log、closure-normal-ui.log、closure-final-performance.log、closure-entry.json、fixed-count-after.json、closure-comparison.json、ui-retainer-final-assertion.json。以上覆盖本节先前defer时待验收描述。
+
+## 三十八、V1.6 候选冻结与初始引用专项（2026-11-26）
+
+基线cd97619，已读第三十七节及RC门禁。冻结功能，保留真实数据、4197、正式main a012057。依据上轮实际堆路径，将新建任务、独立捕获、编辑标志、时钟与提醒队列、键盘监听移入独立useWorkspaceLifetime.js，保留事件条件、计时、通知重试及清理逻辑。第一次真实堆图复验（100任务/42编辑）1/1，92258714B/919683节点，超撤销窗口旧编辑对象0，初始00仍1，但引用路径由toolbar-add变为撤销按钮→useHistory稳定回调→initial初始化函数→初始displayedTasks。据此分离useHistoryActions的初始化词法环境，历史reducer及30步窗口不变，未扩大其他重构。后续实际堆图待资源允许；不能声称初始引用已经完全释放。
+
+新增编辑回调事件自动化、活动归属、禁用及直接替换边界测试；定向31/31覆盖活动、规则、同步提交、原生作用域、Android提醒及存储；完整280/280、普通生产构建3.65s/main494.43kB/gzip159.67kB、入口JS1107460/gzip339843/CSS269858字节，不含隔离试验标志，累计diff检查及JS/JSX语法通过。新增真实生命周期用例e2e/ui-rc-lifetime.spec.js（到期提醒去重、焦点恢复、快速新建草稿、撤销重做），语法/发现通过；实际断言待执行。原生实体、真实账号、跨平台仍不以单测或模拟代替。
+
+本轮MRR独立浏览器任务及视觉矩阵占用共享浏览器槽，Swap一度single，资源门禁拒绝新的重型任务；普通构建在normal时通过，不抢占/不绕过。证据artifacts/TODO/v15-motion-polish/v16-rc-freeze/：initial-retainer-retest.log、initial-retainer-history-before.json、targeted-final.log、freeze-build-recheck.log、entry.json等。小时级必须针对精确冻结提交另存证据，独立4178、周期资源复核，实际3600秒及最终保存断言和退出码才通过；旧55分钟失败不继承。最终实际启动/验收状态见后续补充，不宣布RC，不推送、不合并、不发布。

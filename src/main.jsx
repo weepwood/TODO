@@ -1,5 +1,5 @@
 import {readModes} from './core/workspace-modes.js';
-import {blockPatch,protectLockedTasks,editPlanSegments,changePlanBlock} from './core/plan-block.js';
+import {blockPatch,editPlanSegments,changePlanBlock} from './core/plan-block.js';
 import {recordTaskChanges,recordAttachment} from './core/task-activity.js';
 import {scheduleSnapshot} from './core/task-schedule.js';
 import {DetailSurface} from './components/DetailSurface.jsx';
@@ -27,7 +27,7 @@ import {DraftNumberField,priorityNames,PriorityValue} from "./design-system/Cont
 import {TaskViewMenu} from './components/TaskViewMenu.jsx';
 import {sortTasks,defaultOrder,desktopSelection,taskBuckets} from './core/task-list-interaction.js';
 
-import {SHORTCUT_KEY,loadShortcuts,shortcutAction} from './core/shortcuts.js';
+import {SHORTCUT_KEY,loadShortcuts} from './core/shortcuts.js';
 import {CapturePreview} from './components/CapturePreview.jsx';
 
 import {useTaskListMotion} from './components/useTaskListMotion.js';
@@ -41,17 +41,17 @@ import {androidNative} from './platform/runtime.js';
 import {useAndroidBackgroundCheck} from './platform/android/background-check.js';
 import {resetAndroidSession} from './platform/android/session-storage.js';
 import {invoke} from '@tauri-apps/api/core';
-import {useMobileAlarms,hasScheduledReminder} from "./platform/android/scheduled-reminders.js";
+import {useMobileAlarms} from "./platform/android/scheduled-reminders.js";
 import {MobileNav} from './layouts/mobile/MobileNav.jsx';
 import {useMobileLifecycle,mobileBackAction} from './platform/android/lifecycle.js';
 import {MAX_POINTS,taskPoints} from "./core/points.js";
-import React,{lazy,Suspense,useEffect,useMemo,useRef,useState,useCallback} from 'react';
+import React,{lazy,Suspense,useEffect,useMemo,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {CalendarDays,CalendarRange,Layers,Repeat,AlertCircle,CheckCircle2,SkipForward,Plus,Search,PanelRightClose,PanelRightOpen,PanelLeftClose,PanelLeftOpen,Settings,Trash2,ChevronDown,Menu as MenuIcon,X,ListTodo,LayoutGrid,Columns3,Clock,Timer,Flame,ChartNoAxesColumn,Command,Bell,Archive,ChevronRight,MoreHorizontal,Undo2,Redo2} from "lucide-react";
 import {DndContext,closestCenter,PointerSensor,KeyboardSensor,useSensor,useSensors} from '@dnd-kit/core';
 import {SortableContext,verticalListSortingStrategy,sortableKeyboardCoordinates} from "@dnd-kit/sortable";
 
-import {STORAGE_KEY,BACKUP_KEY,id,dayKey,shiftDay,validDate,newTask,completeTask,reconcile,matches,readState,initialState,migrateState,reopenTask,reorderTasks,seriesPatch,dueReminderEvents,markReminderEvents,duplicateTask,moveTaskToList} from "./core/domain.js";
+import {STORAGE_KEY,BACKUP_KEY,id,dayKey,shiftDay,validDate,newTask,completeTask,reconcile,matches,readState,initialState,migrateState,reopenTask,reorderTasks,seriesPatch,duplicateTask,moveTaskToList} from "./core/domain.js";
 import {Modal,Menu,Empty,Field,ActionButton} from "./ui.jsx";
 
 import {useAccount,useAccountLock,useWorkspaceSync,cloud} from "./cloud.jsx";
@@ -62,9 +62,9 @@ import {quickParse,blockers,taskConflicts} from "./core/advanced.js";
 import {SectionGroup,VirtualTaskList} from './task-list.jsx';
 import {useHistory} from './history.js';
 import {useWorkspaceEdit,useWorkspacePersistence} from './components/useWorkspaceMutations.js';
-import {native,mobileNative,useNativeHydration,useNativeLifecycle,useNativeShortcut,nativeNotify,nativeGuestState,useNativeQuit,nativeRecoveryPayload,useNativeShortcutStatus,useDirectCapture} from "./native.js";
+import {useEditingFlag,useCaptureHandlers,useWorkspaceClock,useWorkspaceKeyboard} from './components/useWorkspaceLifetime.js';
+import {native,mobileNative,useNativeHydration,useNativeLifecycle,useNativeShortcut,nativeGuestState,useNativeQuit,nativeRecoveryPayload,useNativeShortcutStatus,useDirectCapture} from "./native.js";
 import {useNativeSearch} from './native-tools.jsx';
-import {settleFocus,focusDue} from './core/focus-engine.js';
 import {useCalendarFeeds} from './calendar-feeds.js';
 import {readSmartLists,matchingTask,readDeadlineSmartLists,isDeadlineFilter,DEADLINE_SMART_KEY} from './core/smart-lists.js';
 
@@ -153,8 +153,8 @@ function App({session,hydration}){
  useEffect(()=>{bootRef.current=null},[]);
  const [reportDate,setReportDate]=useState(null);
  const [focusSeed,setFocusSeed]=useState(null),[templateDraft,setTemplateDraft]=useState(null);
- const goalEditing=useRef(false);const trackGoalEditing=useCallback(value=>{goalEditing.current=value},[]);
- const workflowDirty=useRef(false);const trackWorkflowDirty=useCallback(value=>{workflowDirty.current=value},[]);
+ const [goalEditing,trackGoalEditing]=useEditingFlag();
+ const [workflowDirty,trackWorkflowDirty]=useEditingFlag();
  const [module,setModule]=useState('tasks'),[view,setView]=useState('today'),[selected,setSelected]=useState(null),[checked,setChecked]=useState([]),[query,setQuery]=useState(''),[draft,setDraft]=useState('');
  const [namedModes,setNamedModes]=useState(()=>{try{return readModes(browserStorage)}catch{return []}});
  const [selectionMode,setSelectionMode]=useState(false);
@@ -209,39 +209,11 @@ function App({session,hydration}){
 
  useAutoUpdate(setToast);
  const backgroundCheck=useAndroidBackgroundCheck({enabled:androidNative,uid,storage:hydration.storage||storage,data,blocked:blocked||!!storageError||!!nativeError||hydration.pending,lastSync:sync.lastSync});
- const quickAdd=useCallback(()=>{setDialog('quick-add')},[]);
- const [incomingCapture,setIncomingCapture]=useState([]);const quickDraftRef=useRef(quickDraft);quickDraftRef.current=quickDraft;
- const receiveCapture=useCallback(text=>{if(text){if(quickDraftRef.current.trim()&&quickDraftRef.current!==text)setIncomingCapture(old=>old.includes(text)?old:[...old,text]);else{quickDraftRef.current=text;setQuickDraft(text)}}setDialog('quick-add')},[]);
+ const {quickAdd,incomingCapture,setIncomingCapture,quickDraftRef,receiveCapture}=useCaptureHandlers(quickDraft,setQuickDraft,setDialog);
  useNativeShortcut(uid,receiveCapture);useDirectCapture({uid,storage:hydration.storage,data,blocked:blocked||!!storageError||!!nativeError||hydration.pending,edit:setData,onSaved:()=>setToast("独立录入已保存到本机")});const shortcutStatus=useNativeShortcutStatus();
  useEffect(()=>{document.documentElement.dataset.theme=data.theme},[data.theme]);
- const committedData=useRef(data);useEffect(()=>{committedData.current=data},[data]);
- useEffect(()=>{let lastTasks=null,lastMinute=null;const tick=()=>{const date=new Date(),at=date.getTime(),minute=Math.floor(at/60000),sweep=committedData.current.tasks!==lastTasks||minute!==lastMinute;lastTasks=committedData.current.tasks;lastMinute=minute;if(sweep)setToday(dayKey(date));if(!sweep&&!focusDue(committedData.current.timer,at))return;setSystemData(d=>{
-  if(!sweep)return settleFocus(d,date.getTime());
-  let tasks=protectLockedTasks(d,{...d,tasks:reconcile(d.tasks,dayKey(date),date)}).tasks;const due=dueReminderEvents(tasks,date);let notifications=d.notifications;
-  if(due.length){tasks=markReminderEvents(tasks,due,date.toISOString());const existing=new Set(notifications.map(n=>n.id));notifications=[...notifications,...due.map(t=>({id:'reminder:'+JSON.stringify([t.taskId,t.id,t.at]),title:t.title,taskId:t.taskId,reminderAt:t.at,at:date.toISOString()})).filter(n=>!existing.has(n.id))].slice(-100)}
-  const next=tasks===d.tasks&&notifications===d.notifications?d:{...d,tasks,notifications};return settleFocus(next,date.getTime())},'system')};
- const handle=setInterval(tick,1000),wake=()=>{lastMinute=null;tick()};window.addEventListener('focus',wake);document.addEventListener('visibilitychange',wake);tick();return()=>{clearInterval(handle);window.removeEventListener('focus',wake);document.removeEventListener('visibilitychange',wake)}},[]);
- const lastNotice=useRef(new Set(data.notifications.map(n=>n.id))),nativeQueue=useRef(new Map()),noticeAlive=useRef(true);
- const deliverNative=useCallback(async(n)=>{
-  const queue=nativeQueue.current,entry=queue.get(n.id);if(!entry||entry.running)return;entry.running=true;entry.attempts++;
-  try{if(androidNative&&hasScheduledReminder(uid||"guest",n.taskId||n.id,n.reminderAt||n.at)){queue.delete(n.id);return}await nativeNotify(uid,{taskId:n.taskId||n.id,at:n.reminderAt||n.at,title:n.title});queue.delete(n.id)}
-  catch{entry.running=false;if(entry.attempts>=3){queue.delete(n.id);if(noticeAlive.current)setToast('系统提醒未能发送，请检查通知权限。提醒仍保留在应用内。')}}
- },[uid]);
- useEffect(()=>{noticeAlive.current=true;if(!native)return;const handle=setInterval(()=>{for(const entry of nativeQueue.current.values())deliverNative(entry.notice)},30000);return()=>{noticeAlive.current=false;clearInterval(handle);nativeQueue.current.clear()}},[deliverNative]);
- useEffect(()=>{const recent=data.notifications.filter(n=>!lastNotice.current.has(n.id));lastNotice.current=new Set(data.notifications.map(n=>n.id));for(const n of recent){setToast('提醒：'+n.title);if(native){const queue=nativeQueue.current;if(queue.size>=100)queue.delete(queue.keys().next().value);queue.set(n.id,{notice:n,attempts:0,running:false});deliverNative(n)}else if(typeof Notification!=='undefined'&&Notification.permission==='granted')try{new Notification('TODO',{body:n.title})}catch{setToast('系统提醒发送失败，请检查浏览器通知权限。')}}},[data.notifications,deliverNative]);
- useEffect(()=>{const handler=e=>{
-  if(e.defaultPrevented||e.isComposing||document.querySelector('[data-shortcut-recording=true]'))return;
-  if(e.key==='Escape'){if(!dialog){setQuery('');setChecked([]);setSelectionMode(false);selectionAnchor.current=null}return}
-  if(dialog||document.querySelector('[role="dialog"]')||e.repeat)return;
-  const action=shortcutAction(e,shortcuts,'global');if(!action)return;
-  const editing=e.target?.closest?.('input,textarea,select,[contenteditable=true]');
-  if(editing&&(action==='undo'||action==='redo'))return;
-  e.preventDefault();
-  if(action==='command')setDialog('command');
-  else if(action==='capture')quickAdd();
-  else if(action==='search')setDialog('command')
-  else if(action==='undo')historyState.undo();else if(action==='redo')historyState.redo();
- };window.addEventListener('keydown',handler);return()=>window.removeEventListener('keydown',handler)},[shortcuts,dialog,quickAdd,historyState.undo,historyState.redo]);
+ useWorkspaceClock(data,setSystemData,setToday,uid,setToast);
+ useWorkspaceKeyboard({shortcuts,dialog,quickAdd,undo:historyState.undo,redo:historyState.redo,setQuery,setChecked,setSelectionMode,selectionAnchor,setDialog});
  const conflicts=useMemo(()=>taskConflicts([...data.tasks,...calendarBusy(data.calendarEvents)]),[data.tasks,data.calendarEvents]);const tasks=data.tasks,currentList=data.lists.find(l=>l.id===view);
  const title=module==='tasks'?(currentList?.name||[...views,...history].find(v=>v[0]===view)?.[1]||data.tags.find(t=>'tag:'+t.id===view)?.name||smartLists.find(f=>'smart:'+f.id===view)?.name||'任务'):({workflow:'自动化工作台',report:'回顾报告',goals:'目标管理'}[module]||modules.find(m=>m[0]===module)?.[1]);
  const nativeMatches=useNativeSearch({uid,query,tasks,pending:hydration.pending||!!nativeError||blocked||!!storageError});

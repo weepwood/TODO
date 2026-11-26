@@ -38,3 +38,5 @@
 ## 闭包保留专项复验
 
 先执行 `TODO_IDB_PILOT=1 TODO_UI_RETAINER=1` 的 e2e/ui-rc-retainers.spec.js（须通过browser资源门禁），100任务、42次真实行内标题修改；原始快照只写入门禁提供的外置TMPDIR（128MiB限制），使用scripts/inspect-ui-task-heap.py的mmap/紧凑索引解析，原文完成后删除。对比旧编辑版本是否在30步窗口之外仍被保留；初始00仍有已记录的toolbar-add回调路径，不作为逐次增长证据；不得将其扩展为完整无泄漏证明。之后执行万级固定数量回归、完整小时级及普通生产构建。最新修复后最终结果需对应精确候选提交。
+
+候选初始引用专项补充：真实堆图首先验证toolbar-add路径不再出现，再按实际路径验证useHistory初始化对象是否释放；任何仍保留的初始对象应记录来源，不把有界初始保留与逐次增长混同。实际浏览器运行e2e/ui-rc-lifetime.spec.js、native-storage.spec.js、ui-workflow-center.spec.js创建触发、ui-review-automation.spec.js规则配置、ui-reminder.spec.js提醒编辑，核对当前候选；IPC模拟不能替代实体原生。

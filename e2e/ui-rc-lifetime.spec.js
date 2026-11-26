@@ -1,0 +1,26 @@
+import {test,expect} from '@playwright/test';
+import {initialState,newTask,dayKey,shiftDay,STORAGE_KEY} from '../src/domain.js';
+test('长生命周期提醒去重、快速新建及撤销重做兼容',async({page})=>{
+ const t={...newTask('到期提醒验收','inbox',dayKey(),'lifetime-due'),reminderAt:shiftDay(dayKey(),-1)+'T12:00'};
+ await page.addInitScript(({key,state})=>{if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify(state))},{key:STORAGE_KEY,state:{...initialState(),tasks:[t]}});
+ const read=()=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)),STORAGE_KEY);
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');
+ await expect.poll(async()=>(await read()).notifications.filter(n=>n.taskId===t.id).length).toBe(1);
+ expect((await read()).tasks[0].remindedAt).toBeTruthy();
+ await page.evaluate(()=>{window.dispatchEvent(new Event('focus'));document.dispatchEvent(new Event('visibilitychange'))});
+ await page.reload();await expect(page.getByRole('textbox',{name:'新任务名称'})).toBeVisible();
+ expect((await read()).notifications.filter(n=>n.taskId===t.id)).toHaveLength(1);
+ await page.getByRole('button',{name:'新建任务',exact:true}).click();
+ const dialog=page.getByRole('dialog',{name:'快速新建任务'}),input=dialog.getByRole('textbox',{name:'快速任务名称'});
+ await input.fill('回调生命周期草稿');await page.keyboard.press('Escape');await expect(dialog).toBeHidden();
+ await page.keyboard.press('Control+n');await expect(input).toHaveValue('回调生命周期草稿');
+ await input.press('Enter');await expect(dialog).toBeHidden();
+ await expect.poll(async()=>(await read()).tasks.filter(x=>x.title==='回调生命周期草稿').length).toBe(1);
+ await page.getByRole('button',{name:'撤销',exact:true}).click();
+ await expect.poll(async()=>(await read()).tasks.filter(x=>x.title==='回调生命周期草稿').length).toBe(0);
+ await page.getByRole('button',{name:'重做',exact:true}).click();
+ await expect.poll(async()=>(await read()).tasks.filter(x=>x.title==='回调生命周期草稿').length).toBe(1);
+ expect((await read()).notifications.filter(n=>n.taskId===t.id)).toHaveLength(1);
+ expect(errors).toEqual([]);
+});

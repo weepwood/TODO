@@ -16,11 +16,16 @@ export function historyReducer(state,action){
 export function useHistory(initial){
  const session=useRef(null);if(!session.current)session.current=crypto.randomUUID();
  const [state,dispatch]=useReducer(historyReducer,null,()=>({data:initial(),past:[],future:[]}));
+ const actions=useHistoryActions(dispatch,session);
+ return {data:state.data,...actions,canUndo:!!state.past.length,canRedo:!!state.future.length,session:session.current}
+}
+// Stable actions must not retain the initializer's original App render.
+function useHistoryActions(dispatch,session){
  const meta=source=>({id:crypto.randomUUID(),at:new Date().toISOString(),source,session:session.current});
  const edit=useCallback((value,source='manual',record=true)=>dispatch({type:'edit',value,meta:meta(source),record}),[]);
  const system=useCallback((value,source)=>dispatch({type:'system',value,...(source?{meta:meta(source)}:{})}),[]);
  const audit=useCallback(value=>dispatch({type:'audit',value}),[]);
  const undo=useCallback(()=>dispatch({type:'undo',meta:meta('undo')}),[]);
  const redo=useCallback(()=>dispatch({type:'redo',meta:meta('redo')}),[]);
- return {data:state.data,edit,system,audit,undo,redo,canUndo:!!state.past.length,canRedo:!!state.future.length,session:session.current}
+ return {edit,system,audit,undo,redo}
 }

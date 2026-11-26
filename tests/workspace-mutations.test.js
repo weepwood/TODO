@@ -34,3 +34,25 @@ test('隔离保存回调保留同步、异步草稿及失败边界',()=>{
  assert.equal(createWorkspacePersister({stageWorkspace(){throw Object.assign(Error('quota'),{name:'QuotaExceededError'})}},failed,false,draft,report)(),false);
  assert.equal(draft.current.staged,changed);assert.match(errors.at(-1),/存储空间不足/);
 });
+
+test('隔离编辑回调保留事件规则、活动归属与禁用自动化边界',()=>{
+ const task=newTask('原任务','inbox','','automation-closure');
+ const seed={...initialState(),tasks:[task]};
+ const rules=[{id:'rc-auto',name:'改名提级',list:'all',condition:'any',action:'high',enabled:true,trigger:'changed'}];
+ const patch=d=>({...d,tasks:d.tasks.map(t=>({...t,title:'手工改名'}))});
+ const edit=(allowAutomation,value)=>{
+  let next;
+  createWorkspaceEditor((fn,source,record)=>{assert.equal(source,'manual');assert.equal(record,false);next=fn(seed)},{session:'qa',allowAutomation,rules})(value);
+  return next;
+ };
+ const enabled=edit(true,patch);
+ assert.equal(enabled.tasks[0].priority,3);
+ assert.equal(enabled.workflowRuns.length,1);
+ assert(enabled.tasks[0].activity.some(e=>e.source==='manual'));
+ assert(enabled.tasks[0].activity.some(e=>e.source==='automation'));
+ const disabled=edit(false,patch);
+ assert.equal(disabled.tasks[0].priority,0);
+ assert.equal(disabled.workflowRuns?.length||0,0);
+ assert.equal(edit(true,patch(seed)).tasks[0].priority,0);
+ assert.equal(seed.tasks[0].title,'原任务');
+});
