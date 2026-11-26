@@ -37,3 +37,11 @@
 .elapsed-day-timeline .time-block-layout{grid-template-columns:110px minmax(0,1fr)}
 .elapsed-day-timeline .time-labels span{font-size:11px;white-space:nowrap}
 @media(max-width:600px){.elapsed-day-timeline .time-block-layout{grid-template-columns:96px minmax(0,1fr)}}
+
+/* Preserve block geometry, clarify time ruler and explicit conflict states. */
+.planner .time-labels{font-size:var(--font-caption)}
+.planner .time-block{border-radius:var(--radius-small)}
+.planner .time-block strong{font-weight:600;line-height:1.3}
+.planner .time-block small{font-variant-numeric:tabular-nums}
+.planner .time-block.conflict:not(:focus-visible),.planner .time-block[data-preview-conflict=true]:not(:focus-visible){outline:1px dashed var(--warning);outline-offset:-2px}
+.planner .planner-gesture-capacity{font-size:var(--font-caption);font-variant-numeric:tabular-nums;max-width:calc(100% - 12px)}

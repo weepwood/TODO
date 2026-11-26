@@ -21,11 +21,11 @@ export function usePanelLayout(storage,{module='tasks',detailVisible=true,sideba
 export function PanelHandle({kind,value,onChange}){
  const drag=useRef(null),frame=useRef(0),sign=kind==='sidebar'?1:-1;const latest=useRef(onChange);latest.current=onChange;
  useEffect(()=>()=>{cancelAnimationFrame(frame.current);if(drag.current)document.body.classList.remove('resizing-panels')},[]);
- const finish=()=>{cancelAnimationFrame(frame.current);frame.current=0;if(drag.current?.next!==undefined)latest.current(drag.current.next);drag.current=null;document.body.classList.remove('resizing-panels')};
+ const finish=(e,cancel=false)=>{const active=drag.current;if(!active||e?.pointerId!==active.pointerId)return;cancelAnimationFrame(frame.current);frame.current=0;drag.current=null;latest.current(cancel?active.value:active.value+(e.clientX-active.x)*sign);document.body.classList.remove('resizing-panels')};
  return <div className={'panel-handle handle-'+kind} role="separator" aria-orientation="vertical" aria-label={kind==='sidebar'?'调整清单栏宽度':'调整详情栏宽度'} aria-valuemin={kind==='sidebar'?176:280} aria-valuemax={kind==='sidebar'?340:540} aria-valuenow={value} tabIndex={0}
- onPointerDown={e=>{if(e.button!==0)return;e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId);drag.current={x:e.clientX,value};document.body.classList.add('resizing-panels')}}
- onPointerMove={e=>{if(drag.current){drag.current.next=drag.current.value+(e.clientX-drag.current.x)*sign;if(!frame.current)frame.current=requestAnimationFrame(()=>{frame.current=0;if(drag.current)latest.current(drag.current.next)})}}}
- onLostPointerCapture={finish} onPointerCancel={finish}
+ onPointerDown={e=>{if(e.button!==0||drag.current)return;e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId);drag.current={x:e.clientX,value,pointerId:e.pointerId};document.body.classList.add('resizing-panels')}}
+ onPointerMove={e=>{if(drag.current?.pointerId===e.pointerId){drag.current.next=drag.current.value+(e.clientX-drag.current.x)*sign;if(!frame.current)frame.current=requestAnimationFrame(()=>{frame.current=0;if(drag.current)latest.current(drag.current.next)})}}}
+ onPointerUp={e=>finish(e)} onLostPointerCapture={e=>finish(e,true)} onPointerCancel={e=>finish(e,true)}
  onKeyDown={e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();onChange(value+(e.key==='ArrowRight'?16:-16)*sign)}else if(e.key==='Home'||e.key==='End'){e.preventDefault();onChange(e.key==='Home'?0:9999)}}}
  onDoubleClick={()=>onChange(DEFAULT[kind])}/>;
 }

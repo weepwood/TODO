@@ -147,14 +147,17 @@
 .v2 .heading[data-task-heading=true]:not([data-task-search=true]) .view-toolbar{justify-content:flex-start;margin-left:0;flex-wrap:wrap}
 .v2 .heading[data-task-heading=true][data-task-search=true] .workspace-title>.muted{display:none}
 .v2 .task-capture-toolbar{display:flex;align-items:center;gap:8px;min-width:0;margin-bottom:12px}
-.v2 .task-capture-toolbar>.quick-add{flex:1;min-width:0;width:auto;margin:0;min-height:42px;background:color-mix(in srgb,var(--text) 2%,var(--bg));border:1px solid color-mix(in srgb,var(--line) 65%,transparent);box-shadow:none;border-radius:9px}
+.v2 .task-capture-toolbar>.quick-add{flex:1;min-width:0;width:auto;margin:0;min-height:calc(var(--control-height) + 8px);background:var(--surface-subtle);border:var(--control-border);box-shadow:none;border-radius:var(--radius-control)}
 .v2 .task-capture-toolbar>.quick-add>svg{color:var(--muted)}
 .v2 .task-capture-toolbar>.quick-add>button{background:transparent;color:var(--accent-text);box-shadow:none;font-weight:550}
 .v2 .task-capture-toolbar>.quick-add>button:disabled{color:var(--muted);opacity:.6}
 .v2 .task-capture-toolbar>.quick-add>button:not(:disabled):hover{background:var(--active)}
 .v2 .task-capture-toolbar>.quick-add:focus-within{background:var(--bg);border-color:var(--accent);box-shadow:none}
 .v2 .task-capture-toolbar>.task-view-trigger{flex:0 0 auto}
-.v2 [data-workspace-module=tasks] .list-caption{border-bottom:0;margin-bottom:4px}
+.v2 [data-workspace-module=tasks] .list-caption{border-bottom:0;margin-bottom:var(--space-1);padding-block:var(--space-2);font-size:var(--font-body)}
+.v2 .list-caption .group-collapse{min-height:var(--control-height);gap:var(--space-2);min-width:0}
+.v2 .list-caption .group-collapse small{font-variant-numeric:tabular-nums;color:var(--muted);background:var(--surface-subtle);border-radius:var(--radius-small);padding:2px 6px}
+@container work-area (max-width:350px){.v2 .task-capture-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--space-1)}.v2 .task-capture-toolbar>.quick-add{grid-column:1/-1}.v2 .task-capture-toolbar>.batch-capture-trigger{justify-self:start}.v2 .task-capture-toolbar>.task-view-trigger{justify-self:end}}
 @media(max-width:860px){
  .v2.compact-mobile .task-capture-toolbar{gap:4px;margin-bottom:6px}
  .v2.compact-mobile .task-capture-toolbar>.quick-add{min-height:50px;margin:0;padding-inline:8px}
@@ -225,3 +228,5 @@
 .v2 .inline-title-editor input:focus{border:0;outline:none;box-shadow:none;background:transparent}
 @container work-area (max-width:540px){.v2 .task-row .task-row-meta{gap:4px;max-width:48%}}
 @container work-area (max-width:340px){.v2 .task-row .task-row-meta{gap:3px;max-width:54%}.v2 .task-row-meta>.task-warning,.v2 .task-row-meta>.task-points{font-size:10px}}
+
+@media(max-width:600px){@container work-area (max-width:350px){.v2.compact-mobile .task-capture-toolbar>.quick-add{grid-column:1}.v2.compact-mobile .task-capture-toolbar>.task-view-trigger{grid-column:2;grid-row:1}}}

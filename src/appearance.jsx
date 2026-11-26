@@ -1,9 +1,6 @@
-import {FieldMessage} from './design-system/FieldFeedback.jsx';
-import {Switch} from "./design-system/Controls.jsx";
-import {SmartSelect,SelectOption} from './components/SmartSelect.jsx';
-import React,{useEffect,useState} from 'react';
+import {useEffect,useState} from 'react';
 const KEY='todo-appearance-v1';
-export const accents=[['blue','晴空','#5276d6'],['teal','松石','#087f80'],['violet','鸢尾','#8056c4'],['rose','蔷薇','#b84b76'],['slate','石墨','#536575']];
+export const accents=[['blue','晴空','#4667c2'],['teal','松石','#087f80'],['violet','鸢尾','#8056c4'],['rose','蔷薇','#b84b76'],['slate','石墨','#536575']];
 export function normalizeAppearance(value){return {accent:accents.some(a=>a[0]===value?.accent)?value.accent:'blue',density:['compact','regular','relaxed'].includes(value?.density)?value.density:'regular',font:['small','normal','large'].includes(value?.font)?value.font:'normal',enhancedFocus:value?.enhancedFocus===true}}
 export function useAppearance(storage){
  const [value,setValue]=useState(()=>{try{return normalizeAppearance(JSON.parse(storage.getItem(KEY)||'{}'))}catch{return normalizeAppearance({})}});
@@ -11,7 +8,4 @@ export function useAppearance(storage){
  useEffect(()=>{const el=document.documentElement;el.dataset.accent=value.accent;el.dataset.density=value.density;el.dataset.font=value.font;el.dataset.focusMode=value.enhancedFocus?'enhanced':'quiet';try{storage.setItem(KEY,JSON.stringify(value));setError('')}catch{setError('外观设置未保存，仅当前会话生效')}},[value,storage]);
  useEffect(()=>{const root=document.documentElement;root.dataset.inputModality='pointer';const pointer=()=>{root.dataset.inputModality='pointer'};const keyboard=e=>{if(e.key==='Tab'||(!e.target?.closest?.('input,textarea,[contenteditable=true]')&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home','End'].includes(e.key)))root.dataset.inputModality='keyboard'};window.addEventListener('pointerdown',pointer,true);window.addEventListener('keydown',keyboard,true);return()=>{window.removeEventListener('pointerdown',pointer,true);window.removeEventListener('keydown',keyboard,true);delete root.dataset.inputModality}},[]);
  return {value,change:patch=>setValue(v=>normalizeAppearance({...v,...patch})),reset:()=>setValue(normalizeAppearance({})),error};
-}
-export function AppearanceSettings({appearance}){const {value,change,reset,error}=appearance;
- return <section className="appearance-settings"><h3>工作台外观</h3><p className="muted small">以下设置仅保存在本机，按账号独立。</p><div className="appearance-label">强调色</div><div className="accent-options">{accents.map(([id,label,color])=><button type="button" key={id} aria-label={label+'主题色'} aria-pressed={value.accent===id} className={value.accent===id?'chosen':''} onClick={()=>change({accent:id})}><span style={{background:color}}/>{label}</button>)}</div><label className="field"><span>控件密度</span><SmartSelect aria-label="控件密度" value={value.density} onValueChange={value=>change({density:value})}><SelectOption value="compact">紧凑</SelectOption><SelectOption value="regular">标准</SelectOption><SelectOption value="relaxed">舒展</SelectOption></SmartSelect></label><label className="field"><span>文字大小</span><SmartSelect aria-label="文字大小" value={value.font} onValueChange={value=>change({font:value})}><SelectOption value="small">较小</SelectOption><SelectOption value="normal">标准</SelectOption><SelectOption value="large">较大</SelectOption></SmartSelect></label><h3>无障碍视觉提示</h3><div className="appearance-focus-setting"><div><strong id="enhanced-focus-label">增强焦点描边</strong><p id="enhanced-focus-help" className="muted small">默认关闭，减少鼠标操作时多余的边框。键盘导航仍保留必要的焦点提示。</p></div><Switch aria-labelledby="enhanced-focus-label" aria-describedby="enhanced-focus-help" checked={value.enhancedFocus} className="appearance-focus-switch" onCheckedChange={enhancedFocus=>change({enhancedFocus})}/></div><button className="secondary" onClick={reset}>恢复默认外观</button><FieldMessage error={error}/></section>
 }

@@ -130,7 +130,8 @@
 .calendar-main .workspace-event{--block-color:var(--fc-event-color,var(--accent));border-radius:var(--radius-small);border-color:color-mix(in srgb,var(--block-color) 45%,transparent);background:color-mix(in srgb,var(--block-color) 18%,var(--bg));color:var(--text)}
 .calendar-main .workspace-event :is(.fc-event-title,.fc-event-time,.fc-event-main){color:var(--text)}
 .calendar-main .workspace-event-external{border-style:dashed}
-.calendar-main .workspace-event-conflict{box-shadow:inset -2px 0 var(--priority-medium)}
+.calendar-main .workspace-event-conflict{box-shadow:inset -2px 0 var(--warning)}
+.calendar-main .workspace-event-conflict:not(:focus-visible){outline:1px dashed var(--warning);outline-offset:-2px}
 .calendar-main .workspace-event:hover{background:color-mix(in srgb,var(--block-color) 25%,var(--bg))}
 .board-card-content strong{font-weight:600}
 .board-task-card .board-card-meta{display:flex;gap:5px 10px;flex-wrap:wrap}
@@ -353,13 +354,13 @@
 .comparison-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
 .comparison-summary>div{display:grid;gap:6px;padding:var(--space-3);background:var(--surface-subtle);border-radius:var(--radius-control)}
 .comparison-summary small{font-size:var(--font-caption);color:var(--muted)}
-.comparison-summary strong{font-size:20px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.comparison-summary strong{font-size:var(--font-metric);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .comparison-scroll{overflow-x:auto;scrollbar-width:thin}
 .comparison-columns{display:grid;grid-template-columns:repeat(var(--comparison-count),minmax(32px,1fr));min-width:calc(var(--comparison-count)*32px);gap:2px}
 .comparison-day{min-width:0;display:grid;gap:5px;padding:6px 2px;border-radius:var(--radius-small);color:var(--muted);font-size:10px}
 .comparison-day:hover,.comparison-day[aria-pressed=true]{background:var(--active);color:var(--accent-text)}
-.comparison-pair{height:100px;display:flex;align-items:flex-end;justify-content:center;gap:2px;border-bottom:1px solid var(--line)}
-.comparison-pair i{display:block;width:36%;background:var(--muted);border-radius:3px 3px 0 0;min-height:0}
+.comparison-pair{height:112px;display:flex;align-items:flex-end;justify-content:center;gap:2px;border-bottom:1px solid var(--line)}
+.comparison-pair i{display:block;width:36%;background:var(--chart-comparison);border-radius:3px 3px 0 0;min-height:0}
 .comparison-pair i:last-child{background:var(--accent)}
 .heatmap button{display:block;width:100%;height:100%;min-width:0;min-height:0;padding:0;border:0;border-radius:2px;background:var(--hover)}
 .heatmap button[data-level="1"]{background:color-mix(in srgb,var(--accent) 32%,var(--bg))}
@@ -572,3 +573,30 @@
 @media(max-width:600px){.restore-value-pair{grid-template-columns:minmax(0,1fr)}}
 .dialog.professional-form-dialog :is(.dialog-actions,.workspace-actions)>button{min-height:var(--control-height)}
 @media(pointer:coarse){.dialog.professional-form-dialog :is(.dialog-actions,.workspace-actions)>button{min-height:44px}}
+
+/* Today's execution: priority information before compact actions. */
+.v2 .today-execution{padding:var(--space-3);border:var(--surface-border);border-radius:var(--surface-radius);margin-bottom:var(--space-3);background:var(--surface-subtle)}
+.v2 .today-execution-summary{display:grid;gap:var(--space-1);min-width:0;flex:1 1 180px}
+.today-execution-head strong{font-size:var(--font-heading);font-weight:var(--surface-heading-weight)}
+.today-execution-meta{display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:var(--font-caption);color:var(--muted)}
+.today-execution [data-risk=true]{color:var(--danger);font-weight:600}
+.v2 .today-execution-next{background:var(--bg);border:var(--surface-border);border-radius:var(--radius-control);padding:var(--space-2);margin-top:var(--space-1)}
+.today-execution-next>span{display:grid;gap:3px;text-align:start;justify-items:start}
+.today-execution-next>span>small{color:var(--muted);font-size:var(--font-caption);margin:0;text-align:start}
+.today-execution-next>span>strong{font-size:var(--font-body);overflow-wrap:anywhere}
+.today-execution-item>span>small{display:block;line-height:1.5}
+.today-execution-item .text-link{text-align:start;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+@container work-area (max-width:460px){.v2 .today-execution-head{align-items:flex-start}.v2 .today-execution-head>button{margin-inline-start:0}.v2 .today-execution-next{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.v2 .today-execution-next>span{grid-column:1/-1}.v2 .today-execution-next>button{min-height:var(--control-height);width:100%;margin:0}}
+/* Keep true daily values in accessible names and tooltips; long ranges scroll
+   instead of squeezing 90 labels into a few hundred pixels. */
+.task-completion-chart .completion-scroll{overflow-x:auto;scrollbar-width:thin;padding-bottom:var(--space-2)}
+.task-completion-chart .bars{min-width:max(100%,calc(var(--chart-days)*24px));gap:var(--space-1);padding-top:var(--space-2)}
+.task-completion-chart .bars>div{min-width:20px}
+.task-completion-chart .bars>div>small{font-size:var(--font-caption);white-space:nowrap;color:var(--muted)}
+.task-completion-chart .bars>div>span{font-variant-numeric:tabular-nums;color:var(--text);font-size:var(--font-caption)}
+.task-completion-chart .bars>div>i{background:var(--accent)}
+.comparison-legend{display:flex;flex-wrap:wrap;gap:var(--space-3);font-size:var(--font-caption);color:var(--muted);margin-block:var(--space-2)}
+.comparison-legend span{display:inline-flex;gap:6px;align-items:center}
+.comparison-legend i{width:10px;height:10px;border-radius:3px;background:var(--chart-comparison)}
+.comparison-legend span:last-child i{background:var(--accent)}
+.comparison-day[aria-pressed=true]{outline:1px solid var(--accent);outline-offset:-1px}
