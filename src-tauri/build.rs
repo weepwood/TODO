@@ -35,6 +35,11 @@ fn main() {
     #[cfg(feature="research-r4")] "r4_receipt",
     #[cfg(feature="research-r4")] "r4_checkpoint",
     #[cfg(feature="research-r4")] "r4_report",
+    #[cfg(feature="research-r5")] "r5_handshake",
+    #[cfg(feature="research-r5")] "r5_commit",
+    #[cfg(feature="research-r5")] "r5_enqueue",
+    #[cfg(feature="research-r5")] "r5_receipt",
+    #[cfg(feature="research-r5")] "r5_report",
   ];
   tauri_build::try_build(tauri_build::Attributes::new().app_manifest(tauri_build::AppManifest::new().commands(commands))).expect("application build");
 }

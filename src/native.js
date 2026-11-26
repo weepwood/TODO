@@ -26,7 +26,8 @@ export function useNativeHydration(uid){
    // Commit the initial migration before rendering the workspace.
    if(!raw)await invoke('native_write_store',{scope,store:JSON.stringify(values)});
    if(cancelled)return;
-   const storage=createNativeStore(values,s=>invoke('native_write_store',{scope,store:JSON.stringify(s)}),status=>{if(!cancelled)setResult(old=>({...old,pending:status.pending,saveError:status.error}))},desktopNative?(s,receipt)=>invoke('native_cli_write_store',{scope,store:JSON.stringify(s),receipt}):null);
+   const status=status=>{if(!cancelled)setResult(old=>({...old,pending:status.pending,saveError:status.error}))};
+   const storage=import.meta.env.VITE_TODO_R5_LAB==='1'?await (await import('../research/incremental/product-store.mjs')).createProductStore(values,scope,status,invoke):createNativeStore(values,s=>invoke('native_write_store',{scope,store:JSON.stringify(s)}),status,desktopNative?(s,receipt)=>invoke('native_cli_write_store',{scope,store:JSON.stringify(s),receipt}):null);
    const activated=await lease.activate();
    if(!cancelled&&activated)setResult({ready:true,storage,error:'',pending:false,saveError:''});
   }catch(e){if(!cancelled)setResult({ready:true,storage:null,error:String(e),pending:false,saveError:''})}

@@ -13,7 +13,7 @@ export async function requireCommittedStorage(storage){
 export async function prepareSyncSnapshot(storage,snapshot,isCurrent){
  if(!isCurrent())return false;
  if(storage.flush){
-  const raw=JSON.stringify(snapshot);
+  const raw=storage.serializeWorkspace?storage.serializeWorkspace(snapshot):JSON.stringify(snapshot);
   if(storage.getItem(STORAGE_KEY)!==raw)return false;
   await requireCommittedStorage(storage);
   if(storage.getItem(STORAGE_KEY)!==raw)return false;

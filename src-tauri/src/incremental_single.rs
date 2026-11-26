@@ -111,8 +111,11 @@ fn verify_history_hash(c:&Connection,s:&str,hash:&str)->R<i64>{
 }
 fn verify_history(c:&Connection,s:&str,cur:&Current)->R<i64>{verify_history_hash(c,s,&cur.hash)}
 pub(super) fn journal(c:&Connection,s:&str)->R<Value>{
+ journal_selected(c,s,true,None)
+}
+pub(super) fn journal_selected(c:&Connection,s:&str,detail:bool,version:Option<i64>)->R<Value>{
  let tx=c.unchecked_transaction().map_err(err)?;let cur=read(&tx,s)?;verify_history(&tx,s,&cur)?;
- let v=super::operation_history::read_row_history(&tx,s,cur.raw)?;tx.commit().map_err(err)?;Ok(v)
+ let v=super::operation_history::read_row_history_selected(&tx,s,cur.raw,detail,version)?;tx.commit().map_err(err)?;Ok(v)
 }
 // Called only on test-created legacy copies. Atomic copy + remove authoritative
 // snapshots, preserving existing official journal/index/backups/queue tables.

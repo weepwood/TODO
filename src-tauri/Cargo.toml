@@ -35,8 +35,14 @@ tauri-plugin-todo-mobile = { path = "plugins/todo-mobile" }
 
 [features]
 research-r4 = []
+research-r5 = ["research-r4"]
 
 [[bin]]
 name = "todo-r4-lab"
 path = "src/bin/r4.rs"
 required-features = ["research-r4"]
+
+[[bin]]
+name = "todo-r5-lab"
+path = "src/bin/r5.rs"
+required-features = ["research-r5"]
