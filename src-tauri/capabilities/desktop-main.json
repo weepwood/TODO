@@ -23,6 +23,7 @@
     "allow-native-cli-binding",
     "allow-native-cli-next",
     "allow-native-cli-write-store",
+    "allow-native-operation-history",
     "updater:allow-check",
     "updater:allow-download",
     "updater:allow-install",

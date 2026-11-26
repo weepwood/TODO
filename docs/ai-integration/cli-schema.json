@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "command": "todo run --file - --request-id UUID --wait 10",
   "status": "received means queued; saved means local SQLite commit (or query result); cancelled means rejected; not_checked means cloud sync unknown",
   "operations": {
@@ -336,6 +336,37 @@
         "date",
         "period"
       ]
+    },
+    "history-list": {
+      "optional": [
+        "limit"
+      ]
+    },
+    "history-show": {
+      "required": [
+        "version"
+      ]
+    },
+    "history-preview": {
+      "oneOf": [
+        "version",
+        "afterVersion",
+        "groupId"
+      ],
+      "optional": [
+        "selection"
+      ],
+      "selection": {
+        "id": "task ID",
+        "fields": "optional array of field names"
+      }
+    },
+    "history-apply": {
+      "required": [
+        "previewId",
+        "confirm"
+      ],
+      "confirmation": "native application must be foreground and user must confirm"
     }
   },
   "repeat": [
@@ -408,9 +439,9 @@
       "to": "2026-12-03"
     }
   ],
-  "authorization": "create uses explicit workspace binding; all other operations require advanced permission enabled in native settings; reads are scoped to the bound workspace",
+  "authorization": "create uses explicit workspace binding; all other operations require advanced permission enabled in native settings; reads are scoped to the bound workspace; v4 desktop application requires explicit UI confirmation for advanced mutations except focus operations and for conflict-allowed or side-effecting structured create; confirm=true is not user approval",
   "management": {
-    "requires": "operation_api=3 and advanced=true",
+    "requires": "operation_api>=3 and advanced=true",
     "previewExpiryMinutes": 15,
     "receiptResultRetentionDays": 7,
     "confirm": "User must explicitly approve the actual preview and undo; never invent a reference ID",
@@ -429,6 +460,29 @@
       "NOT_FOUND",
       "DOMAIN_REJECTED",
       "RECEIPT_TOO_LARGE"
+    ]
+  },
+  "operationGroup": "Optional UUID for grouping structured requests (not legacy add/batch).",
+  "history": {
+    "requires": "operation_api>=4 and advanced=true",
+    "retentionDays": 30,
+    "maxVersions": 300,
+    "maxBytesPerScope": 16777216,
+    "previewExpiryMinutes": 15,
+    "confirmationTimeoutSeconds": 60,
+    "scope": "local SQLite only; recovery is a new compensation, not a workspace snapshot; afterVersion reverts CLI commits only",
+    "selection": "task IDs and reversible field groups; schedule and classification are grouped",
+    "conflicts": "three-way before/after/current values for reversible fields; conflicting fields stay unchanged",
+    "protected": "lifecycle, repeat series, focus, points, delivered reminders, note/link/checklist bodies are not restored by journal",
+    "errors": [
+      "HISTORY_GAP",
+      "HISTORY_NOT_FOUND",
+      "USER_CONFIRM_REQUIRED",
+      "CONFIRM_TOO_LARGE",
+      "CONFIRM_REQUIRED",
+      "STALE_VERSION",
+      "STALE_PREVIEW",
+      "TIME_CONFLICT"
     ]
   }
 }

@@ -10,6 +10,7 @@ use tauri::{Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
 
 mod storage;
+mod operation_history;
 pub mod cli;
 use storage::*;
 struct Database(Mutex<Connection>);
@@ -148,7 +149,11 @@ fn native_cli_next(scope:String,active:tauri::State<ActiveScope>,db:tauri::State
  let mut req:Option<serde_json::Value>=c.query_row("SELECT d.id,d.text,d.created_at FROM direct_capture_requests d JOIN cli_operation_meta m ON d.scope=m.scope AND d.id=m.id WHERE d.scope='cli-op:'||?1 AND d.status='pending' ORDER BY d.created_at,d.id LIMIT 1",[&scope],|r|Ok(serde_json::json!({"id":r.get::<_,String>(0)?,"text":r.get::<_,String>(1)?,"created_at":r.get::<_,i64>(2)?}))).optional().map_err(|e|e.to_string())?;
  if let Some(ref mut req)=req{
   if let Ok(payload)=serde_json::from_str::<serde_json::Value>(req["text"].as_str().unwrap_or("")){
-   let reference=match payload["op"].as_str(){Some("preview-apply")=>payload["previewId"].as_str(),Some("changes-undo")=>payload["receiptId"].as_str(),_=>None};
+   if payload["op"].as_str().is_some_and(|op|cli::HISTORY.contains(&op))&&cli::advanced_scope(&c,&scope)?{
+    let detail=payload["op"]!="history-list";
+    req["journal"]=operation_history::history_read(&c,&scope,detail,300)?;
+   }
+   let reference=match payload["op"].as_str(){Some("preview-apply"|"history-apply")=>payload["previewId"].as_str(),Some("changes-undo")=>payload["receiptId"].as_str(),_=>None};
    if let Some(id)=reference.filter(|id|uuid::Uuid::parse_str(id).is_ok()){
     if cli::advanced_scope(&c,&scope)?{
      let row:Option<(String,String,String)>=c.query_row("SELECT d.status,m.kind,m.result FROM direct_capture_requests d JOIN cli_operation_meta m ON d.scope=m.scope AND d.id=m.id WHERE d.scope='cli-op:'||?1 AND d.id=?2 AND d.status='saved' AND m.result IS NOT NULL AND d.created_at>=?3",params![&scope,id,Local::now().timestamp()-7*86400],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional().map_err(|e|e.to_string())?;
@@ -158,6 +163,13 @@ fn native_cli_next(scope:String,active:tauri::State<ActiveScope>,db:tauri::State
   }
  }
  Ok(req)
+}
+#[tauri::command]
+fn native_operation_history(scope:String,detail:bool,active:tauri::State<ActiveScope>,db:tauri::State<Database>)->Result<serde_json::Value,String>{
+ let current=active.0.lock().map_err(|e|e.to_string())?;
+ if current.as_deref()!=Some(&scope){return Err("工作空间已切换".into())}
+ let c=db.0.lock().map_err(|e|e.to_string())?;
+ operation_history::history_read(&c,&scope,detail,300)
 }
 #[tauri::command]
 fn native_cli_write_store(scope:String,store:String,receipt:serde_json::Value,active:tauri::State<ActiveScope>,db:tauri::State<Database>)->Result<(),String>{
@@ -299,7 +311,7 @@ pub fn run(){
  #[cfg(desktop)] let builder=if option_env!("TODO_SIGNED_RELEASE")==Some("1"){builder.plugin(tauri_plugin_updater::Builder::new().build()).plugin(tauri_plugin_process::init())}else{builder};
  #[cfg(target_os="android")] let builder=builder.plugin(tauri_plugin_todo_mobile::init());
  builder.plugin(tauri_plugin_notification::init())
- .invoke_handler(tauri::generate_handler![native_load,native_save,native_load_store,native_write_store,native_activate,native_search,native_list_backups,native_read_backup,native_create_backup,native_notify,native_exit,native_test_notification,native_take_quick_capture,native_shortcut_status,native_open_capture,native_capture_generation,native_capture_handoff,native_capture_cancel,native_capture_submit_direct,native_capture_direct_status,native_direct_pending,native_direct_ack,native_direct_cancel_pending,native_cli_binding,native_cli_next,native_cli_write_store])
+ .invoke_handler(tauri::generate_handler![native_load,native_save,native_load_store,native_write_store,native_activate,native_search,native_list_backups,native_read_backup,native_create_backup,native_notify,native_exit,native_test_notification,native_take_quick_capture,native_shortcut_status,native_open_capture,native_capture_generation,native_capture_handoff,native_capture_cancel,native_capture_submit_direct,native_capture_direct_status,native_direct_pending,native_direct_ack,native_direct_cancel_pending,native_cli_binding,native_cli_next,native_cli_write_store,native_operation_history])
  .setup(|app|{
   let path=app.path().app_data_dir()?;std::fs::create_dir_all(&path)?;let c=Connection::open(path.join("todo.sqlite3"))?;c.busy_timeout(std::time::Duration::from_secs(5))?;schema(&c)?;
   app.manage(Database(Mutex::new(c)));app.manage(ActiveScope(Mutex::new(None)));app.manage(QuickCapture(Mutex::new(CaptureState::default())));app.manage(ShortcutStatus(Mutex::new("not-registered".into())));

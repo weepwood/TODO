@@ -18,6 +18,7 @@ import {digest} from '../services/cloud-core.js';
 import {sameRecord} from './record-equality.js';
 import {saveOrganizationEntity} from './organization.js';
 import {appendHabit,setHabitChecked} from './habit-plan.js';
+import {HISTORY_OPS,prepareHistory} from './operation-history.js';
 import {MANAGEMENT_OPS,prepareManagement} from './cli-management.js';
 
 const fail=m=>{throw Error(m)};
@@ -148,6 +149,7 @@ function createTasks(d,rows,requestId,now){
 export async function prepareCliOperation(d,request,requestId,now=new Date(),context={}){
  check(obj(request)&&typeof request.op==='string','操作契约无效');
  const today=dayKey(now),op=request.op;
+ if(HISTORY_OPS.includes(op))return prepareHistory(d,request,requestId,now,context);
  if(MANAGEMENT_OPS.includes(op))return prepareManagement(d,request,requestId,now,{...context,base:prepareCliOperation});
  let next=d,result={};
  const get=async({id,version:v,scope='occurrence'},allowDeleted=false)=>{

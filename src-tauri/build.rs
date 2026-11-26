@@ -14,6 +14,7 @@ fn main() {
     "native_cli_binding",
     "native_cli_next",
     "native_cli_write_store",
+    "native_operation_history",
     "native_list_backups",
     "native_read_backup",
     "native_create_backup",

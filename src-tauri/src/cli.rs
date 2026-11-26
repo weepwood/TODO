@@ -7,7 +7,7 @@ use sha2::{Sha256,Digest};
 use std::{path::PathBuf,time::{Duration,Instant},io::{Read,self},collections::BTreeMap};
 use uuid::Uuid;
 type Res<T>=Result<T,String>;
-const HELP:&str="TODO local CLI\n  todo doctor\n  todo lists\n  todo add TITLE [--date YYYY-MM-DD|today|tomorrow|day-after-tomorrow] [--time HH:mm] [--list NAME | --list-id ID] [--priority none|low|medium|high] [--duration MIN] [--notes TEXT] [--deadline YYYY-MM-DD] [--reminder-at YYYY-MM-DDTHH:mm] [--request-id UUID] [--wait SECONDS]\n  todo batch --file PATH|- [--request-id UUID] [--wait SECONDS]\n  todo status UUID\n  todo run --file PATH|- [--request-id UUID] [--wait SECONDS]\n  todo schema\n  v3 management via todo run: context, plan-preview, plan-explain, reflow-preview, changes-preview, split-preview, preview-apply, changes-undo, audit, review. See todo schema.\n  todo today|upcoming|overdue|catalog [--request-id UUID] [--wait SECONDS]\n  todo search QUERY [--request-id UUID] [--wait SECONDS]\n  todo show TASK_ID [--request-id UUID] [--wait SECONDS]\n  Rich add flags: --end HH:mm [--end-date YYYY-MM-DD], --repeat TYPE, --interval N, --weekdays 1,3,5, --repeat-until DATE, --repeat-count N, --reminder-offsets 15,5, --tags ID,ID, --section-id ID, --plan-minutes N\n  todo bind --scope guest|UUID (explicit local workspace)\n  todo unbind\nOptions before command: --data-dir PATH (isolated installation only; default macOS TODO app data).\nBind the desired workspace in TODO Settings > Account & Sync before use.\nreceived is queued, saved is durable local commit; cloud sync is not asserted.\nA single request can be pending per bound workspace; retry with the same UUID and content.\n";
+const HELP:&str="TODO local CLI\n  todo doctor\n  todo lists\n  todo add TITLE [--date YYYY-MM-DD|today|tomorrow|day-after-tomorrow] [--time HH:mm] [--list NAME | --list-id ID] [--priority none|low|medium|high] [--duration MIN] [--notes TEXT] [--deadline YYYY-MM-DD] [--reminder-at YYYY-MM-DDTHH:mm] [--request-id UUID] [--wait SECONDS]\n  todo batch --file PATH|- [--request-id UUID] [--wait SECONDS]\n  todo status UUID\n  todo run --file PATH|- [--request-id UUID] [--wait SECONDS]\n  todo schema\n  v4 history via todo run: history-list, history-show, history-preview, history-apply. Native user confirmation required for advanced writes.\n  v3 management via todo run: context, plan-preview, plan-explain, reflow-preview, changes-preview, split-preview, preview-apply, changes-undo, audit, review. See todo schema.\n  todo today|upcoming|overdue|catalog [--request-id UUID] [--wait SECONDS]\n  todo search QUERY [--request-id UUID] [--wait SECONDS]\n  todo show TASK_ID [--request-id UUID] [--wait SECONDS]\n  Rich add flags: --end HH:mm [--end-date YYYY-MM-DD], --repeat TYPE, --interval N, --weekdays 1,3,5, --repeat-until DATE, --repeat-count N, --reminder-offsets 15,5, --tags ID,ID, --section-id ID, --plan-minutes N\n  todo bind --scope guest|UUID (explicit local workspace)\n  todo unbind\nOptions before command: --data-dir PATH (isolated installation only; default macOS TODO app data).\nBind the desired workspace in TODO Settings > Account & Sync before use.\nreceived is queued, saved is durable local commit; cloud sync is not asserted.\nA single request can be pending per bound workspace; retry with the same UUID and content.\n";
 pub(super) fn bound_scope(c:&Connection)->Res<Option<String>>{c.query_row("SELECT scope FROM cli_binding WHERE slot=1",[],|r|r.get(0)).optional().map_err(|e|e.to_string())}
 pub(super) fn advanced_scope(c:&Connection,scope:&str)->Res<bool>{
  if !operation_ready(c)?{return Ok(false)}
@@ -90,7 +90,7 @@ fn op_receipt(c:&Connection,scope:&str,id:&str)->Res<Option<Value>>{
  row.map(|(status,result,kind,created_at)|{
   let status=if status=="pending"{"received"}else{&status};
   if kind!="create"&&!advanced_scope(c,scope)?{return Ok(json!({"request_id":id,"status":status,"result":null,"result_access":"not_authorized","sync_status":"not_checked"}))}
-  if status!="received"&&MANAGEMENT.contains(&kind.as_str())&&(result.is_none()||Local::now().timestamp()-created_at>7*86400){return Ok(json!({"request_id":id,"status":status,"result":null,"result_access":"expired","sync_status":"not_checked"}))}
+  if status!="received"&&(MANAGEMENT.contains(&kind.as_str())||HISTORY.contains(&kind.as_str()))&&(result.is_none()||Local::now().timestamp()-created_at>7*86400){return Ok(json!({"request_id":id,"status":status,"result":null,"result_access":"expired","sync_status":"not_checked"}))}
   let result=result.map(|v|serde_json::from_str::<Value>(&v).map_err(|_|"invalid operation receipt")).transpose()?;
   Ok(json!({"request_id":id,"status":status,"result":result,"sync_status":"not_checked"}))
  }).transpose()
@@ -124,13 +124,17 @@ fn enqueue(c:&mut Connection,scope:&str,id:&str,rows:Value)->Res<Value>{
  tx.execute("INSERT INTO cli_capture_meta(scope,id,digest,task_count) VALUES(?1,?2,?3,?4)",params![&queue_scope,id,digest,count]).map_err(|e|e.to_string())?;
  let r=receipt(&tx,scope,id)?;tx.commit().map_err(|e|e.to_string())?;Ok(r)
 }
+pub(super) const HISTORY:&[&str]=&["history-list","history-show","history-preview","history-apply"];
+fn history_ready(c:&Connection)->Res<bool>{c.query_row("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='operation_history_head')",[],|r|r.get(0)).map_err(|e|e.to_string())}
 pub(super) const MANAGEMENT:&[&str]=&["context","plan-preview","plan-explain","reflow-preview","changes-preview","split-preview","preview-apply","changes-undo","audit","review"];
 fn management_ready(c:&Connection)->Res<bool>{c.query_row("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='cli_management_v3')",[],|r|r.get(0)).map_err(|e|e.to_string())}
 const OPERATIONS:&[&str]=&["create","query","show","catalog","calendar","stats","update","complete","reopen","restore","move","postpone","series","undo-completion","entity-create","entity-rename","habit-create","habit-check","focus-start","focus-change"];
 fn enqueue_operation(c:&mut Connection,scope:&str,id:&str,payload:Value)->Res<Value>{
  if !operation_ready(c)?{return Err("operation API requires updated native application".into())}
- if !payload.is_object()||!payload["op"].as_str().is_some_and(|x|OPERATIONS.contains(&x)||MANAGEMENT.contains(&x)){return Err("unsupported operation; use todo schema".into())}
+ if !payload.is_object()||!payload["op"].as_str().is_some_and(|x|OPERATIONS.contains(&x)||MANAGEMENT.contains(&x)||HISTORY.contains(&x)){return Err("unsupported operation; use todo schema".into())}
  let kind=payload["op"].as_str().unwrap();
+ if HISTORY.contains(&kind)&&!history_ready(c)?{return Err("history API requires updated native application".into())}
+ if let Some(group)=payload.get("operationGroup"){if !history_ready(c)?||!group.as_str().is_some_and(|x|uuid::Uuid::parse_str(x).is_ok()){return Err("invalid operation group or outdated application".into())}}
  if MANAGEMENT.contains(&kind)&&!management_ready(c)?{return Err("management API requires updated native application".into())}
  let raw=payload.to_string();if raw.len()>262144{return Err("payload exceeds 256 KiB".into())}
  let digest=format!("{:x}",Sha256::digest(raw.as_bytes()));let queue_scope=format!("cli-op:{scope}");
@@ -138,7 +142,7 @@ fn enqueue_operation(c:&mut Connection,scope:&str,id:&str,payload:Value)->Res<Va
  if bound_scope(&tx)?.as_deref()!=Some(scope){return Err("binding changed".into())}
  if kind!="create"&&!advanced_scope(&tx,scope)?{return Err("advanced CLI access not enabled; authorize it in TODO settings".into())}
  // Expire only v3 result bodies; preserve digest and terminal status forever.
- tx.execute("UPDATE cli_operation_meta SET result=NULL WHERE scope=?1 AND result IS NOT NULL AND kind IN ('context','plan-preview','plan-explain','reflow-preview','changes-preview','split-preview','preview-apply','changes-undo','audit','review') AND EXISTS(SELECT 1 FROM direct_capture_requests d WHERE d.scope=cli_operation_meta.scope AND d.id=cli_operation_meta.id AND d.status<>'pending' AND d.created_at<?2)",params![&queue_scope,Local::now().timestamp()-7*86400]).map_err(|e|e.to_string())?;
+ tx.execute("UPDATE cli_operation_meta SET result=NULL WHERE scope=?1 AND result IS NOT NULL AND kind IN ('context','plan-preview','plan-explain','reflow-preview','changes-preview','split-preview','preview-apply','changes-undo','audit','review','history-list','history-show','history-preview','history-apply') AND EXISTS(SELECT 1 FROM direct_capture_requests d WHERE d.scope=cli_operation_meta.scope AND d.id=cli_operation_meta.id AND d.status<>'pending' AND d.created_at<?2)",params![&queue_scope,Local::now().timestamp()-7*86400]).map_err(|e|e.to_string())?;
  let old:Option<String>=tx.query_row("SELECT digest FROM cli_operation_meta WHERE scope=?1 AND id=?2",params![&queue_scope,id],|r|r.get(0)).optional().map_err(|e|e.to_string())?;
  if let Some(old)=old{
   if old!=digest{return Err("idempotency conflict: same UUID, different content".into())}
@@ -219,7 +223,7 @@ fn main_inner(mut args:Vec<String>)->Res<Value>{
  c.execute_batch("PRAGMA foreign_keys=ON").map_err(|e|e.to_string())?;
  let ready:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='cli_capture_meta') AND EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='cli_binding')",[],|r|r.get(0)).map_err(|e|e.to_string())?;
  if !ready{return Err("local CLI requires the updated TODO app; no database changes made".into())}
- if cmd=="doctor"&&args.len()==1{return Ok(json!({"ready":true,"bound":bound_scope(&c)?.is_some(),"scope_kind":bound_scope(&c)?.map(|s|if s=="guest"{"guest"}else{"account"}),"advanced":match bound_scope(&c)?{Some(s)=>advanced_scope(&c,&s)?,None=>false},"operation_api":if management_ready(&c)?{3}else if operation_ready(&c)?{2}else{1},"sync_status":"not_checked"}))}
+ if cmd=="doctor"&&args.len()==1{return Ok(json!({"ready":true,"bound":bound_scope(&c)?.is_some(),"scope_kind":bound_scope(&c)?.map(|s|if s=="guest"{"guest"}else{"account"}),"advanced":match bound_scope(&c)?{Some(s)=>advanced_scope(&c,&s)?,None=>false},"operation_api":if history_ready(&c)?{4}else if management_ready(&c)?{3}else if operation_ready(&c)?{2}else{1},"sync_status":"not_checked"}))}
  if cmd=="bind"{
   let opts=parse_opts(&args[1..],&["--scope"])?;let scope=opts.get("--scope").ok_or("explicit scope required")?;
   bind(&c,scope)?;return Ok(json!({"bound":true,"scope_kind":if scope=="guest"{"guest"}else{"account"}}))

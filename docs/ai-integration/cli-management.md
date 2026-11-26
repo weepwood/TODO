@@ -1,4 +1,6 @@
 # TODO CLI v3 · AI 管理接口
+
+> v4 增加持久化历史补偿及应用内确认；见 [操作可靠性与版本恢复](operation-history.md)。以实际 doctor 与 schema 选择契约。
 ## 版本与接入
 保留 v2 的20个业务操作及基础录入。v3 新增10项管理操作，通过同一个 todo run --file - --request-id UUID --wait 10 提交 JSON 对象；todo schema 提供机器可读契约。必须在包含本批代码的桌面应用中绑定工作空间并显式开启高级权限，todo doctor 返回 operation_api=3、ready/bound/advanced=true。CLI 可运行于旧版但拒绝在旧 schema 上提交 v3 操作。使用同一UUID和相同内容重试；saved 为本地结果提交，received 只是排队，sync_status=not_checked 不代表云端同步。普通 AI 客户端通过共享 Skill 调用；本地MCP仍5工具，run_operation/describe_operations 与CLI一致。云端原3工具保持不变。
 ## 十项管理操作

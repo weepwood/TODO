@@ -1,5 +1,9 @@
 # TODO V1.3–V1.5 功能深化路线
 
+## AI 操作可靠性与版本恢复 v4（2026-11-26，本分支最新）
+基线64d647b，SQLite原事务增量版本日志，按scope、request/group、实际差异与确认元数据记录；历史30天/300版本/16MiB预算，非CLI保存不细分人工/系统/同步，保护字段仅名称。新增history-list/show/preview/apply，累计34项；指定版本/操作组/时点后CLI、任务及关联字段组的补偿式恢复，三方冲突、保留后续编辑、回收站撤回未使用普通新任务、补偿版本重做。高风险CLI应用内确认，confirm=true不是用户授权；旧预览15分钟、确认60秒、日志缺口/版本/计划/保护字段安全拒绝；不覆盖整个快照，不做重复生命周期/积分/专注/已送达提醒或全量跨端历史恢复。历史入口复用原归档检索。隔离Mac原生8组、真实MCP及Codex创建/历史/仅预览通过，4任务/11版本/34 saved/1 cancelled/无pending；定向43/43、Rust17/17、合成同步22/22、浏览器7/7（含模拟IPC）、云协议3/3、构建通过。真实确认由QA探针模拟点击，未进入安装候选；未执行真实用户授权/Claude/正式双端同步。CLI v4及共享Skill已更新、备份旧入口；正式应用未替换。见 docs/ai-integration/operation-history.md、第五十四节。不推送合并发布、不增加付费资源。
+
+
 ## AI 实际使用集成候选（2026-11-26，本分支最新）
 基于056d798，核对3d47350五个规划领域模块及测试逐文件一致，独立候选feat/ai-use-candidate仅补入未集成的4个UI文件及7个浏览器测试文件，不合并原分支。未新增业务操作。独立Mac候选com.weepwood.todo.qa.aiuse，定向38/38、Rust16/16、浏览器26/26、真实原生6/6；实际Codex会话通过QA限定包装器读取共享Skill、自主创建1项任务及context，日回顾并发触发单队列保护。共享Skill补充串行/原UUID重试；ChatGPT RDC按原UUID恢复review并实际执行任务查询、批量预览/提交及规划预览，最终12个合成任务、44份saved、5份预期cancelled、SQLite integrity ok。Claude Code登录正常但真实会话100秒超时、无调用回执，不认定通过；未修改登录配置、未新增付费资源，既有模型额度可能消耗。全局CLI v3契约及QA doctor通过，正式应用未替换、正式数据库/账号/同步未操作；不推送合并发布。详见第五十三节与docs/ai-integration/actual-use-closure.md。
 

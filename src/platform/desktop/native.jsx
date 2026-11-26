@@ -53,6 +53,8 @@ export function useDirectCapture({uid,storage,data,blocked,edit,onSaved}){
 // terminal only when SQLite commits the exact workspace and local-only receipt.
 export function useCliOperations({uid,storage,data,blocked,apply,editor,onSaved,preferencesStorage}){
  const latest=useRef(null);latest.current={data,blocked,apply,editor,onSaved,preferencesStorage};
+ const [approval,setApproval]=useState(null);const approvalRef=useRef(null);
+ const resolveApproval=decision=>approvalRef.current?.(decision);
  const inFlight=useRef(false);
  useEffect(()=>{if(!desktopNative||!storage?.stageCliWorkspace)return;let disposed=false,attempt=null;
   const scope=uid||'guest';
@@ -64,20 +66,41 @@ export function useCliOperations({uid,storage,data,blocked,apply,editor,onSaved,
     if(attempt===req.id)return;
     if(!await storage.flush()||disposed||latest.current.blocked)return;
     const expected=latest.current.data,now=new Date(),context=latest.current.editor;
-    let next=expected,result;
+    let next=expected,result,userConfirmation=null;
     try{
      const {prepareCliOperation}=await import('../../core/cli-operations.js');
      const {applyWorkspaceEdit}=await import('../../components/useWorkspaceMutations.js');
-     const request=JSON.parse(req.text);
+     const {operationGroup,...request}=JSON.parse(req.text);
      if(request.op.startsWith('focus-')&&now.getTime()-req.created_at*1000>30000)throw Error('专注指令已过期，请打开应用后重新提交');
-     const prepared=await prepareCliOperation(expected,request,req.id,now,{reference:req.reference,preferencesStorage:latest.current.preferencesStorage});
+     const prepared=await prepareCliOperation(expected,request,req.id,now,{reference:req.reference,journal:req.journal,preferencesStorage:latest.current.preferencesStorage});
      if(prepared.next!==expected){
       next=applyWorkspaceEdit(expected,()=>prepared.next,{id:req.id,at:now.toISOString(),source:'device',session:context.session,trigger:'event'},context);
       // An automation may change other fields; actual saved result is the
       // editor output, not an independently constructed snapshot.
      }
+     const {sameRecord}=await import('../../core/record-equality.js');
+     const existing=new Map(expected.tasks.map(t=>[t.id,t]));
+     const createSideEffects=request.op==='create'&&(Object.keys(next).some(k=>k!=='tasks'&&!sameRecord(expected[k],next[k]))||next.tasks.some(t=>existing.has(t.id)&&!sameRecord(existing.get(t.id),t)));
+     if(prepared.next!==expected&&(!request.op.startsWith('focus-')&&(request.op!=='create'||request.allowConflict===true||createSideEffects))){
+      const {confirmationText}=await import('../../core/operation-history.js');
+      if(prepared.historyRecovery&&!sameRecord({...prepared.next,tasks:prepared.next.tasks.map(({activity,...t})=>t)},{...next,tasks:next.tasks.map(({activity,...t})=>t)}))throw Object.assign(Error('恢复产生额外自动化变更'),{code:'UNPREVIEWED_EFFECT'});
+      const message=confirmationText(request.op,expected,next)+(prepared.result.conflicts?.length?'\n\n未恢复的变化：'+prepared.result.conflicts.map(c=>c.reason+' '+(c.fields||[]).join('、')).join('\n'):'');
+      if(message.length>16000)throw Object.assign(Error('确认内容过长，请缩小范围'),{code:'CONFIRM_TOO_LARGE'});
+      const approved=await new Promise(resolve=>{
+       const finish=decision=>{clearTimeout(timeout);approvalRef.current=null;setApproval(null);resolve(decision)};
+       const timeout=setTimeout(()=>finish(false),60000);approvalRef.current=finish;setApproval({id:req.id,message});
+      });
+      if(!approved||disposed)throw Object.assign(Error('用户未在应用内确认或已取消'),{code:'USER_CONFIRM_REQUIRED'});
+      if(Date.now()-now.getTime()>60000||latest.current.data!==expected||latest.current.blocked)throw Object.assign(Error('确认后状态或时间已变化，请重新提交'),{code:'STALE_WORKSPACE'});
+      // Recompute time-dependent preconditions after the approval wait.
+      const fresh=await prepareCliOperation(expected,request,req.id,new Date(),{reference:req.reference,journal:req.journal,preferencesStorage:latest.current.preferencesStorage});
+      if(request.op==='preview-apply'||request.op==='history-apply'||request.op==='changes-undo'){
+       if(!sameRecord(fresh.next,prepared.next))throw Object.assign(Error('确认期间方案变化，请重新预览'),{code:'STALE_PREVIEW'});
+      }
+      userConfirmation={method:'desktop-modal',at:new Date().toISOString()};
+     }
      const {finalizeManagement}=await import('../../core/cli-management.js');
-     result={id:req.id,status:'saved',result:await finalizeManagement(expected,prepared,next)};
+     result={id:req.id,status:'saved',result:{...await finalizeManagement(expected,prepared,next),...(userConfirmation?{userConfirmation}:{})}};
     }catch(e){next=expected;result={id:req.id,status:'cancelled',result:{code:typeof e?.code==='string'?e.code:'DOMAIN_REJECTED',error:String(e?.message||'操作失败').slice(0,500)}}}
     if(disposed||latest.current.blocked)return;
     // Bounded result storage; cancellation must not apply a mutation.
@@ -85,6 +108,7 @@ export function useCliOperations({uid,storage,data,blocked,apply,editor,onSaved,
     attempt=req.id;latest.current.apply(expected,next,result);
    }catch{}finally{inFlight.current=false}
   };
-  const timer=setInterval(poll,800);poll();return()=>{disposed=true;clearInterval(timer)};
+  const timer=setInterval(poll,800);poll();return()=>{disposed=true;clearInterval(timer);approvalRef.current?.(false)};
  },[uid,storage]);
+ return {approval,resolveApproval};
 }

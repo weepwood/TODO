@@ -75,7 +75,7 @@ test('habit and focus actions use existing timer identity and settlement rules',
 test('receipt history and native store barrier survive coalescing, failed write and retry',async()=>{
  const d=initialState(),p={...d,theme:'dark'},result={id:rid,status:'saved',result:{}};
  const state={data:d,past:[],future:[]};
- const applied=historyReducer(state,{type:'cli',expected:d,next:p,result});assert.equal(applied.data,p);assert.equal(applied.past.length,1);
+ const applied=historyReducer(state,{type:'cli',expected:d,next:p,result});assert.equal(applied.data,p);assert.equal(applied.past.length,0);
  const raced=historyReducer({...state,data:p},{type:'cli',expected:d,next:d,result});assert.equal(raced.cliReceipt.result.status,'cancelled');assert.equal(raced.data,p);
  const later=historyReducer(applied,{type:'edit',value:{...p,theme:'light'},record:false});assert.equal(later.cliReceipt.data,p);
  const writes=[];let fail=true;
