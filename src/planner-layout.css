@@ -28,12 +28,12 @@
 .weekly-hours-row{display:grid;grid-template-columns:minmax(65px,1fr) minmax(0,1.4fr) minmax(0,1.4fr);align-items:center;gap:8px}
 .weekly-hours-row>.compact-checkbox{white-space:nowrap}
 @media(max-width:520px){.weekly-hours-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.weekly-hours-row>.compact-checkbox{grid-column:1/-1}}
-.dialog.weekly-planner-dialog{width:min(860px,calc(100vw - 32px));max-width:none}
+.dialog.weekly-planner-dialog,.dialog.structured-dialog.weekly-planner-dialog{width:min(860px,calc(100vw - 32px));max-width:none}
 .weekly-planner-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;align-items:start}
 .weekly-planner-grid>section{min-width:0}
 .weekly-planner-grid h3{margin:0 0 8px;font-size:var(--font-size-body,14px)}
 .weekly-planner-dialog .weekly-hours-list{max-height:none;overflow:visible}
-@media(max-width:700px){.weekly-planner-grid{grid-template-columns:minmax(0,1fr);gap:12px}.dialog.weekly-planner-dialog{width:calc(100vw - 24px)}}
+@media(max-width:700px){.weekly-planner-grid{grid-template-columns:minmax(0,1fr);gap:12px}.dialog.weekly-planner-dialog,.dialog.structured-dialog.weekly-planner-dialog{width:calc(100vw - 24px)}}
 .elapsed-day-timeline .time-block-layout{grid-template-columns:110px minmax(0,1fr)}
 .elapsed-day-timeline .time-labels span{font-size:11px;white-space:nowrap}
 @media(max-width:600px){.elapsed-day-timeline .time-block-layout{grid-template-columns:96px minmax(0,1fr)}}

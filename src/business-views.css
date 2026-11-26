@@ -5,7 +5,7 @@
 .detail-tags-notes h3{margin-top:0}
 .detail-content .detail-group[data-detail-section=relations]{border-bottom:0}
 .board-lane-nav{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
-.board-lane-nav button{padding:6px 12px;min-height:34px;border:1px solid var(--line);border-radius:7px;color:var(--muted);font-size:12px}
+.board-lane-nav button{padding:6px 12px;min-height:var(--control-height);border:1px solid var(--line);border-radius:7px;color:var(--muted);font-size:12px}
 .board-lane-nav button[aria-pressed=true]{background:var(--active);border-color:transparent;color:var(--accent-text);font-weight:600}
 .board-grid .board-column[data-lane-visible=false]{display:none}
 .board-grid[data-lane]:not([data-lane=all]){grid-template-columns:minmax(0,640px)}
@@ -17,10 +17,10 @@
 .board-task-card .view-task{border:0;padding:5px;margin-bottom:5px;background:transparent}
 .board-task-card .view-task>span:last-child{font-weight:500;line-height:1.5}
 .board-task-card .view-task small{font-weight:400;color:var(--muted)}
-.board-task-card .smart-select-trigger{width:100%;min-height:30px;font-size:11px;background:var(--panel)}
+.board-task-card .smart-select-trigger{width:100%;min-height:var(--control-height);font-size:var(--control-font);background:var(--panel)}
 
-.module-section-heading{display:flex;align-items:center;gap:8px;font-size:15px;margin:20px 0 12px}
-.module-section-heading small{font-size:11px;color:var(--muted);font-weight:400}
+.module-section-heading{display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-section);font-weight:var(--surface-heading-weight);margin:var(--space-6) 0 var(--space-3)}
+.module-section-heading small{font-size:var(--font-caption);color:var(--muted);font-weight:400}
 .focus-card{padding:20px 16px 22px;gap:16px}
 .focus-card .timer-ring{width:min(224px,66vw);box-shadow:0 0 0 5px var(--panel)}
 .focus-card .timer-ring strong{font-size:clamp(30px,5vw,40px);letter-spacing:-.025em}
@@ -32,7 +32,7 @@
 .habit-row .habit-days button[data-today=true]{border-color:var(--accent)}
 .habit-row .habit-days small{font-size:10px}
 .planner-zoom-buttons{display:flex;gap:3px}
-.planner-zoom-buttons button{height:34px;width:34px;border:1px solid var(--line);border-radius:7px;font-size:18px}
+.planner-zoom-buttons button{height:var(--control-height);width:var(--control-height);border:1px solid var(--line);border-radius:7px;font-size:18px}
 .planner-zoom-buttons button:disabled{opacity:.4}
 .calendar-main .fc .fc-toolbar{margin-bottom:14px}
 .calendar-main .fc .fc-toolbar-title{font-size:clamp(16px,2vw,23px)}
@@ -51,8 +51,8 @@
  .board-grid .board-column{padding:12px}
  .board-task-card .view-task{min-height:44px;font-size:15px}
  .board-task-card .smart-select-trigger{min-height:44px;font-size:13px}
- .focus-card{padding:20px 10px;gap:20px}
- .focus-card .timer-ring{width:min(268px,66vw)}
+ .focus-card{padding:var(--space-3);gap:var(--space-3)}
+ .focus-card .timer-ring{width:min(208px,56vw)}
  .focus-card .segmented{width:100%}
  .focus-card .segmented button{flex:1;min-height:44px;font-size:13px}
 
@@ -79,3 +79,46 @@
 .habit-plan-weekdays button{min-width:32px;padding-inline:0}
 .habit-plan-weekdays button[aria-pressed=true]{background:var(--active);color:var(--accent-text);border-color:var(--accent)}
 @media(max-width:860px),(pointer:coarse){.habit-plan-weekdays button{min-width:44px;min-height:44px}}
+
+
+/* Workspace-specific composition: use available content width, not viewport. */
+.focus-card-setup{display:grid;gap:var(--space-4);justify-items:center;width:100%;min-width:0}
+.focus-card-setup .focus-options{width:100%}
+.focus-card-setup .focus-controls{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:var(--space-2)}
+@container work-area (min-width:760px){
+ .module-content .focus-view{max-width:960px}
+ .module-content .focus-card{max-width:none;display:grid;grid-template-columns:minmax(220px,1fr) minmax(0,1.3fr);gap:var(--space-6);padding:var(--space-6);justify-items:center}
+ .module-content .focus-card>.shared-segment{grid-column:1/-1;justify-self:center}
+ .module-content .focus-card>.timer-ring{grid-column:1}
+ .module-content .focus-card-setup{grid-column:2;align-self:center}
+ .module-content .focus-card .focus-options{grid-template-columns:minmax(0,1fr)}
+}
+.habits-view .habit-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr) 36px;gap:var(--space-3);align-items:center}
+.habits-view .habit-info{min-width:0}
+.habits-view .habit-info h3{font-size:var(--font-heading);font-weight:var(--surface-heading-weight);line-height:1.45;overflow-wrap:anywhere;margin-bottom:var(--space-1)}
+.habits-view .habit-info>small{font-size:var(--font-caption);color:var(--muted)}
+.habits-view .habit-days{min-width:0}
+.habits-view .habit-row>button{align-self:start;justify-self:end}
+@container work-area (max-width:680px){
+ .habits-view .habit-row{grid-template-columns:minmax(0,1fr) 44px;gap:var(--space-2)}
+ .habits-view .habit-row>.habit-info{grid-column:1}
+ .habits-view .habit-row>.habit-days{grid-column:1/-1;grid-row:2;width:100%;grid-template-columns:repeat(7,minmax(44px,1fr));overflow-x:auto;scrollbar-width:thin}
+ .habits-view .habit-row>button{grid-column:2;grid-row:1;width:44px;height:44px}
+}
+.calendar-main .fc .fc-button{min-height:var(--control-height);font-size:var(--control-font)}
+.calendar-main .fc .fc-button-primary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(max-width:860px),(pointer:coarse){.calendar-main .fc .fc-button{min-height:var(--control-touch-height)}}
+
+@media(max-width:860px){
+ .focus-card-setup{gap:var(--space-2)}
+ .focus-card-setup .focus-options{gap:var(--space-1)}
+ .focus-card-setup .focus-options .field{margin:0;gap:var(--space-1)}
+ .focus-card-setup .focus-controls{gap:var(--space-1)}
+}
+@media(max-width:360px){
+ .habits-view .quick-add{display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:var(--space-2)}
+ .habits-view .quick-add>svg{grid-column:1;grid-row:1}
+ .habits-view .quick-add>input{grid-column:2/-1;grid-row:1;min-width:0;width:100%}
+ .habits-view .quick-add>.smart-select-trigger{grid-column:2;grid-row:2;min-width:0;width:100%}
+ .habits-view .quick-add>button:last-child{grid-column:3;grid-row:2}
+}

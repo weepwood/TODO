@@ -25,3 +25,11 @@
  .dropdown [role=menuitem]{display:flex;align-items:center}
  .dialog-head>.icon-button{width:var(--control-touch-height);height:var(--control-touch-height)}
 }
+
+/* Complex forms: retain title and commit controls while only the body scrolls. */
+.dialog.structured-dialog{display:flex;flex-direction:column;overflow:hidden;gap:var(--space-3);width:min(640px,calc(100vw - 24px));max-height:min(82dvh,calc(100dvh - 24px))}
+.dialog.structured-dialog>.dialog-head,.dialog.structured-dialog>.dialog-description{flex:none;margin:0}
+.dialog.structured-dialog>.dialog-body{min-height:0;min-width:0;overflow:auto;overscroll-behavior:contain;padding:0 3px 2px;scrollbar-gutter:stable;display:grid;align-content:start;gap:var(--space-2)}
+.dialog.structured-dialog>.dialog-body>.field{margin:0}
+.dialog.structured-dialog>.dialog-actions{flex:none;margin:0;padding-top:var(--space-3);border-top:var(--surface-border)}
+@media(max-width:600px){.dialog.structured-dialog{max-height:calc(100dvh - 24px);padding:var(--space-3)}.dialog.structured-dialog>.dialog-actions>button{flex:1;min-width:0;white-space:normal}.dialog.structured-dialog>.dialog-body{scrollbar-gutter:auto}}

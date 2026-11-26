@@ -80,8 +80,8 @@
 .planner-day-nav{display:flex;gap:3px}.planner-day-nav button{min-width:32px;font-size:17px;line-height:1;padding:4px 8px}
 .time-drop-guide span{white-space:nowrap;max-width:100%}
 @media(prefers-reduced-motion:no-preference){
- .overlay[data-state=closed]{animation:fade-out 110ms ease-in both}
- .dialog[data-state=closed]{animation:dialog-out 130ms ease-in both}
+ .overlay[data-state=closed]{animation:fade-out var(--motion-exit) ease-in both}
+ .dialog[data-state=closed]{animation:dialog-out var(--motion-exit) ease-in both}
  @keyframes fade-out{to{opacity:0}}
  @keyframes dialog-out{from{opacity:1;transform:translate(-50%,-50%) scale(1)}to{opacity:0;transform:translate(-50%,-49%) scale(.985)}}
 }

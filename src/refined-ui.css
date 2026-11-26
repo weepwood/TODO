@@ -52,7 +52,7 @@ input[type=checkbox]:disabled{opacity:.5;cursor:default}
 
 .time-drop-guide{z-index:9}
 .stats-section-title{font-size:16px;margin:10px 0 14px;font-weight:650}
-.stats-toolbar .stats-jump{display:flex;gap:6px;margin-left:auto;order:3}
+
 .stats .stat-grid>div{padding:16px 14px;min-width:0}
 .stats .stat-grid>div strong{font-variant-numeric:tabular-nums;font-size:25px}
 .stats .stat-grid>div small{line-height:1.5}
@@ -115,7 +115,7 @@ input[type=checkbox]:disabled{opacity:.5;cursor:default}
  .planner-hours{gap:8px;flex-wrap:wrap}
  .stats .stat-grid>div{padding:12px}
  .stats .stat-grid>div strong{font-size:22px}
- .stats-toolbar .stats-jump{flex-basis:100%;margin-left:0;order:4}
+
  .stats .points-dashboard{margin-top:20px}
  @media(prefers-reduced-motion:no-preference){
   .mobile-nav-indicator{transition:transform 190ms var(--ui-ease)}
