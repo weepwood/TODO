@@ -1,4 +1,4 @@
-# TODO 外部 AI 接入（首批，本地候选）
+# TODO 外部 AI 接入（第二批，本地候选）
 本批仅新增任务录入能力，不建 AI 聊天页、模型服务、任务读取/编辑/删除 API 或 Agent 平台。正式 Supabase 未修改，4197/普通构建默认关闭接入 UI。
 
 ## 架构与状态
@@ -63,8 +63,35 @@ Claude Code：本地 .mcp.json 示例（不要把真实密钥写入文件）：
 ```
 已安装依赖且有授权 API endpoint 后，从具有安全环境变量的客户端启动并请求：“创建任务：整理开发计划，日期2026-12-01；请求键 planning-20261201-01；报告 received/saved 区别，必要时查询回执。” 本机未发现 codex/claude CLI，实际模型会话未执行。已验证的是官方 MCP 协议调用，不冒充客户端已接通。
 
-## ChatGPT 远程适配（待授权，未部署）
-使用同一 gateway/工具契约，添加官方 SDK Streamable HTTP server、HTTPS、OAuth 2.1 PKCE、resource metadata/discovery，验证 issuer/audience/expiry/scopes（tasks:create、receipts:read），将同意授权绑定账号与独立连接标识；服务端撤销并记录请求。不得让远程 MCP 使用一枚共享的个人令牌；ChatGPT 不支持将任意专用 API key 当 OAuth。工具声明 securitySchemes，认证挑战与 OAuth linking 对接官方插件要求。依据目标客户端实际权限接入，当前不能提供可用的 ChatGPT URL，也没有安装/发布插件。
+## 第二批：远程 MCP 受保护资源（已本地验证，未部署）
+复用官方 SDK 1.32.2，stdio 与 Streamable HTTP 共用 mcp-tools.mjs 的三个工具及 REST 契约。remote-mcp.mjs 按请求创建无状态 transport；GET /.well-known/oauth-protected-resource/mcp 提供 RFC9728 resource metadata；缺少/无效 access token 返回401挑战。调用可信外部授权服务器的 RFC7662 introspection，核验 active、issuer、audience、expiry、nbf（如有）、subject、client_id 和 scope。按精确 subject+client_id 绑定独立 TODO 令牌，禁止同一令牌复用到多连接，不传递 OAuth token 到 TODO API。工具 scope tasks:create、receipts:read，未授权的操作返回 insufficient_scope。无任务读取、修改或删除工具；没有自行开发 OAuth 授权服务器。真实授权服务器须提供 RFC7662 所需声明、OAuth2.1 PKCE、资源/受众绑定及客户端注册，尚未选定或配置。受保护资源与外部 AS 均须正式 HTTPS；真实 ChatGPT 插件 OAuth 授权未执行。
+服务使用 integrations/ai/serve-remote.mjs，只监听127.0.0.1，需经另行授权的 HTTPS 反向代理公开。反代保留 canonical Host，Origin 仅允许同源或无 Origin；不得暴露无认证端口。环境配置仅列变量名：TODO_MCP_RESOURCE（HTTPS /mcp URL）、TODO_OAUTH_ISSUER、TODO_OAUTH_INTROSPECTION（同 issuer origin）、TODO_OAUTH_INTROSPECTION_ID、TODO_OAUTH_INTROSPECTION_SECRET、TODO_MCP_BINDINGS_FILE（600权限 JSON数组，每项 sub/client_id/todo_token）、TODO_API_URL、TODO_API_PUBLISHABLE_KEY、PORT。绑定必须由账号本人明确授权签发，文件不得放入仓库。更新绑定需重启进程；撤销底层 TODO 令牌立即阻断请求，OAuth introspection 每次检查。未配置时拒绝启动。此实现是外部 AS 资源服务器适配，不等同完整 OAuth 2.1 登录/同意/PKCE/DCR 或 ChatGPT 平台接入。
+
+## 第二批：实际 CLI 及 Edge 证据
+- Mac 上发现 ChatGPT.app 内嵌 Codex CLI 0.171.0-alpha.13.2，隔离 CODEX_HOME 下 mcp list --json 已识别 todo；未登录，未运行模型。Claude Code 2.1.332 使用独立 npm 目录的原生二进制（未执行 npm postinstall），隔离 HOME/CLAUDE_CONFIG_DIR，mcp add/list 显示 Connected（真实握手），未登录、未运行模型。没有改用户现有配置。client-qa.mjs 可重复执行，环境变量 TODO_QA_CODEX_BIN/TODO_QA_CLAUDE_BIN 指向实际二进制，仅使用合成令牌与本机 PG。
+- npm test 覆盖既有 stdio/REST 与新增真实 Streamable HTTP 客户端；外部 AS 为本地合成 RFC7662 HTTP 服务，两账号真实 PG 创建、错误受众/issuer/过期/未绑定/撤销及 scope 拒绝均验证。
+- Deno 2.9.7 check/bundle 生成单文件部署候选；edge-runtime-qa.mjs 运行实际 bundle，用环回上游模拟 Supabase Auth/PostgREST 并执行真实 PG RPC。创建、幂等、跨账号拒绝通过。TODO_EDGE_QA_PORT 仅在上游为 127.0.0.1 时允许启用，正常 Edge 入口不变。不是正式 Supabase Edge Runtime 部署或真实 Auth。
+- 连接 Supabase 项目清单已核对：仅正式 TODO 活动，无独立测试项目/开发分支；未唤醒其他项目。新项目涉及组织与费用确认，正式项目完全不修改。没有使用真实模型或账号凭据。
+
+## 独立真实接入验收顺序（待授权）
+1. 明确独立 Supabase 测试项目及组织/费用，项目 ref 必须不同于正式 TODO 的 xepkhnatnpvopnlqnrrz；不要复用其他项目。创建后确认 ACTIVE_HEALTHY；先审查新空项目，再通过 Supabase CLI 或管理工具逐项应用既有3个工作空间迁移及 schema.sql 候选（生成正式迁移须经 CLI，当前本机无CLI/Docker）。核对 Data API grant、RLS、service_role EXECUTE、anon/authenticated 禁止内部 RPC 和 token 表访问。
+2. 使用生成的 Edge 单文件候选部署独立项目的 todo-external（只该函数 verify_jwt=false，内部逐路由鉴权）；正式项目不部署。验证无凭据401、测试账号真实 Supabase Auth getUser、双账号 RLS，手动审批、自动创建、幂等及回执；先用全新合成测试账号、空工作空间。通过前不得开启真实用户数据或正式构建入口。
+3. 对独立测试 URL 启用 VITE_TODO_EXTERNAL_API=1，并使用独立预览端口/浏览器配置。两个浏览器分别登录同一测试账号验证实际同步和持久化，再使用不同测试账号验证隔离。禁止修改4197的真实会话。
+4. 用户在隔离 Codex/Claude 客户端完成登录或配置独立模型测试凭据，再连接专用测试令牌；要求模型实际调用单条、批量、查询三工具，核对请求回执和测试工作空间，结束后撤销令牌。不要把模型回复当持久化证据。
+5. 选择可信 OAuth AS，配置独立测试资源、客户端、PKCE/同意、audience、最小 scope 和账号绑定，先验证真实 introspection，再在授权 HTTPS 环境启动远程 MCP，ChatGPT 中添加测试插件并完成真实授权，实际调用和回读。未获得远程环境、域名和账号授权时不得提供可用 URL 或宣称接通。官方插件接入还需实际客户端权限和相应 mTLS/平台要求（如适用）。
+
+复现命令（均为隔离合成环境）：
+```sh
+cd integrations/ai
+npm test
+# TODO_QA_CODEX_BIN / TODO_QA_CLAUDE_BIN 指定已安装客户端路径
+npm run test:client
+cd ../..
+deno check --node-modules-dir=manual supabase/functions/todo-external/index.ts
+deno bundle --platform deno --packages external --node-modules-dir=manual --output /tmp/todo-edge-qa.js supabase/functions/todo-external/index.ts
+TODO_QA_EDGE_BUNDLE=/tmp/todo-edge-qa.js node integrations/ai/edge-runtime-qa.mjs
+```
+日志：本机 artifacts/TODO/ai-stage2/ 及 ai-stage2-remote.log。部署包在 artifacts/TODO/ai-stage2/edge-bundle/index.js，非发布产物。
 
 上游参考（2026-11-26）：
 - https://developer.todoist.com/api/v1/ （幂等命令）
