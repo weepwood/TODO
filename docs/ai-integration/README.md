@@ -1,5 +1,11 @@
 # TODO 外部 AI 接入（第二批，本地候选）
 
+## macOS 本地安装收口（2026-11-26，最新）
+基于37a254d的独立git archive构建候选1.2.0-alpha.1（arm64，正式identifier com.weepwood.todo，普通正式云配置、外部云接入UI关闭、无签名发布更新能力）。新版已复制到 `~/Applications/TODO.app`，本地ad-hoc签名完整性核验通过（非Developer ID公证发布），未启动。旧版0.4.0位于 `/Volumes/data/Project/TODO/src-tauri/target/debug/bundle/macos/TODO.app`，未运行、未覆盖，已完整备份并逐文件SHA256校验。macOS已知正式Application Support、WebKit、Containers、Preferences路径检查时均无对应数据，正式SQLite未发现，因而没有真实数据库可备份；不读取浏览器个人数据，网页端/云端数据是否存在不作推断。若用户已有Web任务，请先在原界面使用既有导出功能备份；切勿把QA数据目录复制到正式目录。
+安装证据：`/Volumes/data/AI-Development/artifacts/TODO/local-cli-install-37a254d/` 下 old-TODO.app、old-app-backup.json、TODO.app、install-report.json、bundle.log。正式应用候选与用户Applications安装副本4文件哈希一致；本次不启用或修改真实账号、不做正式迁移/同步。已安装todo命令与Skill保持原样；候选可执行文件的--cli help及对明确隔离QA数据目录的doctor、历史saved回执读取通过。此前真实QA原生设置绑定与保存验收继续有效；正式doctor在未首次启动/绑定前返回数据库不存在。
+首次使用：在Mac终端运行 `open "$HOME/Applications/TODO.app"`（明确路径，避免旧版同标识应用被打开）。在应用中先确认工作空间；仅本机使用可保留访客，已有云任务需用户自行确认备份并正常登录同步，不能自动导入、覆盖或迁移。然后设置→账号与同步→本地CLI接入→绑定当前工作空间。执行 `todo doctor`，ready/bound均true才允许实际录入；用户明确授权的任务通过同一UUID验证saved。未启动正式应用、未绑定真实数据、未进行真实云同步；这三项不得冒充完成。
+实际AI调用条件：内嵌Codex CLI 0.171.0-alpha.13.2的login status、独立安装Claude Code 2.1.332的auth status均返回已登录（仅状态/退出码，未保存原始输出或账号标识）。两个Skill安装文件与仓库源码一致，todo位于PATH。未发起模型推理或确认模型额度/Skill自动发现；两工具仍受各自审批与使用权限约束。可在用户正常新会话明确要求“使用TODO记录……，先运行todo doctor，检查保存回执”；不需要配置MCP或TODO专用云授权。ChatGPT RDC显式读共享Skill即可。普通远程ChatGPT不具备本机命令权限。未增加付费资源，暂缓远程OAuth。
+
 ## 当前首选：本地 CLI（2026-11-26）
 本地开发使用 CLI First、MCP Optional、Cloud Optional；远程OAuth暂缓，已验证的独立QA云端能力保留。Mac 原生候选新增 --cli 模式，复用 direct_capture_requests 与主窗口保存事务；没有独立服务、云端令牌或AI聊天页。
 一次性使用：先启动包含本次代码的新版桌面应用，在设置→账号与同步→本地 CLI 接入→绑定当前工作空间。访客无需登录，已有账号沿用原同步。CLI 绑定固定工作空间，不随登录切换；绑定的账号未处于活动状态时只排队，直到该账号再次打开。解除绑定禁止后续默认录入，不自动取消已经提交的请求。操作系统同一用户属于本机信任边界，不是针对同用户恶意程序的安全沙箱。旧应用不能消费新命名空间；正式桌面应用尚未替换、正式数据库未迁移、未绑定真实工作空间。
