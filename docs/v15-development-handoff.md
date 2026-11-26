@@ -422,3 +422,5 @@
 新增编辑回调事件自动化、活动归属、禁用及直接替换边界测试；定向31/31覆盖活动、规则、同步提交、原生作用域、Android提醒及存储；完整280/280、普通生产构建3.65s/main494.43kB/gzip159.67kB、入口JS1107460/gzip339843/CSS269858字节，不含隔离试验标志，累计diff检查及JS/JSX语法通过。新增真实生命周期用例e2e/ui-rc-lifetime.spec.js（到期提醒去重、焦点恢复、快速新建草稿、撤销重做），语法/发现通过；实际断言待执行。原生实体、真实账号、跨平台仍不以单测或模拟代替。
 
 本轮MRR独立浏览器任务及视觉矩阵占用共享浏览器槽，Swap一度single，资源门禁拒绝新的重型任务；普通构建在normal时通过，不抢占/不绕过。证据artifacts/TODO/v15-motion-polish/v16-rc-freeze/：initial-retainer-retest.log、initial-retainer-history-before.json、targeted-final.log、freeze-build-recheck.log、entry.json等。小时级必须针对精确冻结提交另存证据，独立4178、周期资源复核，实际3600秒及最终保存断言和退出码才通过；旧55分钟失败不继承。最终实际启动/验收状态见后续补充，不宣布RC，不推送、不合并、不发布。
+
+**第三十八节最终兼容验收补充**：MRR矩阵142.23秒结束，Swap0.004MiB/s恢复normal后，708afeb普通Chromium真实UI回归5/5（14.6s）：桌面IPC模拟保存失败重试及备份恢复、到期提醒/焦点唤醒去重、快速新建草稿及撤销重做、提醒暂存编辑、自动化规则与创建触发撤销。最终完整UI堆图1/1（13.3s），92094847B/919734节点，超30步旧编辑对象0、初始00仍1，最短非weak路径改为任务导航FiberNode→_debugStack→ErrorStackData→初始render context→displayedTasks；两条已定位的业务回调路径均不再是报告路径。开发模式诊断路径不证明生产无保留，也不再为追求合成探针零值扩大重构；保持历史语义。新增小时级边界证据修正：若最后周期资源检查跨越3600秒，替换同轮末样本，保证时长与采样一致，不降低断言或资源门禁。冻结候选的小时级实跑由外置证据目录commit.txt、run.log、progress/final及exit-code记录，未取得最终文件前不通过。真实账号、系统通知人工可见/导航、Windows/Android、正式迁移部署及独立QA/CI仍待。

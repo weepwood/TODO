@@ -28,7 +28,10 @@ test('万级分片工作空间持续修改及堆分配采样',async({page,contex
   rounds++;await cycle(rounds);await page.waitForTimeout(hourly?30000:4000);
   if(rounds%2===0){await sample(rounds);if(hourly){progress({complete:false,elapsedMs:performance.now()-start,rounds,samples,errors});expect(errors).toEqual([]);preflight()}}
  }
+ // A periodic resource check can itself cross the hourly time boundary.
+ // Replace the same-cycle preflight sample so the final evidence covers 3600s.
  if(samples.at(-1).cycle!==rounds)await sample(rounds);
+ else if(hourly&&samples.at(-1).elapsedMs<3600000){samples.pop();await sample(rounds)}
  if(hourly)expect(performance.now()-start).toBeGreaterThanOrEqual(3600000);
  const profile=hourly?null:(await cdp.send('HeapProfiler.stopSampling')).profile;const allocations=[];const walk=n=>{if(n.selfSize)allocations.push({name:n.callFrame.functionName||'(anonymous)',url:n.callFrame.url.replace(/^http:\/\/127\.0\.0\.1:4178/,'').split('?')[0],bytes:n.selfSize});for(const child of n.children||[])walk(child)};if(profile)walk(profile.head);allocations.sort((a,b)=>b.bytes-a.bytes);
  const saved=await page.evaluate(async({path,key})=>{const m=await import(path),db=await m.openShardDatabase();try{return JSON.parse((await m.readShardWorkspace(db,'guest')).values[key]).tasks.length}finally{db.close()}},{path,key});expect(saved).toBe(10001+rounds);expect(errors).toEqual([]);
