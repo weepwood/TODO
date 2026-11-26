@@ -120,3 +120,22 @@ test('compensation merges independent remote fields and preserves real focus his
  const trash=await buildHistoryPreview(base,{op:'history-preview',version:1},created,now);
  assert.equal(mergeTasks(base,trash.next,remote),null);
 });
+
+test('activity-only remote ABA evidence blocks earlier same-field recovery, not unrelated fields',async()=>{
+ const d=state([task('a',{title:'new',priority:3})]);
+ const j=journal(entry(2,[{id:'a',fields:{},protected:[],activityEvidence:['priority']}],'local'),entry(1,[row('a',{title:field('old','new'),priority:field(0,3)})]));
+ const p=await buildHistoryPreview(d,{op:'history-preview',version:1},j,now);
+ assert.equal(p.next.tasks[0].title,'old');assert.equal(p.next.tasks[0].priority,3);
+ assert(p.conflicts.some(c=>c.fields.includes('priority')));
+ const all=await buildHistoryPreview(d,{op:'history-preview',version:1},journal(entry(2,[{id:'a',fields:{},activityUncertain:true}],'local'),j.entries[1]),now);
+ assert.equal(all.rows.length,0);
+ const grouped=await buildHistoryPreview(d,{op:'history-preview',groupId:id},j,now);
+ assert.equal(grouped.next.tasks[0].priority,3);
+});
+test('redo of trashed linked tasks cannot resurrect a child alone under a trashed parent',async()=>{
+ const stamp=now.toISOString(),parent=task('p',{deletedAt:stamp}),child=task('c',{parentId:'p',deletedAt:stamp});
+ const d=state([parent,child]),j=journal(entry(1,[row('p',{deletedAt:field(null,stamp)}),row('c',{deletedAt:field(null,stamp)})]));
+ await assert.rejects(buildHistoryPreview(d,{op:'history-preview',version:1,selection:[{id:'c'}]},j,now),e=>e.code==='UNSAFE_CHANGE');
+ const both=await buildHistoryPreview(d,{op:'history-preview',version:1},j,now);
+ assert(both.next.tasks.every(t=>!t.deletedAt));
+});

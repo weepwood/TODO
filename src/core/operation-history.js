@@ -17,7 +17,7 @@ const schedule=['date','time','anchor','duration','deadline','planMinutes','plan
 const classification=['listId','sectionId','tags'];
 const safe=['title','priority',...schedule,...classification,'deletedAt'];
 const ordinary=t=>t&&t.status==='pending'&&t.stage!=='doing'&&t.repeat==='none'&&!t.seriesId&&!t.previousId&&!t.seriesHold&&!t.planLocked;
-const touches=(row,keys)=>row.created||row.removed||row.unattributed||Object.hasOwn(row.fields||{},'deletedAt')||row.protected?.some(k=>['status','stage','repeat','seriesId','previousId','seriesHold','planLocked','deletedAt','remindedAt','extraReminders','reminderAt','completedAt'].includes(k))||Object.keys(row.fields||{}).some(k=>keys.includes(k));
+const touches=(row,keys)=>row.created||row.removed||row.unattributed||row.activityUncertain||row.activityEvidence?.some(k=>keys.includes(k))||Object.hasOwn(row.fields||{},'deletedAt')||row.protected?.some(k=>['status','stage','repeat','seriesId','previousId','seriesHold','planLocked','deletedAt','remindedAt','extraReminders','reminderAt','completedAt'].includes(k))||Object.keys(row.fields||{}).some(k=>keys.includes(k));
 const executionUsed=(d,t)=>d.timer?.taskId===t.id||d.sessions?.some(s=>s.taskId===t.id);
 const references=(x,id)=>x.id!==id&&(x.parentId===id||x.dependsOn?.includes(id)||x.previousId===id);
 const used=(d,t)=>executionUsed(d,t)||d.tasks.some(x=>!x.deletedAt&&references(x,t.id));
@@ -97,6 +97,8 @@ export async function buildHistoryPreview(d,request,journal,now=new Date()){
     }
     trashCandidates.set(row.id,e.version);continue;
    }
+   if(row.activityUncertain){blocked(row.id,e.version,'活动记录缺失或存在未能归因的生命周期变化');continue}
+   if(row.activityEvidence?.length)blocked(row.id,e.version,'活动记录显示额外字段编辑，保留当前值',row.activityEvidence);
    if(row.protected?.length){blocked(row.id,e.version,'受保护字段不恢复',row.protected);if(row.protected.some(k=>['status','stage','repeat','seriesId','previousId','seriesHold','planLocked','completedAt','points'].includes(k)))continue}
    const fields=Object.keys(row.fields||{}),requested=fields.filter(k=>!s.fields||s.fields.includes(k));
    const groups=[schedule,classification,['title'],['priority'],['deletedAt']];
@@ -138,6 +140,10 @@ export async function buildHistoryPreview(d,request,journal,now=new Date()){
  for(const r of rows){
   const t=working.get(r.id),l=d.lists.find(l=>l.id===t.listId);
   check(l&&(!t.sectionId||l.sections.some(s=>s.id===t.sectionId))&&t.tags.every(id=>d.tags.some(tag=>tag.id===id)),'UNSAFE_CHANGE','历史分类已不存在');
+  if(r.fields.deletedAt&&!t.deletedAt){
+   const related=[t.parentId,...(t.dependsOn||[])].filter(Boolean);
+   check(related.every(id=>working.has(id)&&!working.get(id).deletedAt),'UNSAFE_CHANGE','恢复任务仍存在未恢复的父任务或前置依赖');
+  }
   const scheduling=Object.keys(r.fields).some(k=>schedule.includes(k)||k==='deletedAt');
   if(scheduling&&!t.deletedAt){
    check(!conflictsNow.has(t.id),'TIME_CONFLICT','恢复会产生时间冲突');
