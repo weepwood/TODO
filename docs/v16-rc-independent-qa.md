@@ -24,3 +24,13 @@
 ## 当前阻塞
 
 冻结小时级测试仍需最终结果；完整UI保留路径与端到端性能归因未关闭；真实云账号、通知可见/导航人工观察、Windows/Android实体设备、全部累计语义审查、独立QA及正式CI未完成。隔离兼容写入器并未正式部署，历史非合作客户端仍不能被追溯约束。当前不宣布RC。
+
+## 在途长测后的补充复验
+
+资源门禁允许且冻结长测结束后，先对最新候选构建执行真实导入回归（e2e/ui-rc-import-boundary.spec.js），再执行显式隔离的固定任务数量对照：
+
+```sh
+/Volumes/data/AI-Development/scripts/run-budgeted --kind browser --label TODO-v16-fixed-count -- env TODO_IDB_PILOT=1 TODO_FIXED_COUNT=1 node node_modules/playwright/cli.js test e2e/ui-rc-fixed-count.spec.js --workers=1
+```
+
+该对照保持10000项任务，先12轮纯导航、再48轮重复编辑同一任务，保留业务活动记录及30步撤销历史；同时记录实际持久化字节数、活动条目数、GC堆、DOM及页面异常。阶段顺序未随机化、活动记录仍增长，不是严格等字节控制或无泄漏证明。后续根据证据决定是否需等内容对照与完整UI堆保留路径；不以减少历史功能伪造性能改善。当前仅通过脚本语法及Playwright发现检查，尚未运行真实断言。

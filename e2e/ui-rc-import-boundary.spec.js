@@ -1,0 +1,33 @@
+import {test,expect} from '@playwright/test';
+import {initialState,newTask,STORAGE_KEY} from '../src/domain.js';
+test('层级导入拒绝无效子孙但保留合法独立任务，重载及撤销保护原任务',async({page})=>{
+ const original=newTask('已有父任务','inbox','','rc-import-original');
+ const seed={...initialState(),tasks:[original]};
+ await page.addInitScript(({key,seed})=>{if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify(seed))},{key:STORAGE_KEY,seed});
+ const stored=()=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)),STORAGE_KEY);
+ const open=async()=>{
+  await page.locator('.rail').getByRole('button',{name:'设置',exact:true}).click();
+  await page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'本地数据',exact:true}).click();
+  await page.getByRole('button',{name:'CSV / Markdown 任务交换'}).click();
+  return page.getByRole('dialog',{name:'任务数据交换'});
+ };
+ await page.goto('/');await expect(page.getByRole('textbox',{name:'新任务名称'})).toBeVisible();
+ const before=(await stored()).tasks.find(t=>t.id===original.id);
+ const dialog=await open();
+ await dialog.getByRole('combobox',{name:'交换格式'}).click();
+ await page.getByRole('option',{name:'Markdown 层级',exact:true}).click();
+ await dialog.getByRole('textbox',{name:'交换文本'}).fill('- [ ] 已有父任务\n  - [ ] 独立任务\n    - [ ] 后续任务\n- [ ] 独立任务\n- [ ] 后续任务\n- [ ] 独立任务');
+ await dialog.getByRole('button',{name:'解析预览'}).click();
+ await expect(dialog).toContainText('2 项待追加 · 2 重复 · 2 错误');
+ await expect(dialog.getByText('父任务不可导入',{exact:true})).toHaveCount(2);
+ await dialog.getByRole('button',{name:'确认追加 2 项'}).click();
+ await expect(dialog).toContainText('已追加 2 项');
+ await expect.poll(async()=>(await stored()).tasks.length).toBe(3);
+ let state=await stored();expect(state.tasks.find(t=>t.id===original.id)).toEqual(before);
+ const imported=state.tasks.filter(t=>t.id!==original.id);expect(imported.map(t=>t.title)).toEqual(['独立任务','后续任务']);expect(imported.every(t=>t.parentId===null)).toBe(true);
+ await page.reload();await expect.poll(async()=>(await stored()).tasks.length).toBe(3);
+ state=await stored();expect(state.tasks.find(t=>t.id===original.id)).toEqual(before);expect(state.tasks.filter(t=>t.id!==original.id).map(t=>t.id)).toEqual(imported.map(t=>t.id));
+ const reopened=await open();const undo=reopened.getByRole('button',{name:'撤销导入',exact:true});await expect(undo).toBeEnabled();
+ page.once('dialog',d=>d.accept());await undo.click();await expect.poll(async()=>(await stored()).tasks.filter(t=>t.deletedAt).length).toBe(2);
+ state=await stored();expect(state.tasks.find(t=>t.id===original.id)).toEqual(before);expect(state.tasks.filter(t=>!t.deletedAt).map(t=>t.id)).toEqual([original.id]);
+});
