@@ -16,7 +16,7 @@ const fields=[
  ['tags','修改标签','content'],['notes','修改备注','content'],['checklist','修改检查清单','content'],['links','修改关联链接','content'],['parentId','修改父任务','relation'],['dependsOn','修改前置任务','relation']
 ];
 const names={none:'不重复',daily:'每天',weekly:'每周',monthly:'每月',workdays:'工作日',weekdays:'指定星期',completion:'完成后按天',todo:'待处理',doing:'进行中',done:'已完成',keep:'保留',skip:'跳过'};
-const norm=(k,v)=>k==='points'?(v||0):k==='extraReminders'?(v||[]).map(r=>({id:r.id,at:r.at})):['tags','dependsOn','links','checklist','weekdays'].includes(k)?v||[]:v??'';
+const norm=(k,v)=>k==='points'?(v||0):k==='extraReminders'?(v||[]).map(r=>({id:r.id,at:r.at})):['tags','dependsOn','links','checklist','weekdays','planSegments'].includes(k)?v||[]:v??'';
 function describe(k,v,state,task){
  if(k==='priority')return ['无优先级','低优先级','中优先级','高优先级'][v]||'未设置';
  if(k==='listId')return short(state.lists.find(l=>l.id===v)?.name||v);
@@ -28,6 +28,7 @@ function describe(k,v,state,task){
  if(k==='extraReminders')return short(v.map(r=>r.at.replace('T',' ')).join('、')||'无');
  if(k==='parentId')return short(state.tasks.find(t=>t.id===v)?.title||'无');
  if(k==='dependsOn')return short(v.map(id=>state.tasks.find(t=>t.id===id)?.title||id).join('、')||'无');
+ if(k==='planSegments')return short(v.length+' 段 · '+v.reduce((n,r)=>n+r.minutes,0)+' 分钟');
  if(k==='seriesHold')return v?'已暂停':'未暂停';
  if(k==='weekdays')return short(v.join('、')||'默认');
  return short(['repeat','stage','miss'].includes(k)&&typeof v==='string'&&Object.hasOwn(names,v)?names[v]:(v===''?'未设置':v));

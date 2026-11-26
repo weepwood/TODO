@@ -21,8 +21,8 @@
 
 .module-section-heading{display:flex;align-items:center;gap:8px;font-size:15px;margin:20px 0 12px}
 .module-section-heading small{font-size:11px;color:var(--muted);font-weight:400}
-.focus-card{padding:26px 16px 30px;gap:20px}
-.focus-card .timer-ring{width:min(268px,66vw);box-shadow:0 0 0 5px var(--panel)}
+.focus-card{padding:20px 16px 22px;gap:16px}
+.focus-card .timer-ring{width:min(224px,66vw);box-shadow:0 0 0 5px var(--panel)}
 .focus-card .timer-ring strong{font-size:clamp(30px,5vw,40px);letter-spacing:-.025em}
 .focus-card .timer-ring small{color:var(--muted)}
 .focus-card .focus-controls .primary{min-width:104px}
@@ -52,6 +52,7 @@
  .board-task-card .view-task{min-height:44px;font-size:15px}
  .board-task-card .smart-select-trigger{min-height:44px;font-size:13px}
  .focus-card{padding:20px 10px;gap:20px}
+ .focus-card .timer-ring{width:min(268px,66vw)}
  .focus-card .segmented{width:100%}
  .focus-card .segmented button{flex:1;min-height:44px;font-size:13px}
 

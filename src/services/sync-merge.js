@@ -84,7 +84,13 @@ export function unsafeHistoryPull(base,remote){
  const remoteTasks=new Map(remote.tasks.map(t=>[t.id,t]));
  if(base.importRuns?.length&&remote.importRuns===undefined)return true;
  if(base.queueHistory?.length){const rows=remote.queueHistory||[],map=new Map(rows.map(r=>[r.id,r]));if(base.queueHistory.some(r=>map.has(r.id)?!eq(r,map.get(r.id)):rows.length<100||r.endedAt>=rows.at(-1)?.endedAt))return true;}
- if(base.timer?.queueRun&&remote.timer&&focusTimerIdentity(base.timer)===focusTimerIdentity(remote.timer)&&!remote.timer.queueRun)return true;
+ if(base.timer?.queueRun){
+  const run=base.timer.queueRun;
+  if(remote.timer&&focusTimerIdentity(base.timer)===focusTimerIdentity(remote.timer)&&!remote.timer.queueRun)return true;
+  // Legacy active queues have no trustworthy start timestamp. New queues must
+  // either continue with the same identity or carry a terminal receipt.
+  if(run.startedAt&&remote.timer?.queueRun?.id!==run.id&&!remote.queueHistory?.some(r=>r.id===run.id))return true;
+ }
  const habits=new Map(remote.habits.map(h=>[h.id,h]));if(base.habits.some(h=>habits.has(h.id)&&(h.planWeekdays&&habits.get(h.id).planWeekdays===undefined||h.planVersions?.length&&habits.get(h.id).planVersions===undefined)))return true;
  for(const t of base.tasks){
   const candidate=remoteTasks.get(t.id);if(candidate&&t.deadline&&candidate.deadline===undefined)return true;

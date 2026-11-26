@@ -43,3 +43,8 @@ export function plannedBreakSeconds(config,count){
 export function plannedRestSeconds(config,segments,completedCount=0){
  return segments.slice(0,-1).reduce((sum,_,i)=>sum+plannedBreakSeconds(config,completedCount+i+1),0);
 }
+
+export function focusSecondsByTask(sessions){
+ const sums=new Map();for(const s of sessions)if(['focus','stopwatch'].includes(s.mode)&&Number.isFinite(s.seconds))sums.set(s.taskId,(sums.get(s.taskId)||0)+Math.max(0,s.seconds));
+ for(const [id,n] of sums)sums.set(id,Math.floor(n));return sums;
+}

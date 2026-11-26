@@ -1,3 +1,5 @@
+import {validImportRuns} from './import-receipt-validation.js';
+export {validImportRuns} from './import-receipt-validation.js';
 import {validPoints} from './points.js';
 import {canonical,digest} from '../services/cloud-core.js';
 import {validDate,validTime,newTask,migrateState} from './domain.js';
@@ -83,9 +85,6 @@ export function exportTasks(tasks,format){
 }
 
 function importSignature(task){const {activity,...fields}=task;return canonical(fields)}
-export function validImportRuns(runs){
- return Array.isArray(runs)&&runs.length<=10&&new TextEncoder().encode(JSON.stringify(runs)).length<=2*1024*1024&&new Set(runs.map(r=>r?.id)).size===runs.length&&runs.every(r=>r&&typeof r.id==='string'&&r.id.length<=100&&Number.isFinite(Date.parse(r.at))&&(r.undone===undefined||r.undone===true)&&Array.isArray(r.entries)&&r.entries.length>0&&r.entries.length<=EXCHANGE_LIMIT&&new Set(r.entries.map(e=>e?.id)).size===r.entries.length&&r.entries.every(e=>e&&typeof e.id==='string'&&typeof e.signature==='string'));
-}
 export function canUndoImport(data,id,proof){
  const run=data.importRuns?.find(r=>r.id===id);if(!run||run.undone||!validImportRuns([run]))return false;
  const ids=new Set(run.entries.map(e=>e.id)),byId=new Map(data.tasks.map(t=>[t.id,t]));

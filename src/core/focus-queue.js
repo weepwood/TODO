@@ -1,6 +1,6 @@
 import {seriesSafetyKeys} from './series-control.js';
 import {validDate} from './domain.js';
-import {pomodoroPlan,taskFocusSeconds} from './pomodoro-planner.js';
+import {pomodoroPlan,taskFocusSeconds,focusSecondsByTask} from './pomodoro-planner.js';
 import {blockers} from './advanced.js';
 export const FOCUS_QUEUE_KEY='todo-focus-queue-v1';
 export function normalizeQueue(value,date){
@@ -45,7 +45,8 @@ export function makeQueueRun(queue,data,goal,id){
 }
 export function queueRunProgress(run,data){
  if(!validQueueRun(run))return {actual:0,remaining:0,next:null};
- const rows=run.items.map(i=>{const actual=run.startedAt?taskFocusSeconds(data.sessions.filter(s=>s.queueRunId===run.id),i.id):Math.max(0,taskFocusSeconds(data.sessions,i.id)-i.baseline);return {...i,actual,remaining:Math.max(0,i.target-actual)}});
+ const totals=focusSecondsByTask(run.startedAt?data.sessions.filter(s=>s.queueRunId===run.id):data.sessions);
+ const rows=run.items.map(i=>{const actual=run.startedAt?(totals.get(i.id)||0):Math.max(0,(totals.get(i.id)||0)-i.baseline);return {...i,actual,remaining:Math.max(0,i.target-actual)}});
  const actual=rows.reduce((n,i)=>n+Math.min(i.actual,i.target),0),remaining=Math.max(0,run.goal-actual);
  const held=seriesSafetyKeys(data.tasks),next=rows.find(i=>{
   const t=data.tasks.find(t=>t.id===i.id);return i.remaining>=60&&t?.status==='pending'&&!t.deletedAt&&!held.has(t.seriesId||t.id)&&!blockers(data.tasks,t).length;

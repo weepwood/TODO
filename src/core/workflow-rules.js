@@ -54,7 +54,7 @@ export function recordRun(data,rows,rules,today,meta){
 export function canUndoRun(data,runId){
  const run=(data.workflowRuns||[]).find(r=>r.id===runId);if(!validRun(run)||run.undone)return false;
  const byId=new Map(data.tasks.map(t=>[t.id,t]));
- return !run.changes.some(c=>{const t=byId.get(c.id);return !t||!ordinary(t)||Object.entries(c.after).some(([k,v])=>t[k]!==v)});
+ return !run.changes.some(c=>{const t=byId.get(c.id);return !t||!ordinary(t)||t.planLocked&&Object.hasOwn(c.before,'date')||Object.entries(c.after).some(([k,v])=>t[k]!==v)});
 }
 export function undoRun(data,runId){
  if(!canUndoRun(data,runId))return data;
