@@ -12,6 +12,11 @@ for(const count of [1000,10000])test('synthetic workspace '+count,async({page,br
  const start=performance.now();await page.reload();await expect(page.locator('.task-row').first()).toBeVisible({timeout:15000});
  const first=performance.now()-start,rendered=await page.locator('.task-row').count();
  expect(rendered).toBeLessThan(count);
+ const scroll=await page.locator('.virtual-task-list').evaluate(el=>new Promise(resolve=>{
+  const frames=[],start=performance.now();let prev=start,i=0;
+  const tick=now=>{frames.push(now-prev);prev=now;el.scrollTop=(el.scrollHeight-el.clientHeight)*(i%20)/20;if(++i<60)requestAnimationFrame(tick);else{el.scrollTop=0;const sorted=frames.slice(1).sort((a,b)=>a-b);resolve({samples:sorted.length,p50Ms:sorted[Math.floor(sorted.length/2)],p95Ms:sorted[Math.ceil(sorted.length*.95)-1],over32ms:sorted.filter(x=>x>32).length})}};
+  requestAnimationFrame(tick);
+ }));
  const samples=[];
  for(let i=0;i<5;i++){
   const title='基准任务 '+String(count-1-i).padStart(5,'0');
@@ -22,7 +27,7 @@ for(const count of [1000,10000])test('synthetic workspace '+count,async({page,br
   samples.push(performance.now()-begin);await page.keyboard.press('Escape');
  }
  const memory=await page.evaluate(()=>performance.memory?{usedJSHeapSize:performance.memory.usedJSHeapSize,totalJSHeapSize:performance.memory.totalJSHeapSize}:null);
- const result={count,browser:browserName,firstVisibleMs:first,renderedRows:rendered,searchSamplesMs:samples,searchP95Ms:[...samples].sort((a,b)=>a-b)[Math.ceil(samples.length*.95)-1],memory,method:'navigation to first visible row; fill to matching option visible; 5 samples; JS heap snapshot only'};
+ const result={count,browser:browserName,firstVisibleMs:first,renderedRows:rendered,scrollFrameIntervals:scroll,searchSamplesMs:samples,searchP95Ms:[...samples].sort((a,b)=>a-b)[Math.ceil(samples.length*.95)-1],memory,method:'navigation to first visible row; fill to matching option visible; 5 samples; 59 rAF intervals under scripted virtual scroll (not compositor GPU time); JS heap snapshot only'};
  mkdirSync('test-results',{recursive:true});writeFileSync('test-results/performance-'+count+'.json',JSON.stringify(result,null,2));console.log(JSON.stringify(result));
  await page.screenshot({path:'test-results/performance-'+count+'.png',animations:'disabled'});
 });

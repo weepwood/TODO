@@ -35,7 +35,7 @@ jobs:
             kind: windows
           - os: macos-15
             target: aarch64-apple-darwin
-            bundle: dmg
+            bundle: app,dmg
             kind: mac
     runs-on: ${{ matrix.os }}
     env:

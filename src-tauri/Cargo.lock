@@ -4517,6 +4517,7 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "tauri",
  "tauri-build",
  "tauri-plugin-global-shortcut",
@@ -4525,6 +4526,7 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tauri-plugin-todo-mobile",
  "tauri-plugin-updater",
+ "uuid",
 ]
 
 [[package]]

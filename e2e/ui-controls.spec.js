@@ -24,7 +24,7 @@ test('手机时间选择器边界与左滑非破坏性菜单',async({browser})=>
   const page=await ctx.newPage();await page.goto('/');
   await page.getByRole('textbox',{name:'新任务名称'}).fill('手势验收');
   await page.getByRole('button',{name:'添加',exact:true}).click();
-  await page.getByRole('button',{name:'计划时间选择器',exact:true}).click();
+  const time=page.getByRole('button',{name:'计划时间选择器',exact:true});await expect(time).toBeVisible();await time.click();
   const picker=page.locator('.time-picker-popover');await expect(picker).toBeVisible();
   const box=await picker.boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(await page.evaluate(()=>innerWidth)+1);
   await page.screenshot({path:'test-results/controls-mobile-time.png',animations:'disabled'});
@@ -37,7 +37,7 @@ test('手机时间选择器边界与左滑非破坏性菜单',async({browser})=>
   await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x-35,y}]});
   await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x-85,y}]});
   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-  await expect(page.getByRole('menuitem',{name:'安排明天'})).toBeVisible();
+  await expect(page.getByRole('menuitem',{name:'明天',exact:true})).toBeVisible();
   await page.screenshot({path:'test-results/controls-mobile-swipe.png',animations:'disabled'});
   await page.keyboard.press('Escape');await expect(task).toBeVisible();await expect(page.locator('.details')).toHaveCount(0);
  }finally{await ctx.close()}

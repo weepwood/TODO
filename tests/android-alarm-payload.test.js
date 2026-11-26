@@ -10,7 +10,7 @@ test('Android 调度保存可反序列化的原生请求，仅包含通用通知
  assert.equal(expected.schedule.at.date,'2026-11-25T13:00:00.000Z');
  assert.equal(expected.schedule.at.allowWhileIdle,true);
  assert.equal(expected.schedule.at.repeating,false);
- assert.deepEqual(Object.keys(expected).sort(),['body','id','schedule','title']);
+ assert.deepEqual(Object.keys(expected).sort(),['actionTypeId','body','id','schedule','title']);
  assert.throws(()=>alarmNotification(1,0),/无效/);
  assert.throws(()=>alarmNotification(1000000042,NaN),/无效/);
 });

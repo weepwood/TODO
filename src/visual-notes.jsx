@@ -7,11 +7,8 @@ import {TaskList} from '@tiptap/extension-task-list';
 import {TaskItem} from '@tiptap/extension-task-item';
 import {safeLink} from './core/productivity.js';
 const normalized=s=>s.replace(/\r\n/g,'\n').replace(/\n+$/,'');
-export function visualSourceAllowed(text){
- // Avoid parsing arbitrary HTML into the rich editor. Complex/unsupported Markdown
- // stays in the original source editor; conversion must also round-trip losslessly.
- return text.length<=100000&&!/[<>]/.test(text)&&!/(?:!\[|^\s*\[[^\]]+\]:)/m.test(text)&&[...text.matchAll(/\]\(([^)]+)\)/g)].every(m=>!!safeLink(m[1]))
-}
+import {visualSourceAllowed} from './core/markdown-compat.js';
+export {visualSourceAllowed} from './core/markdown-compat.js';
 function Inner({initial,onChange,locked}){
  const [compatible,setCompatible]=useState(null),ready=useRef(false);
  const editor=useEditor({
@@ -19,7 +16,7 @@ function Inner({initial,onChange,locked}){
   content:initial,contentType:'markdown',editable:false,
   editorProps:{attributes:{'aria-label':'可视化备注编辑器',role:'textbox','aria-multiline':'true',class:'visual-note-content'},handleDrop(){return true},handlePaste(view,event){const text=event.clipboardData?.getData('text/plain');if(text===undefined)return true;event.preventDefault();if(text)view.dispatch(view.state.tr.insertText(text));return true}},
   onCreate({editor}){try{const same=normalized(editor.getMarkdown())===normalized(initial);ready.current=same;setCompatible(same);editor.setEditable(same&&!locked)}catch{setCompatible(false)}},
-  onUpdate({editor}){if(ready.current)onChange(editor.getMarkdown())}
+  onUpdate({editor}){if(ready.current){try{const value=editor.getMarkdown();if(normalized(value)!==normalized(initial))onChange(value);else onChange(initial)}catch{ready.current=false;setCompatible(false);editor.setEditable(false)}}}
  });
  useEffect(()=>{if(editor)editor.setEditable(compatible===true&&!locked)},[editor,compatible,locked]);
  const flags=useEditorState({editor,selector:({editor:e})=>e?{bold:e.isActive('bold'),italic:e.isActive('italic'),heading:e.isActive('heading',{level:2}),bullet:e.isActive('bulletList'),ordered:e.isActive('orderedList'),quote:e.isActive('blockquote'),code:e.isActive('codeBlock'),strike:e.isActive('strike'),table:e.isActive('table'),task:e.isActive('taskList')}:{}});

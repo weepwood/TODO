@@ -2,6 +2,13 @@
 export function rankCommands(entries,query,limit=60,recent=[]){
  const tokens=query.trim().normalize('NFKC').toLowerCase().split(/\s+/).filter(Boolean);
  const recency=new Map(recent.map((id,i)=>[id,i]));
+ // Empty search is the common opening path: no normalization or full sort needed.
+ if(!tokens.length){
+  if(!recent.length)return entries.slice(0,limit);
+  const preferred=[],rest=[];
+  for(const entry of entries){const rank=recency.get(entry.id||entry.name);if(rank!==undefined)preferred.push({entry,rank});else if(rest.length<limit)rest.push(entry)}
+  return [...preferred.sort((a,b)=>a.rank-b.rank).map(x=>x.entry),...rest].slice(0,limit);
+ }
  const subsequence=(text,token)=>{let at=0,gaps=0,last=-1;for(const c of token){const next=text.indexOf(c,at);if(next<0)return null;if(last>=0)gaps+=next-last-1;last=next;at=next+1}return gaps};
  return entries.map((entry,index)=>{
   const name=entry.name.normalize('NFKC').toLowerCase(),hay=(name+' '+(entry.keywords||'')).normalize('NFKC').toLowerCase();

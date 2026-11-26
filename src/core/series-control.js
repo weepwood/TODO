@@ -69,3 +69,14 @@ export function unsafeSeriesPull(base,remote){
  }
  return false;
 }
+
+// Batch controls are deliberately non-destructive: no ending or history repair.
+export function previewSeriesBatch(tasks,keys,action){
+ if(!['pause','resume'].includes(action)||!Array.isArray(keys)||keys.length>100||new Set(keys).size!==keys.length)return [];
+ const wanted=new Set(keys);
+ return seriesDirectory(tasks).filter(r=>wanted.has(r.key)&&r.state===(action==='pause'?'running':'paused')&&seriesControl(tasks,r.task.id,action)!==tasks).map(r=>({key:r.key,id:r.task.id,title:r.task.title,repeatCount:r.task.repeatCount,miss:r.task.miss,hold:r.task.seriesHold??null,index:r.task.occurrenceIndex||1,rule:[r.task.repeat,r.task.interval,r.task.weekdays,r.task.repeatUntil,r.task.reset,r.task.date]}));
+}
+export function applySeriesBatch(tasks,rows,action){
+ if(!rows.length||JSON.stringify(previewSeriesBatch(tasks,rows.map(r=>r.key),action))!==JSON.stringify(rows))return tasks;
+ let next=tasks;for(const r of rows){const changed=seriesControl(next,r.id,action);if(changed===next)return tasks;next=changed}return next;
+}

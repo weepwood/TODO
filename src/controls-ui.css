@@ -28,7 +28,7 @@
  .v2.compact-mobile .task-row[data-swipe-active=true] .task-more{color:var(--accent-text);background:var(--active);border-radius:8px}
  .v2.compact-mobile .detail-content .field .time-control{width:100%}
  .v2.compact-mobile .detail-content .field .time-control>input{flex:1}
- @media(prefers-reduced-motion:no-preference){.v2.compact-mobile .task-body{transition:translate 150ms var(--ui-ease)}.v2.compact-mobile .task-row[data-swipe-active=true] .task-body{transition:none}}
+ @media(prefers-reduced-motion:no-preference){.v2.compact-mobile .task-body{transition:translate var(--motion-return) var(--motion-spring)}.v2.compact-mobile .task-row[data-gesture=dragging] .task-body{transition:none}}
 }
 @media(prefers-reduced-motion:reduce){.v2.compact-mobile .task-body{translate:none!important}}
 .entity-dialog .field{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;align-items:center}

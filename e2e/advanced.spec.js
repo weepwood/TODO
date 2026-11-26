@@ -7,12 +7,12 @@ test('日期浮层、快捷录入、依赖、撤销重做与范围选择',async(
  await expect(page.getByRole('textbox',{name:'任务标题'})).toHaveValue('规划');
  await page.getByRole('button',{name:'计划日期',exact:true}).click();
  await expect(page.locator('.date-popover')).toBeVisible();
- await page.getByRole('button',{name:'明天',exact:true}).click();
+ await page.getByRole('button',{name:'明天',exact:true}).click();await page.getByRole('dialog',{name:'计划日期选择器'}).getByRole('button',{name:'确定',exact:true}).click();
  await expect(page.getByRole('button',{name:'计划日期',exact:true})).toHaveText(/\d{4}-\d{2}-\d{2}/);
- await chooseOption(page.getByRole('combobox',{name:'重复规则'}),'weekdays');
- await expect(page.locator('.weekdays')).toBeVisible();
+ await page.getByRole('button',{name:'重复',exact:true}).click();await chooseOption(page.getByRole('combobox',{name:'重复规则'}),'weekdays');
+ await expect(page.locator('.weekdays')).toBeVisible();await page.getByRole('dialog',{name:'重复设置'}).getByRole('button',{name:'确定',exact:true}).click();await page.locator('[data-detail-section=plan]').getByRole('button',{name:'提醒',exact:true}).click();
  await page.getByRole('button',{name:'添加提醒'}).click();
- await expect(page.getByLabel('提醒 2')).toBeVisible();
+ await expect(page.getByLabel('提醒 2')).toBeVisible();await page.getByRole('dialog',{name:'提醒设置'}).getByRole('button',{name:'确定',exact:true}).click();
  await page.getByRole('textbox',{name:'新建子任务'}).fill('子任务 A');
  await page.getByRole('textbox',{name:'新建子任务'}).press('Enter');
  await expect(page.locator('.relation-row').filter({hasText:'子任务 A'})).toBeVisible();

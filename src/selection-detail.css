@@ -15,7 +15,8 @@
 }
 .v2 .sidebar .nav-row[data-view-key]:hover::before,.v2 .task-row:hover::before{background:var(--accent);opacity:.8}
 .v2 .sidebar .nav-row[data-view-key].active,.v2 .task-row.selected{box-shadow:none}
-.v2 .task-row,.v2 .task-row:not(.selected):not(.checked){border-radius:9px;border-bottom:0;margin-bottom:var(--row-gap);padding-inline-start:13px}
+.v2 .task-row,.v2 .task-row:not(.selected):not(.checked){border-radius:var(--radius-control);border-bottom:0;margin-bottom:var(--row-gap);padding-inline-start:13px}
+.v2 .task-row{min-height:var(--task-row-height);padding-block:var(--task-row-padding);padding-inline-end:5px;gap:7px}
 .v2 .task-row:not(.selected):not(.checked){background:transparent}
 .v2 .task-row:not(.selected):not(.checked):hover{background:var(--hover)}
 .v2 .task-row.selected{background:var(--active)}
@@ -23,7 +24,7 @@
 .v2 .task-row:hover::before{opacity:.42}
 .v2 .task-row.selected::before{opacity:1}
 .v2 .task-group{margin-top:10px}
-.v2 .list-caption{padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.v2 .list-caption{padding-bottom:6px;border-bottom:0;margin-bottom:4px}
 .v2 .task-content{container-type:inline-size}
 .v2 .task-content>.heading{align-items:center;gap:12px;padding-bottom:4px}
 .v2 .task-content>.heading .view-toolbar{gap:8px;justify-content:flex-end}
@@ -69,7 +70,9 @@
  .v2 .sidebar .nav-row[data-view-key]::before,.v2 .task-row::before,.settings-navigation button::before{transition:height var(--marker-duration) var(--ui-ease),background-color var(--marker-duration) ease,opacity var(--marker-duration) ease}
 }
 @media(max-width:860px){
- .v2.compact-mobile .task-row,.v2.compact-mobile .task-row:not(.selected):not(.checked){padding-inline-start:11px;border-radius:9px}
+ .v2.compact-mobile{--task-row-height:62px;--task-row-padding:5px}
+ .v2.compact-mobile .task-row{gap:5px;padding-inline-end:2px}
+ .v2.compact-mobile .task-row,.v2.compact-mobile .task-row:not(.selected):not(.checked){padding-inline-start:11px}
  .v2.compact-mobile .detail-content{padding:14px 12px}
  .v2.compact-mobile .detail-content .detail-group{padding:12px}
  .v2.compact-mobile .detail-content .detail-group .field{min-height:48px}
@@ -98,16 +101,7 @@
 }
 
 /* Common selection feedback, including portaled menus and settings. */
-.settings-navigation button{padding-inline-start:16px}
 .settings-navigation button.active{box-shadow:none}
-.smart-select-content,.dropdown,.date-popover,.time-picker-popover,.datetime-popover,.color-picker-popover{border-radius:var(--radius-surface)}
-.smart-select-content .smart-select-viewport,.dropdown{padding:var(--space-1)}
-.smart-select-option,.dropdown-item{min-height:34px;border-radius:var(--radius-control);margin:0 0 2px}
-.smart-select-option:last-child,.dropdown-item:last-child{margin-bottom:0}
-.smart-select-option[data-state=checked]{background:var(--active)}
-.smart-select-option[data-state=checked][data-highlighted]{background:var(--active);outline:1px solid var(--accent);outline-offset:-1px}
-.dropdown-item[data-highlighted]:not([data-disabled]){background:var(--hover);outline:none}
-.dropdown-separator{margin:var(--space-1) 0}
 .v2 .heading .view-toolbar{align-items:center;gap:var(--space-2)}
 .v2 .heading .sort{display:flex;align-items:center;gap:var(--space-1);min-width:0}
 .v2 .heading .sort>span{font-size:12px;color:var(--muted);white-space:nowrap}
@@ -126,10 +120,9 @@
  .v2 .heading .sort{flex:0 1 auto}
 }
 @media(max-width:860px){
- .settings-navigation button{padding-inline:12px}
  .settings-navigation button::before{inset-inline-start:50%;top:auto;bottom:3px;transform:translateX(-50%);width:var(--marker-idle);height:var(--marker-width)}
  .settings-navigation button.active::before{width:var(--marker-active);height:var(--marker-width)}
- .smart-select-option,.dropdown-item{min-height:var(--control-touch-height)}
+
  .v2 .heading .sort .smart-select-trigger,.v2 .heading .view-toolbar>.secondary{min-height:var(--control-touch-height)}
  .v2 .detail-content .detail-group .check-item{min-height:var(--control-touch-height)}
 }
@@ -145,3 +138,97 @@
 .detail-empty h3{font-size:var(--font-body);font-weight:600;margin:0;color:var(--text)}
 .detail-empty p{font-size:var(--control-font);line-height:1.7;max-width:210px;margin:0}
 @media(prefers-reduced-motion:reduce){.v2 .rail>button{transition:none}}
+
+/* Task capture is secondary to the task list. Keep the semantic heading
+   for assistive technology and keep search/contextual actions visible. */
+.v2 .task-content>.heading[data-task-heading=true]{border:0;padding:0;min-height:0;margin-bottom:8px}
+.v2 .heading[data-task-heading=true]:not([data-task-search=true]) .workspace-title{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.v2 .task-content>.heading[data-task-heading=true]:not([data-task-actions=true]){position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);margin:0}
+.v2 .heading[data-task-heading=true]:not([data-task-search=true]) .view-toolbar{justify-content:flex-start;margin-left:0;flex-wrap:wrap}
+.v2 .heading[data-task-heading=true][data-task-search=true] .workspace-title>.muted{display:none}
+.v2 .task-capture-toolbar{display:flex;align-items:center;gap:8px;min-width:0;margin-bottom:12px}
+.v2 .task-capture-toolbar>.quick-add{flex:1;min-width:0;width:auto;margin:0;min-height:calc(var(--control-height) + 8px);background:var(--surface-subtle);border:var(--control-border);box-shadow:none;border-radius:var(--radius-control)}
+.v2 .task-capture-toolbar>.quick-add>svg{color:var(--muted)}
+.v2 .task-capture-toolbar>.quick-add>button{background:transparent;color:var(--accent-text);box-shadow:none;font-weight:550}
+.v2 .task-capture-toolbar>.quick-add>button:disabled{color:var(--muted);opacity:.6}
+.v2 .task-capture-toolbar>.quick-add>button:not(:disabled):hover{background:var(--active)}
+.v2 .task-capture-toolbar>.quick-add:focus-within{background:var(--bg);border-color:var(--accent);box-shadow:none}
+.v2 .task-capture-toolbar>.task-view-trigger{flex:0 0 auto}
+.v2 [data-workspace-module=tasks] .list-caption{border-bottom:0;margin-bottom:var(--space-1);padding-block:var(--space-2);font-size:var(--font-body)}
+.v2 .list-caption .group-collapse{min-height:var(--control-height);gap:var(--space-2);min-width:0}
+.v2 .list-caption .group-collapse small{font-variant-numeric:tabular-nums;color:var(--muted);background:var(--surface-subtle);border-radius:var(--radius-small);padding:2px 6px}
+@container work-area (max-width:350px){.v2 .task-capture-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--space-1)}.v2 .task-capture-toolbar>.quick-add{grid-column:1/-1}.v2 .task-capture-toolbar>.batch-capture-trigger{justify-self:start}.v2 .task-capture-toolbar>.task-view-trigger{justify-self:end}}
+@media(max-width:860px){
+ .v2.compact-mobile .task-capture-toolbar{gap:4px;margin-bottom:6px}
+ .v2.compact-mobile .task-capture-toolbar>.quick-add{min-height:50px;margin:0;padding-inline:8px}
+ .v2.compact-mobile .task-capture-toolbar>.quick-add>button{padding-inline:8px}
+ .v2.compact-mobile .task-content>.heading[data-task-heading=true]{margin-bottom:6px}
+}
+
+/* Task action menu: compact icon shortcuts, shared Radix focus and collision behavior. */
+.task-action-menu{width:260px;max-width:calc(100vw - 24px);max-height:var(--radix-context-menu-content-available-height,var(--radix-dropdown-menu-content-available-height,80vh));overflow-y:auto;padding:6px}
+.task-action-menu .menu-action-heading{padding:6px 8px;color:var(--muted);font-size:var(--font-caption)}
+.task-action-menu .menu-quick-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:0 4px 6px}
+.task-action-menu .menu-quick-grid[data-columns="5"]{grid-template-columns:repeat(5,minmax(0,1fr))}
+.task-action-menu .menu-quick-grid .menu-action{display:flex;align-items:center;justify-content:center;padding:0;min-height:44px;white-space:nowrap}
+.task-action-menu .menu-quick-grid .menu-action-label{display:none}
+.task-action-menu .menu-quick-grid .menu-action svg{width:20px;height:20px;flex:none}
+.task-action-menu .menu-quick-grid .menu-action-check{display:none}
+.task-action-menu .menu-quick-grid [data-checked=true]{background:var(--active);color:var(--accent-text)}
+.task-action-menu .menu-action,.menu-action-sub .menu-action{display:flex;align-items:center;gap:9px}
+.task-action-menu .menu-quick-grid .menu-action{gap:0}
+.task-action-menu .menu-action-label,.menu-action-sub .menu-action-label{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.menu-action-arrow,.menu-action-check{margin-inline-start:auto;flex:none}
+.task-action-menu [data-priority="3"]{color:var(--priority-high)}
+.task-action-menu [data-priority="2"]{color:var(--priority-medium)}
+.task-action-menu [data-priority="1"]{color:var(--priority-low)}
+.task-action-menu [data-priority="0"]{color:var(--muted)}
+.menu-action-sub{max-width:calc(100vw - 24px);max-height:var(--radix-context-menu-content-available-height,var(--radix-dropdown-menu-content-available-height,80vh));overflow-y:auto}
+
+/* One right-hand track for all navigation counts. Editable rows overlay the
+   action on that same track, never shrink the selected navigation surface. */
+.v2 .sidebar .sidebar-row{position:relative;display:block;min-width:0;gap:0}
+.v2 .sidebar .sidebar-row>.nav-row{width:100%;padding-inline-end:10px;min-width:0}
+.v2 .sidebar .sidebar-row .sidebar-row-label{flex:1;min-width:0}
+.v2 .sidebar .sidebar-row .sidebar-row-meta{display:flex;flex:0 0 auto;align-items:center;justify-content:flex-end;gap:6px;overflow:visible;color:var(--muted);font-weight:400}
+.v2 .sidebar .sidebar-row .sidebar-row-count{display:block;min-width:32px;max-width:48px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.v2 .sidebar .sidebar-color-dot{width:7px;height:7px;flex:none;border-radius:50%}
+.v2 .sidebar .sidebar-row>.sidebar-row-actions{position:absolute;inset-inline-end:4px;top:50%;translate:0 -50%;width:38px;height:calc(100% - 4px);opacity:0;z-index:1;background:transparent;pointer-events:auto}
+.v2 .sidebar .sidebar-row[data-editable=true]:is(:hover,:focus-within,:has(>.sidebar-row-actions[data-state=open])) .sidebar-row-count{opacity:0}
+.v2 .sidebar .sidebar-row[data-editable=true]:is(:hover,:focus-within,:has(>.sidebar-row-actions[data-state=open]))>.sidebar-row-actions{opacity:1}
+.v2 .sidebar .sidebar-row>.sidebar-row-actions:hover{background:var(--hover)}
+.v2 .sidebar .section-label>.icon-button{opacity:0}
+/* Empty collections need a visible first action; populated sections retain hover affordances. */
+.v2 .sidebar .section-label[data-empty-section=true]>.icon-button{opacity:1}
+.v2 .sidebar .section-label:is(:hover,:focus-within)>.icon-button,.v2 .sidebar .section-label>.icon-button[data-state=open]{opacity:1}
+@media(prefers-reduced-motion:no-preference){.v2 .sidebar .sidebar-row-count,.v2 .sidebar .sidebar-row>.sidebar-row-actions,.v2 .sidebar .section-label>.icon-button{transition:opacity var(--ui-fast)}}
+/* Touch: keep both count and a discoverable action; reserve the same track
+   on noneditable rows so counts do not zigzag. */
+.v2.compact-mobile .sidebar .sidebar-row>.nav-row{padding-inline-end:48px}
+.v2.compact-mobile .sidebar .sidebar-row[data-editable=true] .sidebar-row-count{opacity:1}
+.v2.compact-mobile .sidebar .sidebar-row>.sidebar-row-actions,.v2.compact-mobile .sidebar .section-label>.icon-button{opacity:1}
+.v2.compact-mobile .sidebar .sidebar-row>.sidebar-row-actions{width:44px;height:44px;inset-inline-end:0}
+@media(hover:none),(pointer:coarse){
+ .v2 .sidebar .sidebar-row>.nav-row{padding-inline-end:48px}
+ .v2 .sidebar .sidebar-row[data-editable=true] .sidebar-row-count{opacity:1}
+ .v2 .sidebar .sidebar-row>.sidebar-row-actions,.v2 .sidebar .section-label>.icon-button{opacity:1}
+ .v2 .sidebar .sidebar-row>.sidebar-row-actions{width:44px;inset-inline-end:0}
+}
+
+/* Subtle row separators and a single compact trailing metadata cluster.
+   Do not reserve empty date/list columns or change virtual row heights. */
+.v2 .task-row::after{content:"";position:absolute;inset-inline:34px 8px;bottom:0;height:1px;background:color-mix(in srgb,var(--line) 48%,transparent);pointer-events:none}
+.v2 .task-row:is(.selected,.checked,:hover,[data-dragging=true])::after{opacity:0}
+.v2 .task-row .task-row-meta{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex:0 1 auto;min-width:0;max-width:58%;white-space:nowrap}
+.v2 .task-row-meta>.row-tags{flex-wrap:nowrap;min-width:0;overflow:hidden}
+.v2 .task-row-meta>.row-tags .tag-chip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.v2 .task-row-meta>.task-date{flex:none;text-align:right}
+.v2 .task-row-meta>svg,.v2 .task-row-meta>.task-warning,.v2 .task-row-meta>.task-points{flex:none}
+.v2 .task-body .task-title-text{display:inline;cursor:default}
+.v2:not(.compact-mobile) .task-body .task-title-text[data-editable=true]{cursor:text}
+.v2 .task-body>span{max-width:100%}
+.v2 .inline-title-editor input:focus{border:0;outline:none;box-shadow:none;background:transparent}
+@container work-area (max-width:540px){.v2 .task-row .task-row-meta{gap:4px;max-width:48%}}
+@container work-area (max-width:340px){.v2 .task-row .task-row-meta{gap:3px;max-width:54%}.v2 .task-row-meta>.task-warning,.v2 .task-row-meta>.task-points{font-size:10px}}
+
+@media(max-width:600px){@container work-area (max-width:350px){.v2.compact-mobile .task-capture-toolbar>.quick-add{grid-column:1}.v2.compact-mobile .task-capture-toolbar>.task-view-trigger{grid-column:2;grid-row:1}}}

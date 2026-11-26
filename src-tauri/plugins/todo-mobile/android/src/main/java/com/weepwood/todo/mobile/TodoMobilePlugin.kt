@@ -1,6 +1,7 @@
 package com.weepwood.todo.mobile
 
 import android.app.Activity
+import android.content.Intent
 import android.webkit.WebView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
@@ -11,6 +12,8 @@ import app.tauri.plugin.Invoke
 import app.tauri.plugin.Plugin
 import org.json.JSONObject
 
+@InvokeArg
+class ShareArgs { lateinit var text: String }
 @InvokeArg
 class SessionArgs { lateinit var key: String; var value: String? = null }
 @InvokeArg
@@ -75,6 +78,17 @@ class TodoMobilePlugin(private val activity: Activity): Plugin(activity) {
     }
     @Command fun revisionCancel(invoke: Invoke) = run(invoke) { clearRevision(); invoke.resolve() }
 
+    @Command fun shareSummary(invoke: Invoke) = run(invoke) {
+        val args=invoke.parseArgs(ShareArgs::class.java)
+        require(args.text.isNotBlank() && args.text.length <= 1200 && !args.text.contains('\u0000'))
+        activity.runOnUiThread {
+            try {
+                val intent=Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT,args.text)
+                activity.startActivity(Intent.createChooser(intent,"分享任务摘要"))
+                invoke.resolve()
+            } catch (_: Exception) { invoke.reject("Android 系统分享不可用") }
+        }
+    }
     @Command fun updatePrepare(invoke: Invoke) = run(invoke) {
         ApkUpdates.prepare(context,invoke.parseArgs(UpdateArgs::class.java));invoke.resolve()
     }

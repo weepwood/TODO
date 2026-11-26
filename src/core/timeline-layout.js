@@ -15,10 +15,10 @@ export function layoutTimeline(segments,start=0,end=1440){
  return result;
 }
 
-export function resizeTimelineDuration(duration,delta,start,end=1440){
+export function resizeTimelineDuration(duration,delta,start,end=1440,allowCarry=false){
  if(![duration,delta,start,end].every(Number.isFinite)||end<=start)return duration;
  // Clamp within the visible day; preserve exact duration when the gesture is canceled.
- const max=Math.min(1440,Math.floor((end-start)/15)*15);
+ const max=allowCarry&&end===1440?1440:Math.min(1440,Math.floor((end-start)/15)*15);
  if(max<15)return duration;
  return Math.max(15,Math.min(max,Math.round((duration+delta)/15)*15));
 }
@@ -40,4 +40,12 @@ export function timelineMove(date,start,delta,from=0,to=1440){
 export function previewOverlaps(segments,id,start,end){
  if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start)return false;
  return segments.some(t=>{if(t.id===id||typeof t.time!=='string'||typeof t.endTime!=='string')return false;const a=clockMinutes(t.time),b=clockMinutes(t.endTime);return Number.isFinite(a)&&Number.isFinite(b)&&a<end&&start<b});
+}
+
+// A continuation is the visible tail of an existing block; adjust only its
+// original elapsed duration, never create or move a second task.
+export function resizeContinuation(duration,visibleMinutes,delta){
+ if(!Number.isFinite(delta)||!Number.isInteger(duration)||!Number.isInteger(visibleMinutes)||visibleMinutes<1||visibleMinutes>duration)return duration;
+ const carried=duration-visibleMinutes,min=carried+1;
+ return Math.max(min,Math.min(1440,Math.round((duration+delta)/15)*15));
 }

@@ -6,25 +6,43 @@ import React,{useEffect,useRef,useState,useId} from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Dropdown from '@radix-ui/react-dropdown-menu';
 import * as Context from '@radix-ui/react-context-menu';
-import {X,MoreHorizontal} from "lucide-react";
-export function Modal({open,onClose,title,children,description,className='',sheet=false}){const gesture=useTouchGesture({enabled:open&&sheet,kind:'sheet',onAction:onClose});return <Dialog.Root open={open} onOpenChange={v=>!v&&onClose()}><Dialog.Portal><Dialog.Overlay className="overlay"/><Dialog.Content className={'dialog '+className} style={sheet?{'--sheet-drag':gesture.offset+'px'}:undefined} data-sheet-dragging={sheet&&gesture.offset>0||undefined} {...(!description?{'aria-describedby':undefined}:{})}>{sheet&&<div className="sheet-grabber" aria-hidden="true" {...gesture.handlers}><span/></div>}<div className="dialog-head"><Dialog.Title>{title}</Dialog.Title><Dialog.Close className="icon-button" aria-label="关闭"><X size={18}/></Dialog.Close></div>{description&&<Dialog.Description className="dialog-description">{description}</Dialog.Description>}{children}</Dialog.Content></Dialog.Portal></Dialog.Root>}
-export function Menu({items,trigger,open,onOpenChange}){
+import {X,MoreHorizontal,ChevronRight,Check} from "lucide-react";
+export function Modal({open,onClose,title,children,description,className='',sheet=false}){const parts=className.includes('professional-form-dialog')?React.Children.toArray(children):null;const footer=parts?.at(-1)?.props?.className==='dialog-actions'?parts.pop():null;const gesture=useTouchGesture({enabled:open&&sheet,kind:'sheet',onAction:onClose});return <Dialog.Root open={open} onOpenChange={v=>!v&&onClose()}><Dialog.Portal><Dialog.Overlay className="overlay"/><Dialog.Content className={'dialog '+className+(footer?' structured-dialog':'')} style={sheet?{'--sheet-drag':gesture.offset+'px','--gesture-release':gesture.release+'px'}:undefined} data-sheet={sheet||undefined} data-sheet-dragging={sheet&&gesture.phase==='dragging'||undefined} {...(!description?{'aria-describedby':undefined}:{})}>{sheet&&<div className="sheet-grabber" aria-hidden="true" {...gesture.handlers}><span/></div>}<div className="dialog-head"><Dialog.Title>{title}</Dialog.Title><Dialog.Close className="icon-button" aria-label="关闭"><X size={18}/></Dialog.Close></div>{description&&<Dialog.Description className="dialog-description">{description}</Dialog.Description>}{footer?<><div className="dialog-body">{parts}</div>{footer}</>:children}</Dialog.Content></Dialog.Portal></Dialog.Root>}
+// Shared menu descriptors: plain actions, labelled groups, and real Radix submenus.
+function MenuItems({api:Api,items}){
+ return items.map((item,i)=>{
+  const Icon=item.icon,content=<>{Icon&&<Icon size={16} aria-hidden="true" data-priority={item.priority}/>}<span className="menu-action-label">{item.label}</span>{item.checked&&<Check className="menu-action-check" size={14} aria-hidden="true"/>}</>;
+  if(item.separator)return <Api.Separator key={i} className="dropdown-separator"/>;
+  if(item.group)return <Api.Group key={i} className="menu-action-group"><Api.Label className="menu-action-heading">{item.group}</Api.Label><div className={item.quick?'menu-quick-grid':''} data-columns={item.quick?item.items.length:undefined}><MenuItems api={Api} items={item.items}/></div></Api.Group>;
+  if(item.items)return <Api.Sub key={i}><Api.SubTrigger className="dropdown-item menu-action" disabled={item.disabled}>{content}<ChevronRight className="menu-action-arrow" size={14}/></Api.SubTrigger><Api.Portal><Api.SubContent className="dropdown menu-action-sub" sideOffset={5} collisionPadding={12}><MenuItems api={Api} items={item.items}/></Api.SubContent></Api.Portal></Api.Sub>;
+  if(!item.icon&&item.checked===undefined)return <Api.Item key={i} className={'dropdown-item '+(item.danger?'danger':'')} disabled={item.disabled} onSelect={item.run}>{item.label}</Api.Item>;
+  return <Api.Item key={i} className={'dropdown-item menu-action '+(item.danger?'danger':'')} data-checked={item.checked||undefined} disabled={item.disabled} onSelect={item.run} aria-label={typeof item.label==='string'?item.label:undefined} title={item.tooltip||(typeof item.label==='string'?item.label:undefined)}>{content}</Api.Item>;
+ });
+}
+export function Menu({items,trigger,open,onOpenChange,onCloseAutoFocus,className=''}){
  const [local,setLocal]=useState(false),shown=open??local,change=onOpenChange??setLocal;
  useTransientPopover(shown,()=>change(false));
- return <Dropdown.Root open={shown} onOpenChange={change}><Dropdown.Trigger asChild>{trigger||<button className="icon-button" aria-label="更多操作"><MoreHorizontal size={18}/></button>}</Dropdown.Trigger><Dropdown.Portal><Dropdown.Content className="dropdown" {...popoverGeometry}>{items.map((item,i)=>item.separator?<Dropdown.Separator key={i} className="dropdown-separator"/>:<Dropdown.Item key={i} className={'dropdown-item '+(item.danger?'danger':'')} disabled={item.disabled} onSelect={item.run}>{item.label}</Dropdown.Item>)}</Dropdown.Content></Dropdown.Portal></Dropdown.Root>}
+ return <Dropdown.Root open={shown} onOpenChange={change}><Dropdown.Trigger asChild>{trigger||<button className="icon-button" aria-label="更多操作"><MoreHorizontal size={18}/></button>}</Dropdown.Trigger><Dropdown.Portal><Dropdown.Content className={'dropdown '+className} onCloseAutoFocus={onCloseAutoFocus} {...popoverGeometry}><MenuItems api={Dropdown} items={items}/></Dropdown.Content></Dropdown.Portal></Dropdown.Root>
+}
 export function Empty({title='暂无任务',hint='添加一项任务开始吧。',Icon}){return <div className="empty">{Icon&&<div className="empty-icon"><Icon size={28}/></div>}<h3>{title}</h3><p>{hint}</p></div>}
 export function Field({label,children,...feedback}){if(Object.keys(feedback).length)return <FeedbackField label={label} {...feedback}>{children}</FeedbackField>;return <label className="field"><span>{label}</span>{children}</label>}
 
-export function ContextMenu({items,children,disabled=false}){const [open,setOpen]=useState(false);useTransientPopover(open,()=>setOpen(false));return <Context.Root open={open} onOpenChange={setOpen}><Context.Trigger asChild disabled={disabled}>{children}</Context.Trigger><Context.Portal><Context.Content className="dropdown">{items.map((item,i)=>item.separator?<Context.Separator key={i} className="dropdown-separator"/>:<Context.Item key={i} className={'dropdown-item '+(item.danger?'danger':'')} disabled={item.disabled} onSelect={item.run}>{item.label}</Context.Item>)}</Context.Content></Context.Portal></Context.Root>}
+export function ContextMenu({items,children,disabled=false,className=''}){const [open,setOpen]=useState(false);useTransientPopover(open,()=>setOpen(false));return <Context.Root open={open} onOpenChange={setOpen}><Context.Trigger asChild disabled={disabled}>{children}</Context.Trigger><Context.Portal><Context.Content className={'dropdown '+className} collisionPadding={12}><MenuItems api={Context} items={items}/></Context.Content></Context.Portal></Context.Root>}
 
 export function ActionButton({variant='secondary',compact=false,icon:Icon,children,className='',type='button',...props}){return <button type={type} className={[variant,compact?'compact':'',className].filter(Boolean).join(' ')} {...props}>{Icon&&<Icon size={16} aria-hidden="true"/>}{children}</button>}
-export function InlineTitle({value,onCommit,onClose}){
- const [draft,setDraft]=useState(value),[error,setError]=useState('');const initial=useRef(value),input=useRef(null),errorId=useId();
- useEffect(()=>{input.current?.focus();input.current?.select()},[]);
- function save(){const title=draft.trim();if(!title){setError('标题不能为空');return}if(value!==initial.current){setError('标题已发生变化，请取消后重新编辑');return}onCommit(title,initial.current)}
- return <form className="inline-title-editor" onSubmit={e=>{e.preventDefault();save()}} onClick={e=>e.stopPropagation()} onKeyDown={e=>{if(e.key==='Escape'&&!e.nativeEvent.isComposing){e.preventDefault();e.stopPropagation();onClose()}}}>
- <input ref={input} aria-label="行内任务标题" value={draft} onChange={e=>{setDraft(e.target.value);setError('')}} aria-invalid={!!error} aria-describedby={error?errorId:undefined} onKeyDown={e=>{if(e.key==='Enter'&&e.nativeEvent.isComposing)e.preventDefault()}}/>
- <ActionButton compact type="submit" variant="primary">保存</ActionButton><ActionButton compact onClick={onClose}>取消</ActionButton><FieldMessage id={errorId} error={error}/>
+export function InlineTitle({value,onCommit,onClose,caret=null}){
+ const [draft,setDraft]=useState(value),[error,setError]=useState('');const initial=useRef(value),input=useRef(null),done=useRef(false),errorId=useId();
+ useEffect(()=>{const el=input.current;if(!el)return;el.focus({preventScroll:true});if(caret===null)el.select();else el.setSelectionRange(caret,caret)},[]);
+ function cancel(restoreFocus=true){if(done.current)return;done.current=true;onClose(restoreFocus)}
+ function save(restoreFocus=true){
+  if(done.current)return;
+  const title=(input.current?.value??draft).trim();
+  if(!title||value!==initial.current){if(!restoreFocus){cancel(false);return}setError(!title?'标题不能为空':'标题已发生变化，请取消后重新编辑');return}
+  done.current=true;if(title===initial.current)onClose(restoreFocus);else onCommit(title,initial.current,restoreFocus);
+ }
+ return <form className="inline-title-editor" onSubmit={e=>{e.preventDefault();save()}} onClick={e=>e.stopPropagation()}>
+ <input ref={input} aria-label="行内任务标题" value={draft} onChange={e=>{setDraft(e.target.value);setError('')}} aria-invalid={!!error} aria-describedby={error?errorId:undefined} onBlur={()=>save(false)} onKeyDown={e=>{if(e.nativeEvent.isComposing||e.keyCode===229){if(e.key==='Enter')e.preventDefault();return}if(e.key==='Enter'){e.preventDefault();e.stopPropagation();save()}else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();cancel()}}}/>
+ <FieldMessage id={errorId} error={error}/>
  </form>
 }
 

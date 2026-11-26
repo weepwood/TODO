@@ -44,7 +44,7 @@ test('每个视图独立排序并重载恢复、桌面布局预设',async({page}
  await expect(page.getByRole('menuitem',{name:/^排序.*标题/})).toBeVisible();await expect(page.getByRole('menuitem',{name:/^顺序.*降序/})).toBeVisible();await page.keyboard.press('Escape');
  await page.locator('.rail').getByRole('button',{name:'设置',exact:true}).click();
  await page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'外观与布局'}).click();
- await page.getByRole('button',{name:'专注',exact:true}).click();
+ await page.getByRole('region',{name:'外观与布局'}).getByRole('button',{name:'专注',exact:true}).click();
  await page.getByRole('dialog',{name:'设置与数据管理'}).getByRole('button',{name:'关闭',exact:true}).click();
  await expect(page.locator('.sidebar')).toBeHidden();
  await page.reload();await expect(page.locator('.sidebar')).toBeHidden();

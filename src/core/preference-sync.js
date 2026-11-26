@@ -22,8 +22,8 @@ export function mergePortablePreferences(local,profile){
  const p=profile.value,views=Object.create(null);
  for(const key of new Set([...Object.keys(local.views),...Object.keys(p.views)])){
   if(key==='search'){if(local.views[key])views[key]=local.views[key];continue}
-  const source=Object.hasOwn(p.views,key)?p.views[key]:null;if(!source&&!local.views[key]?.collapsedGroups?.length)continue;
-  views[key]={...(source||{sort:'manual',group:'section',order:'asc',completed:'inherit'}),collapsedGroups:local.views[key]?.collapsedGroups||[]};
+  const source=Object.hasOwn(p.views,key)?p.views[key]:null;if(!source&&!local.views[key]?.collapsedGroups?.length&&!local.views[key]?.fields)continue;
+  views[key]={...(source||{sort:'manual',group:'section',order:'asc',completed:'inherit'}),collapsedGroups:local.views[key]?.collapsedGroups||[],...(local.views[key]?.fields?{fields:local.views[key].fields}:{})};
  }
  if(Object.keys(views).length>300)throw Error('合并后的视图数量超过上限，未修改本机偏好');
  return {...local,...p,views};

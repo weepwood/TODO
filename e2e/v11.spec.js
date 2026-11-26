@@ -5,8 +5,8 @@ test('任务聚焦快捷键、标题编辑与安排日期',async({page})=>{
  await page.getByRole('button',{name:'添加',exact:true}).click();
  const body=page.locator('.task-body').filter({hasText:'快捷验收'});
  await body.focus();await page.keyboard.press('F2');
- await expect(page.getByRole('textbox',{name:'任务标题'})).toBeFocused();
- await page.keyboard.type('重命名验收');await expect(page.getByRole('textbox',{name:'任务标题'})).toHaveValue('重命名验收');
+ await expect(page.getByRole('textbox',{name:'行内任务标题'})).toBeFocused();
+ await page.keyboard.type('重命名验收');await expect(page.getByRole('textbox',{name:'行内任务标题'})).toHaveValue('重命名验收');await page.keyboard.press('Enter');
  await page.locator('.task-body').filter({hasText:'重命名验收'}).focus();await page.keyboard.press('m');
  await expect(page.getByRole('status').filter({hasText:'已安排到明天'})).toBeVisible();
  await page.locator('.nav-row').filter({hasText:'最近七天'}).click();

@@ -6,7 +6,7 @@ pub(super) fn reset_capture_window(app:&tauri::AppHandle){if let Some(w)=app.get
 pub(super) fn request_quick_capture(app:&tauri::AppHandle){
  let active=app.state::<ActiveScope>();let capture=app.state::<QuickCapture>();
  let decision=if let (Ok(current),Ok(mut state))=(active.0.lock(),capture.0.lock()){
-  if let Some(scope)=current.as_deref(){if let Some(d)=state.direct.as_mut(){if let Ok(c)=app.state::<Database>().0.lock(){d.saved=matches!(direct_status(&c,&d.scope,&d.id).ok().flatten().as_deref(),Some("saved"|"cancelled"));}}if state.pending.is_none(){let reset=state.scope.as_deref()!=Some(scope)||state.direct.as_ref().is_some_and(|d|d.saved);if reset{state.begin(scope);if let Ok(c)=app.state::<Database>().0.lock(){if let Ok(Some(mut d))=pending_direct(&c,scope){d.generation=state.generation;state.direct=Some(d);}}}Some(reset)}else{None}}else{None}
+  if let Some(scope)=current.as_deref(){if let Some(d)=state.direct.as_mut(){if let Ok(c)=app.state::<Database>().0.lock(){d.saved=matches!(direct_status(&c,&d.scope,&d.id).ok().flatten().as_deref(),Some("saved"|"cancelled"));}}if state.pending.is_none(){let reset=state.scope.as_deref()!=Some(scope)||state.direct.as_ref().is_some_and(|d|d.saved);if reset{state.begin(scope);if let Ok(c)=app.state::<Database>().0.lock(){if let Ok(Some(mut d))=pending_legacy_direct(&c,scope){if d.batch_count.is_none(){d.generation=state.generation;state.direct=Some(d);}}}}Some(reset)}else{None}}else{None}
  }else{None};
  let opened=if let (Some(reset),Some(w))=(decision,app.get_webview_window("capture")){
   if reset{let _=app.emit_to("capture","todo-capture-reset",());}
@@ -42,7 +42,7 @@ pub(super) fn show(app:&tauri::AppHandle){if let Some(w)=app.get_webview_window(
 pub(super) fn setup(app:&mut tauri::App)->Result<(),Box<dyn std::error::Error>>{
   let open=MenuItem::with_id(app,"open","打开 TODO",true,None::<&str>)?;let quit=MenuItem::with_id(app,"quit","退出 TODO",true,None::<&str>)?;
   let quick=MenuItem::with_id(app,"quick","快速新建任务",true,None::<&str>)?;let hide=MenuItem::with_id(app,"hide","隐藏主窗口",true,None::<&str>)?;let menu=Menu::with_items(app,&[&open,&quick,&hide,&quit])?;
-  let mut tray=TrayIconBuilder::new().menu(&menu).tooltip("TODO").on_menu_event(|app,event|match event.id.as_ref(){"open"=>show(app),"quick"=>request_quick_capture(app),"hide"=>{if let Some(w)=app.get_webview_window("main"){save_window(&w);let _=w.hide();}},"quit"=>{let active=app.state::<ActiveScope>();if active.0.lock().ok().and_then(|s|s.clone()).is_some(){let _=app.emit("todo-quit-request",());}else{app.exit(0)}},_=>{}});
+  let mut tray=TrayIconBuilder::new().menu(&menu).tooltip("TODO").on_menu_event(|app,event|match event.id.as_ref(){"open"=>show(app),"quick"=>request_quick_capture(app),"hide"=>{if let Some(w)=app.get_webview_window("main"){save_window(&w);let _=app.emit_to("main","todo-native-pause",());let _=w.hide();}},"quit"=>{let active=app.state::<ActiveScope>();if active.0.lock().ok().and_then(|s|s.clone()).is_some(){let _=app.emit("todo-quit-request",());}else{app.exit(0)}},_=>{}});
   if let Some(icon)=app.default_window_icon(){tray=tray.icon(icon.clone())}tray.build(app)?;
   if app.config().identifier == "com.weepwood.todo" {
    let status=match app.global_shortcut().register("CommandOrControl+Shift+A"){Ok(())=>"registered",Err(e)=>{eprintln!("global shortcut unavailable: {e}");"unavailable"}};
@@ -53,5 +53,5 @@ pub(super) fn setup(app:&mut tauri::App)->Result<(),Box<dyn std::error::Error>>{
 pub(super) fn configure(builder:tauri::Builder<tauri::Wry>)->tauri::Builder<tauri::Wry>{
  builder.plugin(tauri_plugin_single_instance::init(|app,_,_|show(app)))
  .plugin(tauri_plugin_global_shortcut::Builder::new().with_handler(|app,_,event|{if event.state()==ShortcutState::Pressed{request_quick_capture(app);}}).build())
- .on_window_event(|window,event|{if let WindowEvent::CloseRequested{api,..}=event{api.prevent_close();if window.label()=="capture"{let app=window.app_handle();if let Ok(mut state)=app.state::<QuickCapture>().0.lock(){if !state.direct.as_ref().is_some_and(|d|!d.saved){state.invalidate();}}if let Some(w)=app.get_webview_window("capture"){let _=w.hide();}}else if window.label()=="main"{if let Some(w)=window.app_handle().get_webview_window("main"){save_window(&w);}let _=window.hide();}}})
+ .on_window_event(|window,event|{if let WindowEvent::CloseRequested{api,..}=event{api.prevent_close();if window.label()=="capture"{let app=window.app_handle();if let Ok(mut state)=app.state::<QuickCapture>().0.lock(){if !state.direct.as_ref().is_some_and(|d|!d.saved){state.invalidate();}}if let Some(w)=app.get_webview_window("capture"){let _=w.hide();}}else if window.label()=="main"{if let Some(w)=window.app_handle().get_webview_window("main"){save_window(&w);}let _=window.app_handle().emit_to("main","todo-native-pause",());let _=window.hide();}}})
 }

@@ -1,0 +1,33 @@
+import {test,expect,devices} from '@playwright/test';
+import {initialState,newTask,dayKey} from '../src/domain.js';
+async function seed(page,theme='light'){
+ const d=initialState(),t=newTask('连续手势任务','inbox',dayKey());d.theme=theme;d.tasks=[t,newTask('另一项任务','inbox',dayKey())];
+ await page.addInitScript(d=>{if(!localStorage.getItem('todo-workbench-v1'))localStorage.setItem('todo-workbench-v1',JSON.stringify(d));localStorage.setItem('todo-detail-mode-v1','view')},d);await page.goto('/');
+}
+async function start(cdp,el){const b=await el.boundingBox(),x=b.x+b.width/2,y=b.y+b.height/2;await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});return {x,y}}
+async function move(cdp,p,dx,dy){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:p.x+dx,y:p.y+dy}]})}
+async function end(cdp,type='touchEnd'){await cdp.send('Input.dispatchTouchEvent',{type,touchPoints:[]})}
+test('触控跟手、长按反馈与短拖动回弹，面板取消及关闭不丢草稿',async({browser})=>{
+ const ctx=await browser.newContext({...devices['Pixel 7'],baseURL:'http://127.0.0.1:4178'});
+ try{const page=await ctx.newPage();await seed(page,'dark');const row=page.locator('.task-body').filter({hasText:'连续手势任务'}),shell=row.locator('..');await expect(row).toBeVisible();const cdp=await ctx.newCDPSession(page);
+ let p=await start(cdp,row);await page.waitForTimeout(550);await expect(shell).toHaveAttribute('data-gesture','held');await expect(page.getByText('已选 1 项',{exact:true})).toHaveCount(0);await end(cdp);await expect(page.getByText('已选 1 项',{exact:true})).toBeVisible();
+ const other=page.locator('.task-body').filter({hasText:'另一项任务'});
+ await other.tap();await expect(page.getByText('已选 2 项',{exact:true})).toBeVisible();
+ await other.tap();await expect(page.getByText('已选 1 项',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'结束选择'}).click();
+ p=await start(cdp,row);await move(cdp,p,-32,0);await expect(shell).toHaveAttribute('data-gesture','dragging');await expect.poll(()=>row.evaluate(el=>parseFloat(getComputedStyle(el).translate))).toBe(-32);await end(cdp);await expect.poll(()=>row.evaluate(el=>parseFloat(getComputedStyle(el).translate)||0)).toBe(0);await expect(page.getByRole('menu')).toHaveCount(0);await expect(page.locator('.details')).toHaveCount(0);
+ // Use the same CDP touch stream, with no fixed suppression-window sleep.
+ p=await start(cdp,row);await end(cdp);const detail=page.getByRole('complementary',{name:'任务详情'});await expect(detail).toBeVisible();await expect(detail.locator('.property-grid').first()).toBeVisible();
+ const header=detail.locator('.detail-header');await expect.poll(()=>detail.evaluate(el=>el.getBoundingClientRect().x)).toBe(0);p=await start(cdp,header);await move(cdp,p,35,0);await expect(detail).toHaveAttribute('data-detail-dragging','true');await expect.poll(()=>detail.evaluate(el=>parseFloat(getComputedStyle(el).translate))).toBe(35);await end(cdp,'touchCancel');await expect.poll(()=>detail.evaluate(el=>parseFloat(getComputedStyle(el).translate)||0)).toBe(0);
+ await detail.getByRole('navigation',{name:'详情快捷操作'}).getByRole('button',{name:'安排'}).click();await expect(page.getByRole('dialog',{name:'计划日期选择器'})).toBeVisible();await page.keyboard.press('Escape');const grid=detail.locator('[data-detail-section=plan] .property-grid');await expect(grid).toBeVisible();await expect.poll(()=>grid.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);await page.screenshot({path:'test-results/v15-motion-detail.png',animations:'disabled'});
+ p=await start(cdp,header);await move(cdp,p,95,0);await end(cdp);await expect(detail).toHaveCount(0);
+ await page.getByRole('button',{name:'新建任务',exact:true}).click();const capture=page.getByRole('dialog',{name:'快速新建任务'});await capture.getByRole('textbox',{name:'快速任务名称'}).fill('手势保留草稿');await capture.getByRole('textbox',{name:'快速任务名称'}).blur();const handle=capture.locator('.sheet-grabber');await expect(handle).toBeVisible();await expect.poll(()=>capture.evaluate(el=>el.getAnimations().every(a=>a.playState!=='running'))).toBe(true);
+ p=await start(cdp,handle);await move(cdp,p,0,35);await expect(capture).toHaveAttribute('data-sheet-dragging','true');await expect.poll(()=>capture.evaluate(el=>getComputedStyle(el).translate)).toContain('35px');await end(cdp);await expect(capture).toBeVisible();await expect.poll(()=>capture.evaluate(el=>getComputedStyle(el).translate)).toBe('0px');
+ p=await start(cdp,handle);await move(cdp,p,0,100);await end(cdp);await expect(capture).toHaveCount(0);await page.getByRole('button',{name:'新建任务',exact:true}).click();await expect(capture.getByRole('textbox',{name:'快速任务名称'})).toHaveValue('手势保留草稿');
+ await page.screenshot({path:'test-results/v15-motion-sheet.png',animations:'disabled'});
+ }finally{await ctx.close()}
+});
+for(const [width,theme] of [[320,'dark'],[390,'light'],[1440,'light'],[1440,'dark']])test('详情密度、控件可用及双主题 '+width+' '+theme,async({page})=>{
+ await page.setViewportSize({width,height:900});await page.emulateMedia({reducedMotion:'reduce'});await seed(page,theme);await page.locator('.task-body').filter({hasText:'连续手势任务'}).click();const detail=page.getByRole('complementary',{name:'任务详情'});await expect(detail).toBeVisible();const section=detail.locator('[data-detail-section=plan]');await expect(section.getByRole('spinbutton',{name:'预计分钟'})).toBeVisible();
+ await expect.poll(()=>section.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);await expect.poll(()=>section.locator('.number-field').evaluateAll(nodes=>nodes.every(el=>el.getBoundingClientRect().width>=30))).toBe(true);if(width>=360&&width<=860)await expect.poll(()=>section.locator('.property-grid>.editable-property').evaluateAll(nodes=>nodes.every(el=>{const label=el.firstElementChild.getBoundingClientRect(),control=el.lastElementChild.getBoundingClientRect();return control.top>=label.bottom-1&&control.width>=100}))).toBe(true);await expect.poll(()=>detail.evaluate(el=>getComputedStyle(el).animationName)).toBe('none');await page.screenshot({path:'test-results/v15-motion-'+width+'-'+theme+'.png',animations:'disabled'});
+});

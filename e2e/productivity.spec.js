@@ -1,6 +1,7 @@
 import {chooseOption} from './select-helper.js';
 import {test,expect} from '@playwright/test';
 test('快速录入、智能清单、备注链接及批量规划',async({page})=>{
+ const fixedClock=new Date();fixedClock.setHours(8,0,0,0);await page.clock.setFixedTime(fixedClock);
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');
  await page.getByRole('button',{name:'新建任务',exact:true}).click();
  await page.getByRole('textbox',{name:'快速任务名称'}).fill('高优任务 !3');
@@ -9,9 +10,9 @@ test('快速录入、智能清单、备注链接及批量规划',async({page})=>
  await page.getByRole('textbox',{name:'任务备注'}).fill('# 计划\n- **第一步**');
  await page.getByRole('button',{name:'预览',exact:true}).click();
  await expect(page.locator('.markdown-preview strong')).toHaveText('第一步');
- await page.getByRole('textbox',{name:'链接地址'}).fill('https://example.com/guide');
+ await page.getByRole('button',{name:'添加链接',exact:true}).click();await page.getByRole('textbox',{name:'链接地址'}).fill('https://example.com/guide');
  await page.getByRole('textbox',{name:'链接名称'}).fill('参考文档');
- await page.getByRole('button',{name:'添加链接'}).click();
+ await page.getByRole('dialog',{name:'添加关联链接'}).getByRole('button',{name:'添加链接',exact:true}).click();
  await expect(page.getByRole('link',{name:'打开 参考文档'})).toHaveAttribute('href','https://example.com/guide');
  await page.getByRole('button',{name:'新建智能清单'}).click();
  await page.getByRole('textbox',{name:'智能清单名称'}).fill('高优先级');

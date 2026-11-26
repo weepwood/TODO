@@ -18,6 +18,7 @@
     "todo-mobile:allow-update-status",
     "todo-mobile:allow-update-install",
     "todo-mobile:allow-update-confirm",
-    "todo-mobile:allow-update-cancel"
+    "todo-mobile:allow-update-cancel",
+    "todo-mobile:allow-share-summary"
   ]
 }

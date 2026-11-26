@@ -17,3 +17,9 @@ test('命令范围分类互斥并保留排序输入',async()=>{
  assert.equal(scopeCommands(entries,'command').length,2);
  assert.equal(scopeCommands(entries,'all'),entries);
 });
+
+test('空查询快速路径保持稳定最近使用和重复ID顺序',()=>{
+ const entries=Array.from({length:10000},(_,i)=>({id:'task:'+i,name:'任务 '+i}));entries.push({...entries[9999],name:'重复项'});
+ assert.deepEqual(rankCommands(entries,'',4,['task:9999','task:3','missing']).map(e=>e.name),['任务 9999','重复项','任务 3','任务 0']);
+ assert.deepEqual(rankCommands(entries,'　',2),entries.slice(0,2));
+});

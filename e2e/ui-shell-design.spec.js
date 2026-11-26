@@ -11,7 +11,7 @@ test('桌面清单栏收起释放工作空间，搜索快捷键打开统一搜�
  await page.keyboard.press('Control+f');
  await expect(sidebar).toBeHidden();await expect(page.getByRole('combobox',{name:'搜索命令与任务'})).toBeFocused();
  await page.keyboard.press('Escape');await page.getByRole('button',{name:'显示清单栏',exact:true}).click();await expect(sidebar).toBeVisible();
- expect(Math.abs((await sidebar.boundingBox()).width-sideWidth)).toBeLessThan(2);
+ await expect.poll(async()=>Math.abs((await sidebar.boundingBox()).width-sideWidth)).toBeLessThan(2);
  await page.getByRole('textbox',{name:'新任务名称'}).fill('桌面布局验收');
  await page.getByRole('button',{name:'添加',exact:true}).click();
  await expect(page.locator('aside.details')).toBeVisible();
@@ -56,4 +56,17 @@ test('手机导航指示器与五个目的地对齐，更多保持当前模块�
  await nav.getByRole('button',{name:'更多',exact:true}).click();
  await expect(page.getByRole('dialog',{name:'工作空间'}).getByRole('button',{name:'习惯',exact:true})).toHaveAttribute('aria-pressed','true');
  await page.screenshot({path:'test-results/shell-mobile-navigation.png',animations:'disabled'});
+});
+
+test('桌面侧栏快速反转及减少动效下布局恢复',async({page})=>{
+ await page.setViewportSize({width:1440,height:900});await page.goto('/');
+ const shell=page.locator('.app.v2'),side=page.locator('.sidebar'),width=(await side.boundingBox()).width;
+ await page.getByRole('button',{name:'隐藏清单栏',exact:true}).click();
+ await page.getByRole('button',{name:'显示清单栏',exact:true}).click();
+ await expect.poll(async()=>Math.abs((await side.boundingBox()).width-width)).toBeLessThan(2);
+ await page.emulateMedia({reducedMotion:'reduce'});
+ await page.getByRole('button',{name:'隐藏清单栏',exact:true}).click();
+ await expect(side).toBeHidden();
+ await expect.poll(()=>shell.evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ')[1])).toBe('0px');
+ await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });

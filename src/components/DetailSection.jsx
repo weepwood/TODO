@@ -1,13 +1,14 @@
 import React,{useId} from 'react';
-import {Pencil,Check} from 'lucide-react';
-export function DetailSection({id,title,icon:Icon,editing=false,editable=true,onToggle,summary,children}){
- return <section className="detail-group detail-section-card" data-detail-section={id} data-editing={editing}>
-  <header className="detail-section-heading"><h3><Icon size={16}/>{title}</h3>{editable&&<button type="button" className="detail-section-toggle" aria-label={(editing?'完成编辑 ':'编辑 ')+title} aria-expanded={editing} onClick={onToggle}>{editing?<Check size={15}/>:<Pencil size={14}/>}<span>{editing?'完成':'编辑'}</span></button>}</header>
-  {summary!==undefined&&<div className="detail-section-summary" hidden={editing}>{summary}</div>}
-  <div className="detail-section-editor" hidden={summary!==undefined&&!editing}>{children}</div>
+import {ChevronUp,ChevronDown,GripVertical} from 'lucide-react';
+import {useSortable} from '@dnd-kit/sortable';
+import {CSS} from '@dnd-kit/utilities';
+import {nextDetailDensity} from '../core/detail-density.js';
+export function DetailSection({id,title,icon:Icon,children,meta,density='full',onDensityChange,onMove}){
+ const bodyId=useId(),expanded=density==='full';
+ const {attributes,listeners,setNodeRef,setActivatorNodeRef,transform,transition,isDragging}=useSortable({id});
+ const ActionIcon=expanded?ChevronUp:ChevronDown;
+ return <section ref={setNodeRef} style={{transform:CSS.Translate.toString(transform),transition,opacity:isDragging?.55:undefined}} className="detail-group detail-section-card" data-detail-section={id} data-density={density} data-dragging={isDragging||undefined}>
+  <header className="detail-section-heading"><div className="detail-section-title"><button ref={setActivatorNodeRef} {...attributes} {...listeners} type="button" className="icon-button detail-section-drag" aria-label={'拖动 '+title} title={'拖动 '+title+'（方向键移动）'} aria-keyshortcuts="ArrowUp ArrowDown" onKeyDown={e=>{if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();e.stopPropagation();onMove?.(e.key==='ArrowUp'?-1:1)}}}><GripVertical size={15}/></button><h3><Icon size={16}/>{title}</h3></div><div className="detail-section-header-actions">{meta!=null&&<div className="detail-section-meta">{meta}</div>}{onDensityChange&&<button type="button" className="icon-button detail-section-toggle" aria-label={(expanded?'折叠':'展开')+title} title={expanded?'折叠':'展开'} aria-controls={bodyId} aria-expanded={expanded} onClick={()=>onDensityChange(nextDetailDensity(density))}><ActionIcon size={15}/></button>}</div></header>
+  <div id={bodyId} className="detail-section-body" hidden={!expanded} inert={!expanded?true:undefined}>{children}</div>
  </section>
-}
-export function DetailFacts({items,onEdit}){
- const id=useId();
- return <dl className="detail-facts">{items.map(([label,value],i)=><div key={label}><dt>{label}</dt><dd>{onEdit?<button type="button" className="detail-fact-edit" aria-label={'快捷编辑 '+label} aria-describedby={id+'-'+i} onClick={()=>onEdit(label)}><span id={id+'-'+i}>{value||'—'}</span><Pencil size={12} aria-hidden="true"/></button>:value||'—'}</dd></div>)}</dl>
 }

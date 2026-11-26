@@ -23,5 +23,6 @@ test('时间块时长键盘调整、真实指针拉伸及密度切换',async({pa
  await chooseOption(page.getByRole('combobox',{name:'时间轴密度'}),'112');const rect=await handle.boundingBox();
  await page.mouse.move(rect.x+rect.width/2,rect.y+3);await page.mouse.down();await page.mouse.move(rect.x+rect.width/2,rect.y+31,{steps:5});await page.mouse.up();
  await expect(block).toHaveAttribute('aria-label',/09:00–10:00/);
+ const task=await page.evaluate(()=>JSON.parse(localStorage.getItem('todo-workbench-v1')).tasks.find(t=>t.title==='拉伸任务'));expect(task.duration).toBe(30);expect(task.planMinutes).toBe(60);
  await page.screenshot({path:'test-results/v07-resize.png'});
 });

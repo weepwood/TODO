@@ -3,7 +3,8 @@ import {test,expect} from '@playwright/test';
 test('提醒编辑只在应用时提交，取消与清除保持原值',async({page})=>{
  await page.setViewportSize({width:390,height:844});await page.goto('/');
  await page.getByRole('textbox',{name:'新任务名称'}).fill('提醒验收');await page.getByRole('button',{name:'添加',exact:true}).click();
- const trigger=page.getByRole('button',{name:'独立提醒',exact:true});
+ const outer=page.locator('[data-detail-section=plan]').getByRole('button',{name:'提醒',exact:true});await outer.click();const property=page.getByRole('dialog',{name:'提醒设置',exact:true});
+ const trigger=property.getByRole('button',{name:'独立提醒',exact:true});
  await trigger.click();const popup=page.locator('.datetime-popover');
  const dateTrigger=popup.getByRole('button',{name:'独立提醒日期',exact:true});
  const datePicker=page.getByRole('dialog',{name:'独立提醒日期选择器',exact:true});
@@ -36,8 +37,8 @@ test('提醒编辑只在应用时提交，取消与清除保持原值',async({pa
  await expect(popup).toBeVisible();
  await page.screenshot({path:'test-results/reminder-mobile.png',animations:'disabled'});
  await popup.getByRole('button',{name:'应用提醒'}).click();
- await expect(trigger).toContainText('2026-12-12 14:15');
- await page.reload();await page.locator('.task-body').filter({hasText:'提醒验收'}).click();
+ await expect(trigger).toContainText('2026-12-12 14:15');await property.getByRole('button',{name:'确定',exact:true}).click();
+ await page.reload();await page.locator('.task-body').filter({hasText:'提醒验收'}).click();await outer.click();
  await expect(trigger).toContainText('2026-12-12 14:15');
  await trigger.click();await popup.getByRole('button',{name:'清除提醒'}).click();await expect(trigger).toContainText('设置提醒');
  await page.getByRole('button',{name:'添加提醒',exact:true}).click();
@@ -51,7 +52,7 @@ test('提醒编辑只在应用时提交，取消与清除保持原值',async({pa
  await expect(popup).toBeVisible();
  await popup.getByRole('button',{name:'取消',exact:true}).click();
  await page.getByRole('button',{name:'移除提醒',exact:true}).click();
- await expect(page.getByRole('button',{name:'提醒 2',exact:true})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'提醒 2',exact:true})).toHaveCount(0);await property.getByRole('button',{name:'确定',exact:true}).click();
 });
 test('数字步进、精确录入、取消编辑与持久化',async({page})=>{
  await page.goto('/');await page.getByRole('textbox',{name:'新任务名称'}).fill('步进验收');await page.getByRole('button',{name:'添加',exact:true}).click();

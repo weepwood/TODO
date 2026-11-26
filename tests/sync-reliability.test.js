@@ -1,0 +1,98 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {initialState,newTask,migrateState,saveState,readState,STORAGE_KEY,BACKUP_KEY} from '../src/core/domain.js';
+import {startFocusTimer,changeFocusTimer,settleFocus,focusTimerKey,focusSessionId} from '../src/core/focus-engine.js';
+import {mergeTasks,mergeFocusSessions,unsafeHistoryPull,loadBaseline,saveBaseline} from '../src/services/sync-merge.js';
+import {recordTaskChanges,mergeActivity,ACTIVITY_LIMIT} from '../src/core/task-activity.js';
+import {createNativeStore} from '../src/services/native-store.js';
+import {digest} from '../src/services/cloud-core.js';
+const now=Date.UTC(2026,10,26),base=()=>({...initialState(),tasks:[newTask('甲','inbox','','a'),newTask('乙','inbox','','b')]});
+const meta=(id,n=0)=>({id,at:new Date(now+n*1000).toISOString(),source:'manual',session:id});
+const session=(id,taskId,seconds,n=0)=>({id,taskId,startedAt:new Date(now+n*1000).toISOString(),mode:'stopwatch',seconds});
+test('同一计时跨设备手动与自动结算使用稳定ID，活动记录也去重',()=>{
+ const b=base(),t=startFocusTimer(b,{mode:'focus',taskId:'a',minutes:1,now});
+ const key=focusTimerKey(t.timer),manual=changeFocusTimer(t,{action:'save',key,now:now+60000,sessionId:'random-a'}),auto=settleFocus(t,now+60000);
+ assert.equal(manual.sessions[0].id,focusSessionId(t.timer));assert.deepEqual(manual.sessions,auto.sessions);
+ const early=changeFocusTimer(t,{action:'save',key,now:now+30000,sessionId:'random-b'});
+ assert.equal(early.sessions.length,0);
+ const a=recordTaskChanges(t,manual,meta('a',60)),r=recordTaskChanges(t,auto,meta('b',61));
+ assert.equal(a.tasks[0].activity[0].id,r.tasks[0].activity[0].id);
+ assert.equal(mergeActivity(a.tasks[0].activity,r.tasks[0].activity).length,1);
+ const old={...auto.sessions[0],id:'timer:'+t.timer.createdAt+':focus'};
+ assert.equal(settleFocus({...t,sessions:[old]},now+60000).sessions.length,1);
+});
+test('独立追加专注与安全任务字段合并，基线记录保留，重复记录去重',()=>{
+ const b=base(),old=session('old','a',180,-60);b.sessions=[old];
+ const l={...b,sessions:[old,session('l','a',60,1)],tasks:b.tasks.map(t=>t.id==='a'?{...t,title:'左'}:t)};
+ const r={...b,sessions:[old,session('r','b',120,2)],tasks:b.tasks.map(t=>t.id==='b'?{...t,priority:2}:t)};
+ const merged=mergeTasks(b,l,r);assert.equal(merged.tasks[0].title,'左');assert.equal(merged.tasks[1].priority,2);
+ assert.deepEqual(merged.sessions,[old,l.sessions[1],r.sessions[1]]);
+ assert.deepEqual(mergeTasks(b,r,l).sessions,merged.sessions);
+ assert.deepEqual(mergeTasks(b,l,l).sessions,l.sessions);
+ assert.deepEqual(migrateState(merged),merged);
+});
+test('同ID不同秒数、历史删除、旧端不同ID同计时、计时状态冲突均拒绝自动合并',()=>{
+ const b=base(),a=session('a','a',60),l={...b,sessions:[a]};
+ for(const other of [{...a,seconds:65},{...a,id:'legacy-random'}])assert.equal(mergeTasks(b,l,{...b,sessions:[other]}),null);
+ assert.equal(mergeFocusSessions([a],[],[a]),null);
+ assert.equal(mergeFocusSessions([a],[{...a,seconds:61}],[a]),null);
+ const active=startFocusTimer(b,{mode:'stopwatch',taskId:'a',now});
+ const left=changeFocusTimer(active,{action:'save',key:focusTimerKey(active.timer),now:now+60000});
+ const right=changeFocusTimer(active,{action:'save',key:focusTimerKey(active.timer),now:now+61000});
+ assert.equal(mergeTasks(active,left,right),null);
+ assert.deepEqual(mergeTasks(active,left,left),left);
+ assert.equal(mergeTasks(active,left,active),null);
+});
+test('旧客户端截短活动阻止静默覆盖，正常容量淘汰和永久删除仍可处理',()=>{
+ const b=base(),t=b.tasks[0];
+ const event=(i)=>({id:'e'+i,taskId:t.id,operation:'op'+i,session:'',at:new Date(now+i*1000).toISOString(),source:'manual',kind:'title',label:'修改任务名称',category:'property',changes:[]});
+ const logs=Array.from({length:ACTIVITY_LIMIT},(_,i)=>event(i));
+ const state={...b,tasks:[{...t,activity:logs},b.tasks[1]]};
+ assert.equal(unsafeHistoryPull(state,{...state,tasks:[{...t,activity:logs.slice(-40)},b.tasks[1]]}),true);
+ assert.equal(unsafeHistoryPull(state,{...state,tasks:[t,b.tasks[1]]}),true);
+ assert.equal(unsafeHistoryPull(state,{...state,tasks:[{...t,activity:mergeActivity(logs,[event(ACTIVITY_LIMIT)])},b.tasks[1]]}),false);
+ assert.equal(unsafeHistoryPull(state,{...state,tasks:[b.tasks[1]]}),false);
+ const old=session('timer:old','a',60),withSession={...b,sessions:[old]};
+ assert.equal(unsafeHistoryPull(withSession,b),true);
+ assert.equal(unsafeHistoryPull(withSession,{...b,sessions:[old,{...old,id:'legacy'}]}),true);
+ assert.equal(unsafeHistoryPull(withSession,{...b,sessions:[old,session('other','b',60,1)]}),false);
+});
+test('旧配置迁移保留记录、备份原始内容及基线校验失败安全回退',async()=>{
+ const old=base();old.sessions=[session('legacy','a',3)];delete old.focusConfig.smartPlan;delete old.focusConfig.ignoreShortSessions;
+ const raw=JSON.stringify(old),map=new Map([[STORAGE_KEY,raw]]),storage={getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v)};
+ const migrated=readState(storage);assert.equal(migrated.focusConfig.smartPlan,true);assert.equal(migrated.focusConfig.ignoreShortSessions,true);assert.deepEqual(migrated.sessions,old.sessions);
+ saveState(storage,migrated);assert.equal(storage.getItem(BACKUP_KEY),raw);
+ const hash=await digest(old),native=createNativeStore({},async()=>{});saveBaseline('a',native,1,hash,old);
+ assert.equal(await loadBaseline('a',native,{revision:1,hash}),null);
+ const currentHash=await digest(migrated);saveBaseline('a',native,2,currentHash,migrated);
+ assert.deepEqual(await loadBaseline('a',native,{revision:2,hash:currentHash}),migrated);
+});
+
+test('旧端保留当前计时但丢失规划或阶段元数据时阻止静默拉取',()=>{
+ const s=startFocusTimer(base(),{mode:'focus',taskId:'a',now,planned:true});
+ assert.equal(s.timer.planned,true);
+ const paused=changeFocusTimer(s,{action:'pause',key:focusTimerKey(s.timer),now:now+60000});
+ assert.equal(unsafeHistoryPull(s,paused),false);
+ for(const field of ['planned','planBaseline']){
+  const timer={...s.timer};delete timer[field];assert.equal(unsafeHistoryPull(s,{...s,timer}),true);
+ }
+ const phase={...s,timer:{...s.timer,phaseAt:new Date(now-1000).toISOString()}};
+ const timer={...phase.timer};delete timer.phaseAt;assert.equal(unsafeHistoryPull(phase,{...phase,timer}),true);
+ const discard=changeFocusTimer(s,{action:'discard',key:focusTimerKey(s.timer),now:now+1000});
+ assert.equal(unsafeHistoryPull(s,discard),false);
+});
+
+test('旧引擎按普通计时自动结算智能番茄时阻止拉取，正常新版结算不受影响',()=>{
+ const d=base(),s=startFocusTimer({...d,focusConfig:{...d.focusConfig,autoContinue:true}},{mode:'focus',taskId:'a',now,planned:true});
+ const end=now+s.timer.target*1000,iso=new Date(end).toISOString();
+ const legacy={...s,sessions:[...s.sessions,{id:'timer:'+s.timer.createdAt+':focus',taskId:'a',mode:'focus',startedAt:s.timer.createdAt,seconds:s.timer.target}],timer:{mode:'break',target:300,elapsed:0,startedAt:end,createdAt:iso,taskId:'a'}};
+ assert.equal(unsafeHistoryPull(s,legacy),true);
+ assert.equal(unsafeHistoryPull(s,{...legacy,timer:null}),true);
+ const current=settleFocus(s,end);assert.equal(unsafeHistoryPull(s,current),false);
+ const explicit=changeFocusTimer(s,{action:'discard',key:focusTimerKey(s.timer),now:now+5000});assert.equal(unsafeHistoryPull(s,explicit),false);
+ // A legacy break can create a wrong successor without appending a focus record.
+ const rest={...s,timer:{...s.timer,mode:'break',target:300}},restEnd=now+300000;
+ const successor={...rest,timer:{mode:'focus',target:1500,elapsed:0,startedAt:restEnd,createdAt:new Date(restEnd).toISOString(),taskId:'a'}};
+ assert.equal(unsafeHistoryPull(rest,successor),true);
+ assert.equal(unsafeHistoryPull(rest,settleFocus(rest,restEnd)),false);
+});

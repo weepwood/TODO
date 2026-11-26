@@ -11,7 +11,7 @@ async function seed(page){
 const savedTask=(page,id)=>page.evaluate(id=>JSON.parse(localStorage.getItem('todo-workbench-v1')).tasks.find(t=>t.id===id),id);
 test('规则配置、预览、显式执行及每日自动执行不重复',async({page})=>{
  const {a,b,today,ordinary}=await seed(page);
- await page.locator('[data-view-key=today]').click();await page.getByRole('button',{name:'自动化',exact:true}).click();
+ await page.locator('[data-view-key=today]').click();await page.getByRole('button',{name:'今日更多操作'}).click();await page.getByRole('menuitem',{name:'自动化',exact:true}).click();
  const dialog=page.getByRole('dialog',{name:'任务工作流自动化'});
  await dialog.getByRole('button',{name:'添加规则'}).click();
  await dialog.getByRole('textbox',{name:'规则名称 1'}).fill('积压转明天');
@@ -21,7 +21,7 @@ test('规则配置、预览、显式执行及每日自动执行不重复',async(
  page.once('dialog',d=>d.accept());await dialog.getByRole('button',{name:'执行规则'}).click();
  await expect.poll(async()=>(await savedTask(page,a.id)).date).toBe(shiftDay(today,1));
  await expect.poll(async()=>(await savedTask(page,b.id)).date).toBe(today);
- await page.getByRole('button',{name:'自动化',exact:true}).click();await dialog.getByRole('button',{name:'添加规则'}).click();
+ await page.getByRole('button',{name:'今日更多操作'}).click();await page.getByRole('menuitem',{name:'自动化',exact:true}).click();await dialog.getByRole('button',{name:'添加规则'}).click();
  await dialog.getByRole('textbox',{name:'规则名称 2'}).fill('今日高优先级');
  await chooseOption(dialog.getByRole('combobox',{name:'触发条件 2'}),'today');
  await chooseOption(dialog.getByRole('combobox',{name:'规则操作 2'}),'high');

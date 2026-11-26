@@ -18,7 +18,7 @@ test('紧凑工具栏、底部录入、选择模式和任务完成反馈',async(
  await expect(page.getByText('已选 1 项',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'结束选择'}).click();
  await row.getByRole('button',{name:'任务操作 移动操作验收'}).click();
- await expect(page.getByRole('menuitem',{name:'安排今天'})).toBeVisible();
+ await expect(page.getByRole('menuitem',{name:'今天',exact:true})).toBeVisible();
  await page.keyboard.press('Escape');
  await row.getByRole('button',{name:'完成 移动操作验收'}).click();
  await expect(page.getByRole('status').filter({hasText:'任务已完成'})).toBeVisible();
@@ -53,7 +53,7 @@ test('统计概览优先，积分跳转与双主题布局',async({page})=>{
  await page.goto('/');await page.getByRole('button',{name:'统计',exact:true}).click();
  await expect(page.getByRole('heading',{name:'任务概览'})).toBeVisible();
  const a=await page.getByRole('heading',{name:'任务概览'}).boundingBox(),b=await page.getByRole('heading',{name:'任务积分',exact:true}).boundingBox();expect(a.y).toBeLessThan(b.y);
- await page.locator('.stats-jump').getByRole('button',{name:'任务积分'}).click();
+ await page.locator('.stats-jump').getByRole('button',{name:'跳转到…'}).click();await page.getByRole('menuitem',{name:'任务积分',exact:true}).click();
  await expect(page.getByRole('heading',{name:'任务积分',exact:true})).toBeInViewport();
  await page.screenshot({path:'test-results/refinement-points.png',animations:'disabled'});
 });

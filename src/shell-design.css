@@ -32,27 +32,66 @@
 .note-workbench .note-reading{max-width:100%}
 @media(min-width:861px){
  .v2 .toolbar,.v2 .detail-header{height:var(--shell-header)}
- .v2 .task-content{padding-inline:var(--shell-content-gap)}
+ .v2 .task-content{padding:28px var(--shell-content-gap)}
  .v2 .sidebar .brand{padding-top:9px}
  .v2 .sidebar .section-label{padding-top:18px}
  .v2 .sidebar .nav-row{gap:9px}
  .v2 .rail .brand-icon{box-shadow:0 2px 5px color-mix(in srgb,var(--accent) 25%,transparent)}
 
- .app.v2[data-sidebar-hidden=true]{grid-template-columns:var(--shell-rail) minmax(0,1fr) auto}
- .app.v2[data-sidebar-hidden=true]>.sidebar{display:none}
 }
 @media(max-width:860px){
+ .v2.compact-mobile .task-content{padding:14px 14px 20px}
  .v2.compact-mobile .breadcrumb{display:none}
  .v2.compact-mobile .task-content>.heading h1{font-size:24px}
- .v2.compact-mobile .mobile-nav{background:var(--bg);isolation:isolate}
- .v2.compact-mobile .mobile-nav-indicator{left:6px;width:calc((100% - 12px)/5);transform:translateX(calc(var(--nav-index)*100%));top:5px;height:calc(100% - 10px);z-index:0}
- .v2.compact-mobile .mobile-nav>button{position:relative;z-index:1;background:transparent}
+ .v2.compact-mobile .mobile-nav{--nav-inline:8px;--nav-gap:3px;--nav-height:54px;position:relative;background:var(--bg);isolation:isolate;padding:5px var(--nav-inline) max(5px,env(safe-area-inset-bottom,0px));gap:var(--nav-gap)}
+ .v2.compact-mobile .mobile-nav-indicator{display:block;position:absolute;pointer-events:none;left:var(--nav-inline);width:calc((100% - 2 * var(--nav-inline) - 4 * var(--nav-gap))/5);transform:translateX(calc(var(--nav-index)*(100% + var(--nav-gap))));top:5px;height:var(--nav-height);z-index:0;background:var(--active);border-radius:9px}
+ .v2.compact-mobile .mobile-nav>button{position:relative;z-index:1;background:transparent;height:var(--nav-height);font-size:11px}
  .v2.compact-mobile .mobile-nav>button.active{background:transparent;color:var(--accent-text)}
  .mobile-more-grid button[aria-pressed=true]{background:var(--active);color:var(--accent-text);border-color:var(--accent)}
  .note-editor-dialog.note-immersive{width:auto;max-width:none;max-height:none;padding:14px}
  .note-editor-dialog .note-immersive-toggle{display:none}
 }
+@media(forced-colors:active){.v2.compact-mobile .mobile-nav-indicator{outline:2px solid Highlight;outline-offset:-2px}}
 @media(prefers-reduced-motion:no-preference){
- .v2 .task-content{animation-duration:140ms}
- .v2.compact-mobile .mobile-nav-indicator{transition:transform 190ms var(--ui-ease)}
+ .v2.compact-mobile .mobile-nav-indicator{transition:transform var(--motion-selection) var(--motion-ease)}
 }
+
+/* Stable four-track shell on resizable desktop widths. Grid interpolates from
+   its current value on rapid toggles. Dragging a handle stays synchronous. */
+@media(min-width:861px){
+ .app.v2:not(.compact-mobile){--shell-side-track:var(--user-sidebar,228px);--shell-detail-track:0px;grid-template-columns:var(--shell-rail) var(--shell-side-track) minmax(0,1fr) var(--shell-detail-track)}
+ .app.v2:not(.compact-mobile)[data-detail-visible=true]{--shell-detail-track:var(--user-detail,350px)}
+ .app.v2:not(.compact-mobile)[data-sidebar-hidden=true]{--shell-side-track:0px}
+ .app.v2:not(.compact-mobile)>.workspace{grid-column:3;min-width:0}
+ .app.v2:not(.compact-mobile)>.sidebar{grid-column:2;min-width:0;overflow-x:hidden}
+ .app.v2:not(.compact-mobile)[data-sidebar-hidden=true]>.sidebar{display:flex;visibility:hidden;pointer-events:none;padding-inline:0;border:0}
+ .app.v2:not(.compact-mobile)>.details{grid-column:4;min-width:0;width:100%;overflow:hidden}
+}
+/* Intermediate desktop widths retain a usable center column without
+   overwriting the saved wide-screen panel sizes. */
+@media(min-width:861px) and (max-width:1150px){
+ .app.v2:not(.compact-mobile){--shell-side-track:clamp(176px,18vw,198px)}
+ .app.v2:not(.compact-mobile)[data-detail-visible=true]{--shell-detail-track:clamp(280px,28vw,310px)}
+ .app.v2:not(.compact-mobile)[data-sidebar-hidden=true]{--shell-side-track:0px}
+ .v2 .task-content{padding-inline:clamp(14px,2vw,24px)}
+}
+@media(min-width:861px) and (prefers-reduced-motion:no-preference){
+ body:not(.resizing-panels) .app.v2:not(.compact-mobile){transition:grid-template-columns var(--motion-layout) var(--motion-ease)}
+}
+
+/* Save failures must expose recovery actions without hiding the current draft. */
+.workspace-save-error{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);flex-wrap:wrap;overflow-wrap:anywhere}
+.workspace-save-error>div{display:flex;gap:var(--space-2);flex-wrap:wrap}
+.workspace-save-error button{min-height:var(--control-height)}
+@media(max-width:860px){.workspace-save-error button{min-height:44px}}
+
+/* Isolated storage recovery: digest is readable even on narrow screens. */
+.shard-pilot-gate{width:min(100%,720px);max-width:min(720px,100%);margin-inline:auto;overflow:auto;max-height:100dvh;text-align:start;align-items:stretch;justify-content:flex-start;padding:clamp(16px,4vw,32px);box-sizing:border-box}
+.shard-pilot-gate>*{flex-shrink:0;min-width:0}
+.shard-pilot-gate section{display:grid;gap:var(--space-2);padding:var(--space-3);border:var(--surface-border);border-radius:var(--surface-radius)}
+.shard-digest{overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.shard-pilot-gate input[type=file]{max-width:100%}
+.shard-pilot-gate>h2{text-align:center}
+.shard-pilot-gate p{max-width:none}
+.shard-pilot-gate section label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);min-width:0}
+.shard-pilot-gate input[type=number]{width:7rem;min-height:var(--control-height);border:var(--surface-border);border-radius:var(--radius-control);background:var(--bg);color:var(--text);padding-inline:var(--space-2)}

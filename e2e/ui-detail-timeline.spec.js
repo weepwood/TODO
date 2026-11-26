@@ -8,24 +8,23 @@ async function seed(page){
  await page.addInitScript(data=>{if(!localStorage.getItem('todo-workbench-v1'))localStorage.setItem('todo-workbench-v1',JSON.stringify(data))},data);
  await page.goto('/');
 }
-test('展示态属性直接定位原编辑器，独立区块及已完成只读保护',async({page})=>{
+test('属性直接操作、浮层不改变卡片位置及已完成只读保护',async({page})=>{
  await page.setViewportSize({width:1440,height:900});await seed(page);
  await page.locator('.task-body').filter({hasText:'快捷验收'}).click();
  const detail=page.locator('.detail-content'),plan=detail.locator('[data-detail-section=plan]'),org=detail.locator('[data-detail-section=organization]');
- const quick=plan.getByRole('button',{name:'快捷编辑 预计时长',exact:true});
- await expect(quick).toHaveAccessibleDescription('30 分钟');
- await page.mouse.move(0,0);await expect(quick.locator(':scope>svg')).toHaveCSS('opacity','0');
- await quick.hover();await expect(quick.locator(':scope>svg')).toHaveCSS('opacity','1');
- await quick.click();const duration=plan.getByRole('spinbutton',{name:'预计分钟'});
- await expect(duration).toBeFocused();await expect(org).toHaveAttribute('data-editing','false');
- await duration.fill('45');await duration.press('Enter');await plan.getByRole('button',{name:'完成编辑 时间与计划'}).click();
- await expect(plan).toContainText('45 分钟');
- await org.getByRole('button',{name:'快捷编辑 优先级',exact:true}).click();
- const priority=org.getByRole('combobox',{name:'优先级',exact:true});await expect(priority).toBeFocused();await chooseOption(priority,'3');
- await org.getByRole('button',{name:'完成编辑 组织与状态'}).click();await expect(org).toContainText('高优先级');
+ const duration=plan.getByRole('spinbutton',{name:'预计分钟'});await duration.fill('45');await duration.press('Enter');await expect(duration).toHaveValue('45');
+ const before=await org.boundingBox(),priority=org.getByRole('combobox',{name:'优先级',exact:true});
+ await chooseOption(priority,'3');await expect(priority).toContainText('高优先级');
+ expect(Math.abs((await org.boundingBox()).y-before.y)).toBeLessThan(2);
  await page.screenshot({path:'test-results/detail-quick-edit.png',animations:'disabled'});
  await page.locator('.nav-row').filter({hasText:'已完成'}).click();await page.locator('.task-body').filter({hasText:'只读记录'}).click();
- await expect(detail.getByRole('button',{name:/快捷编辑/})).toHaveCount(0);
+ await expect(detail.getByRole('spinbutton')).toHaveCount(0);
+ await expect(detail.getByRole('combobox')).toHaveCount(1);
+ await expect(detail.getByRole('combobox',{name:'筛选活动记录'})).toBeVisible();
+ await expect(org.getByRole('combobox')).toHaveCount(0);
+ await expect(plan.getByRole('combobox')).toHaveCount(0);
+ await expect(detail.getByRole('button',{name:'提醒',exact:true})).toHaveCount(0);
+ await expect(detail.getByRole('textbox',{name:'任务备注'})).toHaveAttribute('readonly','');
 });
 test('时间块拖动预览重叠提示、原值不提前提交、落点正确',async({page})=>{
  await page.setViewportSize({width:1440,height:900});await seed(page);

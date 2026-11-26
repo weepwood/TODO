@@ -4,9 +4,9 @@ test('行内标题编辑、取消、复制与跨清单移动',async({page})=>{
  await page.goto('/');await page.getByRole('textbox',{name:'新任务名称'}).fill('原任务');
  await page.getByRole('button',{name:'添加',exact:true}).click();
  const row=page.locator('.task-body').filter({hasText:'原任务'});
- await row.dblclick();const input=page.getByLabel('行内任务标题');await expect(input).toBeFocused();
+ await row.locator('.task-title-text').click();const input=page.getByLabel('行内任务标题');await expect(input).toBeFocused();
  await input.fill('取消修改');await page.keyboard.press('Escape');await expect(row).toBeVisible();
- await row.dblclick();await input.fill('');await page.getByRole('button',{name:'保存',exact:true}).click();await expect(page.getByRole('alert')).toContainText('标题不能为空');
+ await row.locator('.task-title-text').click();await input.fill('');await input.press('Enter');await expect(page.getByRole('alert')).toContainText('标题不能为空');
  await input.fill('行内已保存');await page.keyboard.press('Enter');
  const edited=page.locator('.task-body').filter({hasText:'行内已保存'});
  await expect(edited).toBeVisible();await edited.click({button:'right'});await page.getByRole('menuitem',{name:'复制任务'}).click();

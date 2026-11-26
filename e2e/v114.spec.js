@@ -12,7 +12,7 @@ test('直接日期输入与数字字段仅提交有效值',async({page})=>{
  await page.goto('/');await page.getByRole('textbox',{name:'新任务名称'}).fill('控件测试');await page.getByRole('button',{name:'添加',exact:true}).click();
  const number=page.getByRole('spinbutton',{name:'预计分钟'});await number.fill('');await number.blur();await expect(number).toHaveValue('30');
  await number.fill('123');await number.press('Enter');await expect(number).toHaveValue('123');await number.fill('45');await number.press('Escape');await expect(number).toHaveValue('123');
- await page.getByRole('button',{name:'计划日期',exact:true}).click();await page.getByLabel('计划日期直接输入').fill('2026-12-10');await page.getByRole('button',{name:'应用',exact:true}).click();await expect(page.getByRole('button',{name:'计划日期',exact:true})).toContainText('2026-12-10');
+ await page.getByRole('button',{name:'计划日期',exact:true}).click();await page.getByText('手动输入日期',{exact:true}).click();await page.getByLabel('计划日期直接输入').fill('2026-12-10');await page.getByRole('button',{name:'应用',exact:true}).click();await page.getByRole('dialog',{name:'计划日期选择器'}).getByRole('button',{name:'确定',exact:true}).click();await expect(page.getByRole('button',{name:'计划日期',exact:true})).toContainText('2026-12-10');
 });
 test('独立录入页仅通过受限 IPC 交接草稿（模拟 IPC）',async({page})=>{
  await page.addInitScript(()=>{window.isTauri=true;window.__calls=[];window.__TAURI_INTERNALS__={transformCallback:()=>1,invoke:async(cmd,args)=>{window.__calls.push({cmd,args});if(cmd==='native_capture_generation')return 7;if(cmd==='plugin:event|listen')return 1;if(cmd==='native_capture_handoff')return null;return null}}});

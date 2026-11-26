@@ -19,5 +19,5 @@ export async function parseWorkspaceArchive(file){
  if(await digest(archive.workspace)!==archive.workspaceSha256)throw Error('工作空间校验失败');
  const workspace=migrateState(archive.workspace),attachments=await parseAttachmentArchive(new Blob([JSON.stringify(archive.attachments)]));
  const ids=new Set(workspace.tasks.map(t=>t.id));
- return {workspace,attachments,orphaned:attachments.filter(a=>!ids.has(a.taskId)).length};
+ return {workspace,attachments,createdAt:typeof archive.createdAt==="string"&&Number.isFinite(Date.parse(archive.createdAt))?archive.createdAt:null,bytes:file.size,workspaceSha256:archive.workspaceSha256,orphaned:attachments.filter(a=>!ids.has(a.taskId)).length};
 }

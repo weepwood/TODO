@@ -1,4 +1,6 @@
+import {blockMinutes} from '../core/plan-block.js';
 import {canonical,digest} from './cloud-core.js';
+import {mergeActivity} from '../core/task-activity.js';
 import {migrateState} from '../core/domain.js';
 const eq=(a,b)=>canonical(a)===canonical(b);
 const simple=t=>!t||t.repeat==='none'&&!t.seriesId&&!t.previousId&&!t.seriesHold&&!t.parentId&&!(t.dependsOn||[]).length&&!t.deletedAt;
@@ -6,7 +8,7 @@ const SAFE_FIELDS=new Set(['title','notes','priority','points']);
 const changed=(a,b)=>[...new Set([...Object.keys(a||{}),...Object.keys(b||{})])].filter(k=>!eq(a?.[k],b?.[k]));
 // Only task-only, nonstructural concurrent edits are eligible. No guessing on deletion,
 // order, generated instances, timer state, or cross-entity dependencies.
-export function mergeTasks(base,local,remote,resolveField){
+function mergeBusinessTasks(base,local,remote,resolveField){
  const other=s=>Object.fromEntries(Object.entries(s).filter(([k])=>k!=='tasks'));
  if(!eq(other(base),other(local))||!eq(other(base),other(remote)))return null;
  const maps=[base,local,remote].map(s=>new Map(s.tasks.map(t=>[t.id,t])));
@@ -41,6 +43,95 @@ export function mergeTasks(base,local,remote,resolveField){
  }
  const merged={...base,tasks:result};
  try{const valid=migrateState(merged);return eq(valid,merged)?valid:null}catch{return null}
+}
+// Append-only records are mergeable; edits/removals/reorders or ambiguous
+// legacy identifiers require explicit resolution rather than guessing.
+export function mergeFocusSessions(base,local,remote){
+ if(new Set(base.map(s=>s.id)).size!==base.length)return null;
+ const sides=[local,remote];
+ for(const side of sides){
+  if(new Set(side.map(s=>s.id)).size!==side.length||side.length<base.length||base.some((s,i)=>!eq(s,side[i])))return null;
+ }
+ const added=new Map(),identities=new Map();
+ const identity=s=>JSON.stringify([s.startedAt,s.mode,s.taskId??null]);
+ for(const side of sides)for(const s of side.slice(base.length)){
+  const prior=added.get(s.id);
+  if(prior&&!eq(prior,s))return null;
+  const key=identity(s),other=identities.get(key);
+  // Two different IDs describing one timer are ambiguous (older clients).
+  if(other&&other!==s.id)return null;
+  identities.set(key,s.id);added.set(s.id,s);
+ }
+ const baselineIdentities=new Set(base.map(identity));
+ if([...added.values()].some(s=>baselineIdentities.has(identity(s))))return null;
+ return [...base,...[...added.values()].sort((a,b)=>String(a.startedAt).localeCompare(String(b.startedAt))||a.id.localeCompare(b.id))];
+}
+export function mergeTasks(base,local,remote,resolveField){
+ const sessions=mergeFocusSessions(base.sessions,local.sessions,remote.sessions);
+ if(!sessions)return null;
+ // Timer and notification state are never guessed. Identical completion
+ // of a shared timer can be merged, but divergent pause/resume/end cannot.
+ const sameCompletion=!!base.timer&&eq(local.timer,remote.timer)&&eq(local.notifications,remote.notifications)&&eq(local.sessions,remote.sessions)&&!eq(base.timer,local.timer);
+ const strip=s=>({...s,sessions:base.sessions,...(sameCompletion?{timer:base.timer,notifications:base.notifications}:{}),tasks:s.tasks.map(({activity,...t})=>t)});
+ const merged=mergeBusinessTasks(strip(base),strip(local),strip(remote),resolveField);if(!merged)return null;
+ const maps=[base,local,remote].map(s=>new Map(s.tasks.map(t=>[t.id,t.activity])));
+ const result={...merged,sessions,...(sameCompletion?{timer:local.timer,notifications:local.notifications}:{}),tasks:merged.tasks.map(t=>{const activity=mergeActivity(...maps.map(m=>m.get(t.id))).filter(e=>e.taskId===undefined||e.taskId===t.id);return activity.length?{...t,activity}:t})};
+ try{const valid=migrateState(result);return eq(valid,result)?valid:null}catch{return null}
+}
+// Reject a pull which would silently erase still-retained activity or focus
+// records, while allowing normal capacity eviction and explicit task deletion.
+const focusTimerIdentity=t=>JSON.stringify([t.phaseAt??t.createdAt,t.mode,t.taskId??null]);
+export function unsafeHistoryPull(base,remote){
+ const remoteTasks=new Map(remote.tasks.map(t=>[t.id,t]));
+ if(base.importRuns?.length&&remote.importRuns===undefined)return true;
+ if(base.queueHistory?.length){const rows=remote.queueHistory||[],map=new Map(rows.map(r=>[r.id,r]));if(base.queueHistory.some(r=>map.has(r.id)?!eq(r,map.get(r.id)):rows.length<100||r.endedAt>=rows.at(-1)?.endedAt))return true;}
+ // A legacy client may preserve the active timer but strip phase/plan metadata.
+ // Never silently convert the same running phase into a different planning mode.
+ const a=base.timer,b=remote.timer;
+ if(a&&b&&(focusTimerIdentity(a)===focusTimerIdentity(b)||a.createdAt===b.createdAt&&a.mode===b.mode&&(a.taskId??null)===(b.taskId??null))){
+  for(const field of ['phaseAt','planned','planBaseline'])if(a[field]!==undefined&&!eq(a[field],b[field]))return true;
+  if(a.queueRun&&!eq(a.queueRun,b.queueRun))return true;
+ }
+ // Historical clients settle a smart phase as a normal timer. A newly
+ // appended legacy record or a legacy-shaped automatic successor is evidence
+ // that its planning contract was ignored. An ordinary explicit discard
+ // (no successor, no legacy record) remains valid.
+ if(a?.planned){
+  const legacyId='timer:'+a.createdAt+':'+a.mode;
+  if(!base.sessions.some(s=>s.id===legacyId)&&remote.sessions.some(s=>s.id===legacyId&&s.startedAt===a.createdAt&&s.mode===a.mode&&(s.taskId??null)===(a.taskId??null)))return true;
+  if(a.startedAt!==null&&a.mode!=='stopwatch'&&b&&!b.planned&&!b.queueRun&&b.mode===(a.mode==='focus'?'break':'focus')&&(a.taskId??null)===(b.taskId??null)){
+   const end=a.startedAt+Math.max(0,a.target-a.elapsed)*1000;
+   if(b.startedAt===end&&Date.parse(b.createdAt)===end)return true;
+  }
+ }
+ if(base.timer?.queueRun){
+  const run=base.timer.queueRun;
+  if(remote.timer&&focusTimerIdentity(base.timer)===focusTimerIdentity(remote.timer)&&!remote.timer.queueRun)return true;
+  // Legacy active queues have no trustworthy start timestamp. New queues must
+  // either continue with the same identity or carry a terminal receipt.
+  if(run.startedAt&&remote.timer?.queueRun?.id!==run.id&&!remote.queueHistory?.some(r=>r.id===run.id))return true;
+ }
+ const habits=new Map(remote.habits.map(h=>[h.id,h]));if(base.habits.some(h=>habits.has(h.id)&&(h.planWeekdays&&habits.get(h.id).planWeekdays===undefined||h.planVersions?.length&&habits.get(h.id).planVersions===undefined)))return true;
+ for(const t of base.tasks){
+  const candidate=remoteTasks.get(t.id);if(candidate&&t.deadline&&candidate.deadline===undefined)return true;
+  if(candidate&&t.planSegments?.length&&candidate.planSegments===undefined)return true;
+  if(candidate&&t.planLocked===true&&candidate.planLocked===true&&t.status==='pending'&&candidate.status==='pending'&&!t.deletedAt&&!candidate.deletedAt&&(!eq(t.date,candidate.date)||!eq(t.time,candidate.time)||!eq(t.anchor,candidate.anchor)||blockMinutes(t)!==blockMinutes(candidate)||!eq(t.planSegments||[],candidate.planSegments||[])))return true;
+  if(candidate&&(t.planMinutes!=null&&candidate.planMinutes===undefined||t.planLocked===true&&candidate.planLocked===undefined))return true;
+  if(!t.activity?.length)continue;
+  const next=remoteTasks.get(t.id);if(!next||eq(t.activity,next.activity))continue;
+  if(!eq(mergeActivity(t.activity,next.activity),mergeActivity(next.activity)))return true;
+ }
+ const records=new Map(remote.sessions.map(s=>[s.id,s]));
+ if(base.sessions.some(s=>!eq(s,records.get(s.id))))return true;
+ const baseIds=new Set(base.sessions.map(s=>s.id)),known=new Map();
+ const key=s=>JSON.stringify([s.startedAt,s.mode,s.taskId??null]);
+ for(const s of base.sessions)known.set(key(s),s.id);
+ for(const s of remote.sessions)if(!baseIds.has(s.id)){
+  const prior=known.get(key(s));
+  if(prior&&prior!==s.id&&(s.id.startsWith('timer:')||prior.startsWith('timer:')))return true;
+  known.set(key(s),s.id);
+ }
+ return false;
 }
 export function manualMergePlan(base,local,remote){
  if(!base||!local||!remote)return null;const conflicts=[];

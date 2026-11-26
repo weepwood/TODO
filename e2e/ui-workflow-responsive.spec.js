@@ -26,7 +26,7 @@ for(const [width,height,theme] of [[1440,900,'light'],[1440,900,'dark'],[390,844
   await page.setViewportSize({width,height});await page.goto('/');
   await expect(page.locator('html')).toHaveAttribute('data-theme',theme);
   const mobile=width<=860,tag=width+'-'+theme;
-  await view(page,'today',mobile);await page.getByRole('button',{name:'自动化',exact:true}).click();
+  await view(page,'today',mobile);await page.getByRole('button',{name:'今日更多操作'}).click();await page.getByRole('menuitem',{name:'自动化',exact:true}).click();
   const rules=page.getByRole('dialog',{name:'任务工作流自动化'});
   await assertFits(rules,page);
   await page.screenshot({path:'test-results/quality-rules-'+tag+'.png',animations:'disabled'});

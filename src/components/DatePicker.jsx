@@ -1,18 +1,25 @@
 import {FieldMessage,useFieldControl,FieldControlBoundary} from '../design-system/FieldFeedback.jsx';
 import {useTransientPopover,popoverGeometry} from "../design-system/popover.js";
-import React,{useEffect,useState,useId} from 'react';
+import React,{useEffect,useState,useId,useRef} from 'react';
 import * as Popover from '@radix-ui/react-popover';
-import {DayPicker} from 'react-day-picker';
-import {zhCN} from 'react-day-picker/locale';
 import {CalendarDays,ChevronDown} from 'lucide-react';
 import {dayKey,shiftDay,validDate} from '../core/domain.js';
-import 'react-day-picker/style.css';
-export function DatePicker({value,onChange,label='计划日期',required=false}){
- const feedback=useFieldControl();
- const [open,setOpen]=useState(false),[draft,setDraft]=useState(value||''),[error,setError]=useState(false);const today=dayKey(),errorId=useId();
- const choose=date=>{if(required&&!date)return;onChange(date);setOpen(false)};
+import {CalendarNavigation,asCalendarDate as asDate} from './CalendarNavigation.jsx';
+export function DatePicker({value,onChange,label='计划日期',required=false,inline=false,selectionOnly=false,confirm=false}){
+ const feedback=useFieldControl(),today=dayKey(),errorId=useId();
+ const [open,setOpen]=useState(false),[draft,setDraft]=useState(value||''),[error,setError]=useState(false),[month,setMonth]=useState(()=>asDate(value)||new Date()),[picked,setPicked]=useState(value||'');
+ const original=useRef(value),[commitError,setCommitError]=useState('');
+ const choose=date=>{if(required&&!date)return;if(confirm&&value!==original.current){setCommitError('日期已变化，请重新打开选择器。');return}const result=onChange(date);if(typeof result==='string'&&result){setCommitError(result);return}setOpen(false)};
+ const selectDate=date=>{if(inline||confirm){setCommitError('');setPicked(date);setDraft(date);setError(false);if(date)setMonth(asDate(date));if(selectionOnly)onChange(date)}else choose(date)};
+ const applyTyped=()=>{if((!required&&!draft)||validDate(draft))selectDate(draft);else setError(true)};
+ useEffect(()=>{if(selectionOnly){setDraft(value||'');setPicked(value||'');setError(false);if(validDate(value))setMonth(asDate(value))}},[selectionOnly,value]);
  useTransientPopover(open,()=>setOpen(false));
- return <Popover.Root open={open} onOpenChange={v=>{setOpen(v);if(v){setDraft(value||'');setError(false)}}}><Popover.Trigger asChild><button {...feedback} type="button" className="date-trigger" aria-label={label}><CalendarDays size={15}/>{value||'设置日期'}<ChevronDown size={13}/></button></Popover.Trigger><Popover.Portal><Popover.Content className="date-popover" aria-label={label+"选择器"} {...popoverGeometry}><form className="date-direct" onSubmit={e=>{e.preventDefault();if((!required&&!draft)||validDate(draft))choose(draft);else setError(true)}}><input aria-label={label+'直接输入'} type="text" placeholder="YYYY-MM-DD" autoComplete="off" maxLength={10} aria-invalid={error||undefined} aria-describedby={error?errorId:undefined} value={draft} onChange={e=>{setDraft(e.target.value);setError(false)}}/><button type="submit" className="secondary compact">应用</button><FieldMessage id={errorId} error={error?"日期无效，请使用 YYYY-MM-DD":undefined}/></form><div className="date-presets">{[['今天',today],['明天',shiftDay(today,1)],['下周',shiftDay(today,7)],['清除','']].filter(([,d])=>!required||d).map(([n,d])=><button type="button" key={n} onClick={()=>choose(d)}>{n}</button>)}</div><DayPicker mode="single" required={required} locale={zhCN} defaultMonth={value?new Date(value+'T12:00:00'):new Date()} selected={value?new Date(value+'T12:00:00'):undefined} onSelect={date=>choose(date?dayKey(date):'')} showOutsideDays weekStartsOn={1}/></Popover.Content></Popover.Portal></Popover.Root>
+ const direct=<form className="date-direct" onSubmit={e=>{e.preventDefault();applyTyped()}}><input aria-label={label+'直接输入'} type="text" placeholder="YYYY-MM-DD" autoComplete="off" maxLength={10} aria-invalid={error||undefined} aria-describedby={error?errorId:undefined} value={draft} onChange={e=>{setDraft(e.target.value);setError(false)}}/><button type="submit" className="secondary compact">应用</button><FieldMessage id={errorId} error={error?"日期无效，请使用 YYYY-MM-DD":undefined}/></form>;
+ const presets=<div className="date-presets">{[['今天',today],['明天',shiftDay(today,1)],['下周',shiftDay(today,7)]].map(([n,d])=><button type="button" key={n} aria-pressed={inline||confirm?(selectionOnly?value:picked)===d:undefined} onClick={()=>selectDate(d)}>{n}</button>)}{!inline&&!confirm&&!required&&<button type="button" onClick={()=>choose('')}>清除</button>}</div>;
+ const calendar=<CalendarNavigation key={inline?'inline':String(open)} month={month} onMonthChange={setMonth} value={selectionOnly?value:inline||confirm?picked:value} onSelect={selectDate} required={required} today={today}/>;
+ const content=inline||confirm?<>{calendar}{presets}<details className="date-manual"><summary>手动输入日期</summary>{direct}</details>{commitError&&<p role="alert" className="sync-error">{commitError}</p>}{!selectionOnly&&<div className="date-confirm-actions"><button type="button" className="secondary" disabled={required} onClick={()=>choose('')}>清除</button><button type="button" className="primary" disabled={required?!validDate(picked):!!picked&&!validDate(picked)} onClick={()=>choose(picked)}>确定</button></div>}</>:<>{direct}{presets}{calendar}</>;
+ if(inline)return <div className="date-popover date-picker-inline" aria-label={label+"选择器"}>{content}</div>;
+ return <Popover.Root open={open} onOpenChange={v=>{setOpen(v);if(v){original.current=value;setCommitError('');setDraft(value||'');setPicked(value||'');setError(false);setMonth(asDate(value)||asDate(today))}}}><Popover.Trigger asChild><button {...feedback} type="button" className="date-trigger" aria-label={label}><CalendarDays size={15}/>{value||'设置日期'}<ChevronDown size={13}/></button></Popover.Trigger><Popover.Portal><Popover.Content className="date-popover" aria-label={label+"选择器"} {...popoverGeometry}>{content}</Popover.Content></Popover.Portal></Popover.Root>
 }
 export function DateControl({value,onChange,label}){
  const feedback=useFieldControl();
