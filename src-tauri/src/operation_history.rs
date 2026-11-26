@@ -99,9 +99,16 @@ pub(super) fn append_history_with_raw(c:&Connection,scope:&str,prior:Option<&Val
   c.execute("INSERT INTO operation_history VALUES(?1,?2,?3,'local','gap',NULL,NULL,?4)",params![scope,version,now,json!({"gap":true,"rows":[]}).to_string()]).map_err(|e|e.to_string())?;
  }
  let old=task_map(prior);let new=task_map(next);
+ let rows=history_rows(old.keys().chain(new.keys()).collect::<BTreeSet<_>>().into_iter().map(|id|(*id,old.get(id).copied(),new.get(id).copied())));
+ let other:Vec<_>=prior.as_object().into_iter().flatten().map(|(k,_)|k).chain(next.as_object().into_iter().flatten().map(|(k,_)|k)).collect::<BTreeSet<_>>().into_iter().filter(|k|*k!="tasks"&&prior.get(*k)!=next.get(*k)).collect();
+ write_history_rows(c,scope,version,rows,other,now,request,fingerprint(next),raw.map(|(_,after)|after))
+}
+// Shared field/lifecycle/activity evidence. The full writer supplies all
+// task pairs; the isolated row writer supplies its validated touched pairs.
+pub(super) fn history_rows<'a>(changes:impl IntoIterator<Item=(&'a str,Option<&'a Value>,Option<&'a Value>)>)->Vec<Value>{
  let mut rows=vec![];
- for id in old.keys().chain(new.keys()).collect::<BTreeSet<_>>(){
-  match (old.get(id),new.get(id)){
+ for (id,a,b) in changes{
+  match (a,b){
    (None,Some(t))=>rows.push(json!({"id":id,"created":true,"afterHash":fingerprint(t)})),
    (Some(_),None)=>rows.push(json!({"id":id,"removed":true})),
    (Some(a),Some(b))=>{
@@ -120,9 +127,11 @@ pub(super) fn append_history_with_raw(c:&Connection,scope:&str,prior:Option<&Val
    },_=>{}
   }
  }
+ rows
+}
+pub(super) fn write_history_rows(c:&Connection,scope:&str,mut version:i64,mut rows:Vec<Value>,other:Vec<&String>,now:i64,request:Option<(&str,&str,&str,Option<&Value>)>,hash:String,raw_after:Option<&str>)->Result<(),String>{
  // Never store full workspace, note bodies, links, checklists, or execution records.
  if let Some((id,"batch-capture",_,_))=request{for row in &mut rows{if row["created"]!=true||!row["id"].as_str().is_some_and(|x|x.starts_with(&format!("{id}:"))){row["unattributed"]=json!(true)}}}
- let other:Vec<_>=prior.as_object().into_iter().flatten().map(|(k,_)|k).chain(next.as_object().into_iter().flatten().map(|(k,_)|k)).collect::<BTreeSet<_>>().into_iter().filter(|k|*k!="tasks"&&prior.get(*k)!=next.get(*k)).collect();
  // Activity evidence without a net business change also creates a version.
  if !rows.is_empty()||!other.is_empty(){
   version+=1;
@@ -132,9 +141,9 @@ pub(super) fn append_history_with_raw(c:&Connection,scope:&str,prior:Option<&Val
   let mut encoded=body.to_string();if encoded.len()>262144{encoded=json!({"gap":true,"rows":[],"reason":"commit exceeds history body limit"}).to_string()}
   c.execute("INSERT INTO operation_history VALUES(?1,?2,?3,?4,?5,?6,?7,?8)",params![scope,version,now,source,kind,rid,group,encoded]).map_err(|e|e.to_string())?;
  }
- let hash=fingerprint(next);
+
  c.execute("INSERT INTO operation_history_head VALUES(?1,?2,?3) ON CONFLICT(scope) DO UPDATE SET version=excluded.version,fingerprint=excluded.fingerprint",params![scope,version,&hash]).map_err(|e|e.to_string())?;
- if let Some((_,after))=raw{
+ if let Some(after)=raw_after{
   c.execute("INSERT INTO operation_history_raw_proof VALUES(?1,?2,?3,?4) ON CONFLICT(scope) DO UPDATE SET version=excluded.version,fingerprint=excluded.fingerprint,raw_hash=excluded.raw_hash",params![scope,version,&hash,raw_fingerprint(after)]).map_err(|e|e.to_string())?;
  }
  c.execute("DELETE FROM operation_history WHERE scope=?1 AND (at<?2 OR version<=?3)",params![scope,now-DAYS,version-300]).map_err(|e|e.to_string())?;
@@ -160,6 +169,14 @@ fn history_read_snapshot(c:&Connection,scope:&str,detail:bool,limit:i64,version:
  let now=Local::now().timestamp();
  let head:Option<(i64,String)>=c.query_row("SELECT version,fingerprint FROM operation_history_head WHERE scope=?1",[scope],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|e|e.to_string())?;
  let current:Option<String>=c.query_row("SELECT body FROM snapshots WHERE scope=?1",[scope],|r|r.get(0)).optional().map_err(|e|e.to_string())?;
+ read_history_body(c,scope,detail,limit,version,now,head,current)
+}
+#[cfg(test)]
+pub(super) fn read_row_history(c:&Connection,scope:&str,body:String)->Result<Value,String>{
+ let head=c.query_row("SELECT version,fingerprint FROM operation_history_head WHERE scope=?1",[scope],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|e|e.to_string())?;
+ read_history_body(c,scope,true,300,None,Local::now().timestamp(),head,Some(body))
+}
+fn read_history_body(c:&Connection,scope:&str,detail:bool,limit:i64,version:Option<i64>,now:i64,head:Option<(i64,String)>,current:Option<String>)->Result<Value,String>{
  let raw_hash=current.as_deref().map(raw_fingerprint);
  let intact=match (&head,&current,&raw_hash){
   (None,_,_)=>true,

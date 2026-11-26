@@ -1,5 +1,9 @@
 # TODO 开发交接
 
+## 增量持久化 R3 单权威研究（2026-11-26）
+基线a988fc7，独立研究分支。cfg(test) R3行权威移除当前完整snapshots/workspace_store，复用正式历史字段/生命周期/活动证据、权限、索引、备份、回执函数；原运行时保存顺序保持。受控优先级捕获、复杂编辑完整验证、实验delta队列丢ACK与barrier；既有行快路径逐行hash+布局+canonical全量字节验证、只解析变更，history-apply及结构/快照fallback完整验证。12步真实领域与keys/fallback独立对照；真实JS普通字段/5分生命周期撤回重做及Rust确认/权限/幂等、两scope迁移/降级新文件/保留旧回执。Rust41/41、JS60/60、捕获60/60、队列1/1、R1/R2/正式/R3累计强杀12/12，320保存8重启/300历史/备份通过。最终万级60次含CLI入队与receipt、正式历史FTS备份P50完整235.419ms→行119.346ms，P95 254.989→139.190ms，WAL914260992→14148112B（关闭checkpoint、标题长度变化合成场景，不是SSD写入），混合RSS871563264B；JS受控编辑捕获7.100ms/R2 plan119.887ms。仍O(全字节)，无真实IPC/同步/真人/旧版完整门禁/传输回执保留策略，继续研究不采用正式。证据artifacts/TODO/incremental-single-r3，详见docs/ai-integration/incremental-single-r3.md。保护正式候选/main、真实数据，不合并发布安装。
+
+
 ## 增量存储业务等价研究 R2（2026-11-26）
 基线41e2493，独立研究分支；仅cfg(test)同事务影子hook及research JS。现有共享编辑器生成12步新增/更新/删除/顺序/meta变更，独立重放、预算fallback/非法拒绝；真实native-store队列回执失败重试不越序。正式persist_store仍唯一权威，影子行/meta/kv/head与权威旧数据和新数据比较，同事务失败回滚；独立完整库对照历史正文、FTS、备份和store。真实JS历史预览/apply经正式Rust权限及回执校验，字段及5分普通生命周期恢复通过（测试确认非真人），R1哈希记录不替代历史。旧写者及同步meta漂移拒绝。Release Rust36/36、领域60/60，R1及正式强杀复验、新影子强杀2/2，320次保存8次checkpoint重启及备份、300正式历史保留通过。最终万级30次P50完整212.020ms/双轨797.994ms，P95 295.577/954.363ms，WAL7786832/8034032B；混合RSS1109213184B。JS万级20次plan P50 119.091ms、完整序列化9.087ms，补丁1475B与快照约5.44MB。双写非优化、未完成同等业务单写引擎、真实IPC/云同步/安装未验收，继续研究不采用。详见docs/ai-integration/incremental-business-r2.md，证据artifacts/TODO/incremental-business-r2。保护候选/main、真实数据，不合并发布安装。
 

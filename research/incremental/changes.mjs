@@ -22,6 +22,11 @@ const map=tasks=>{const m=new Map();for(const t of tasks){if(typeof t?.id!=='str
 export function changes(before,after){
  sealWorkspace(before);sealWorkspace(after);jsonGraph(before);jsonGraph(after);
  migrateState(before);migrateState(after);
+ return diffSealed(before,after);
+}
+// Only the controlled R3 editor calls this fast path. It is not an import API.
+export function diffSealed(before,after){
+ sealWorkspace(before);sealWorkspace(after);jsonGraph(before);jsonGraph(after);
  const a=map(before.tasks),b=map(after.tasks);
  const put=[],remove=[];
  for(const [id,t] of b)if(!a.has(id)||!eq(a.get(id),t))put.push({id,before:a.get(id)??null,after:t});

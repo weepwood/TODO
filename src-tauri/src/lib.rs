@@ -13,6 +13,7 @@ mod storage;
 mod operation_history;
 #[cfg(test)] mod incremental_research;
 #[cfg(test)] mod incremental_shadow;
+#[cfg(test)] mod incremental_single;
 pub mod cli;
 use storage::*;
 struct Database(Mutex<Connection>);

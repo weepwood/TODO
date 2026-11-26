@@ -47,7 +47,7 @@ fn write_kv(c:&Connection,s:&str,old:&Value,new:&Value)->R<()>{
  for(k,v)in b{if a.get(k)!=Some(v){c.execute("INSERT INTO shadow_kv VALUES(?1,?2,?3) ON CONFLICT(scope,key) DO UPDATE SET body=excluded.body",params![s,k,v.as_str().ok_or("kv string")?]).map_err(err)?;}}
  Ok(())
 }
-fn patch(before:&Value,after:&Value)->Value{
+pub(super) fn patch(before:&Value,after:&Value)->Value{
  let a:BTreeMap<_,_>=before["tasks"].as_array().unwrap().iter().map(|t|(t["id"].as_str().unwrap(),t)).collect();
  let b:BTreeMap<_,_>=after["tasks"].as_array().unwrap().iter().map(|t|(t["id"].as_str().unwrap(),t)).collect();
  let put:Vec<_>=b.iter().filter(|(id,t)|a.get(**id)!=Some(t)).map(|(id,t)|json!({"id":id,"before":a.get(id),"after":t})).collect();

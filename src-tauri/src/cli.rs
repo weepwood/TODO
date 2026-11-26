@@ -343,6 +343,179 @@ mod tests{
   super::super::save(&mut c,other,&state.to_string()).unwrap();bind(&c,other).unwrap();
   assert!(receipt(&c,other,id).is_err());assert!(enqueue_operation(&mut c,"guest",id,payload).is_err());
  }
+ #[test]fn single_migration_backup_scope_and_gate(){
+  use super::super::incremental_single as r3;
+  let dir=std::env::temp_dir().join(format!("todo-r3-copy-{}",Uuid::new_v4()));std::fs::create_dir(&dir).unwrap();
+  let mut c=Connection::open(dir.join("r3.sqlite3")).unwrap();
+  let a=json!({"version":2,"tasks":[{"id":"qa","title":"synthetic","priority":0}]});
+  let b=json!({"version":2,"tasks":[{"id":"qa","title":"other scope","priority":1}]});
+  let k=json!({"todo-cloud-meta":"synthetic","todo-cloud-base":"opaque"});let other="00000000-0000-4000-8000-000000000001";
+  r3::init(&mut c,"guest",&r3::wrap(&a,&k)).unwrap();
+  super::super::persist_store(&mut c,other,&r3::wrap(&b,&k).to_string()).unwrap();bind(&c,"guest").unwrap();set_advanced(&c,"guest",true).unwrap();
+  let id=Uuid::new_v4().to_string();let req=json!({"op":"update","id":"qa","fields":{"priority":3}});
+  enqueue_operation(&mut c,"guest",&id,req.clone()).unwrap();
+  assert!(r3::migrate(&mut c,"guest",&r3::wrap(&a,&k),false).unwrap_err().contains("pending"));
+  let cancelled=json!({"id":id,"status":"cancelled","result":{"code":"QA"}});
+  super::super::persist_store_receipt(&mut c,"guest",&r3::wrap(&a,&k).to_string(),Some(&cancelled)).unwrap();
+  r3::migrate(&mut c,"guest",&r3::wrap(&a,&k),false).unwrap();r3::migrate(&mut c,other,&r3::wrap(&b,&k),false).unwrap();
+  assert_eq!(receipt(&c,"guest",&id).unwrap()["status"],"cancelled");
+  let mut n=a.clone();n["tasks"][0]["priority"]=json!(3);let p=r3::delta(&a,&n,&k,&k);
+  assert!(r3::commit(&mut c,other,&Uuid::new_v4().to_string(),0,&p,None,false).is_err());
+  let rid=Uuid::new_v4().to_string();enqueue_operation(&mut c,"guest",&rid,req).unwrap();
+  let r=json!({"id":rid,"status":"saved","result":{"affected":1}});
+  r3::commit(&mut c,"guest",&rid,0,&p,Some(&r),false).unwrap();
+  assert_eq!(r3::export(&c,other).unwrap(),r3::wrap(&b,&k));
+  let out=dir.join("legacy-copy.sqlite3");r3::export_legacy_copy(&c,&out,&BTreeMap::from([("guest".to_string(),1),(other.to_string(),0)])).unwrap();
+  let mut old=Connection::open(&out).unwrap();
+  assert_eq!(old.query_row("SELECT count(*) FROM r3_head",[],|r|r.get::<_,i64>(0)).unwrap(),0);
+  let other_store:String=old.query_row("SELECT body FROM workspace_store WHERE scope=?1",[other],|r|r.get(0)).unwrap();assert_eq!(serde_json::from_str::<Value>(&other_store).unwrap(),r3::wrap(&b,&k));
+  assert_eq!(receipt(&old,"guest",&rid).unwrap(),receipt(&c,"guest",&rid).unwrap());
+  assert_eq!(super::super::operation_history::history_read(&old,"guest",true,300).unwrap()["head"],1);
+  let raw:String=old.query_row("SELECT body FROM workspace_store WHERE scope='guest'",[],|r|r.get(0)).unwrap();
+  assert_eq!(serde_json::from_str::<Value>(&raw).unwrap(),r3::wrap(&n,&k));
+  let mut newer=n.clone();newer["tasks"][0]["title"]=json!("legacy changed");
+  super::super::persist_store(&mut old,"guest",&r3::wrap(&newer,&k).to_string()).unwrap();
+  assert_eq!(super::super::operation_history::history_read(&old,"guest",true,300).unwrap()["head"],2);
+  assert_eq!(r3::export(&c,"guest").unwrap(),r3::wrap(&n,&k));
+  assert!(r3::migrate(&mut old,"guest",&r3::wrap(&newer,&k),false).is_err());assert!(r3::migrate(&mut old,other,&r3::wrap(&b,&k),false).is_err());
+  assert_eq!(old.query_row("PRAGMA integrity_check",[],|r|r.get::<_,String>(0)).unwrap(),"ok");
+  drop((old,c));std::fs::remove_dir_all(dir).unwrap();
+  println!("pending migration gate, scope, preserved receipts and verified separate legacy copy");
+ }
+ #[test]fn single_crash_child(){
+  let Ok(dir)=std::env::var("TODO_R3_CRASH_DIR")else{return};
+  let path=std::path::PathBuf::from(dir);let mut c=Connection::open(path.join("r3.sqlite3")).unwrap();
+  use super::super::incremental_single as r3;
+  let a:Value=serde_json::from_str(&std::fs::read_to_string(path.join("fixture.json")).unwrap()).unwrap();
+  let mode=std::env::var("TODO_R3_MODE").unwrap();
+  if mode=="migrate"{r3::migrate(&mut c,"guest",&a["store"],false).unwrap();}
+  else{r3::commit(&mut c,"guest",a["receipt"]["id"].as_str().unwrap(),0,&a["patch"],Some(&a["receipt"]),false).unwrap();}
+  std::fs::write(path.join("committed"),b"ready").unwrap();loop{std::thread::park()}
+ }
+ #[test]#[ignore]fn single_crash_boundaries(){
+  use super::super::incremental_single as r3;
+  use std::{process::{Command,Stdio},time::{Duration,Instant}};
+  let dir=std::env::temp_dir().join(format!("todo-r3-crash-{}",Uuid::new_v4()));std::fs::create_dir(&dir).unwrap();let path=dir.join("r3.sqlite3");
+  let a=json!({"version":2,"tasks":[{"id":"qa","title":"synthetic","priority":0}]});let mut b=a.clone();b["tasks"][0]["priority"]=json!(3);
+  let k=json!({"todo-cloud-meta":"synthetic"});let rid=Uuid::new_v4().to_string();let req=json!({"op":"update","id":"qa","fields":{"priority":3}});
+  let rv=json!({"id":rid,"status":"saved","result":{"affected":1}});
+  let p=r3::delta(&a,&b,&k,&k);let store=r3::wrap(&a,&k);
+  std::fs::write(dir.join("fixture.json"),json!({"store":store,"patch":p,"receipt":rv}).to_string()).unwrap();
+  let mut c=Connection::open(&path).unwrap();r3::init(&mut c,"guest",&store).unwrap();bind(&c,"guest").unwrap();set_advanced(&c,"guest",true).unwrap();drop(c);
+  for(mode,pre)in [("migrate",true),("migrate",false),("apply",true),("apply",false)]{
+   if mode=="apply"&&pre{let mut c=Connection::open(&path).unwrap();enqueue_operation(&mut c,"guest",&rid,req.clone()).unwrap();}
+   let marker=dir.join(if pre{"precommit"}else{"committed"});if marker.exists(){std::fs::remove_file(&marker).unwrap();}
+   let mut cmd=Command::new(std::env::current_exe().unwrap());cmd.args(["cli::tests::single_crash_child","--exact","--nocapture"]).env("TODO_R3_CRASH_DIR",&dir).env("TODO_R3_MODE",mode).stdout(Stdio::null()).stderr(Stdio::null());
+   if pre{cmd.env(if mode=="migrate"{"TODO_R3_MIGRATION_PRECOMMIT"}else{"TODO_R3_PRECOMMIT"},&marker);}
+   let mut child=cmd.spawn().unwrap();let start=Instant::now();
+   while !marker.exists()&&start.elapsed()<Duration::from_secs(12){if child.try_wait().unwrap().is_some(){break}std::thread::sleep(Duration::from_millis(10));}
+   let ready=marker.exists();let wal=std::fs::metadata(dir.join("r3.sqlite3-wal")).map(|m|m.len()).unwrap_or(0);
+   let _=child.kill();let status=child.wait().unwrap();assert!(ready&&wal>0&&!status.success(),"child boundary");
+   let mut c=Connection::open(&path).unwrap();
+   if mode=="migrate"&&pre{assert!(r3::export(&c,"guest").is_err());assert_eq!(c.query_row("SELECT count(*) FROM snapshots WHERE scope='guest'",[],|r|r.get::<_,i64>(0)).unwrap(),1);}
+   else{let committed=mode=="apply"&&!pre;assert_eq!(r3::export(&c,"guest").unwrap(),r3::wrap(if committed{&b}else{&a},&k));assert_eq!(r3::revision(&c,"guest").unwrap(),if committed{1}else{0});
+    assert_eq!(r3::journal(&c,"guest").unwrap()["head"],if committed{1}else{0});
+    if mode=="apply"{assert_eq!(receipt(&c,"guest",&rid).unwrap()["status"],if committed{"saved"}else{"received"});}
+    if committed{let old=r3::commit(&mut c,"guest",&rid,0,&p,Some(&rv),false).unwrap();assert_eq!(old.0,1);}
+   }
+   assert_eq!(c.query_row("PRAGMA integrity_check",[],|r|r.get::<_,String>(0)).unwrap(),"ok");
+   println!("R3 crash mode={mode} precommit={pre} wal_bytes={wal} integrity=ok");
+  }
+  std::fs::remove_dir_all(dir).unwrap();
+ }
+ #[test]#[ignore]fn single_cost_matrix(){
+  use super::super::incremental_single as r3;
+  use std::time::Instant;
+  fn stats(a:&mut [f64])->String{a.sort_by(|a,b|a.total_cmp(b));let n=a.len();format!("{:.3}/{:.3}/{:.3}/{:.3}",(a[(n-1)/2]+a[n/2])/2.,a[((n as f64*0.95).ceil() as usize)-1],a[((n as f64*0.99).ceil() as usize)-1],a[n-1])}
+  for(n,samples)in [(1000,60),(10000,60)]{
+   let dir=std::env::temp_dir().join(format!("todo-r3-bench-{}",Uuid::new_v4()));std::fs::create_dir(&dir).unwrap();
+   let mut old=Connection::open(dir.join("old.sqlite3")).unwrap();let mut new=Connection::open(dir.join("r3.sqlite3")).unwrap();
+   let mut state=json!({"version":2,"tasks":(0..n).map(|i|json!({"id":format!("qa-{i}"),"title":format!("synthetic {i}"),"notes":"synthetic","priority":0,"activity":(0..5).map(|j|json!({"id":format!("qa-{i}-{j}"),"category":"property","kind":"priority","changes":[{"field":"priority","before":"0","after":"1"}]})).collect::<Vec<_>>() })).collect::<Vec<_>>()});
+   let k=json!({"todo-cloud-meta":"synthetic"});let store=r3::wrap(&state,&k);
+   super::super::schema(&old).unwrap();super::super::persist_store(&mut old,"guest",&store.to_string()).unwrap();r3::init(&mut new,"guest",&store).unwrap();
+   for c in [&old,&new]{bind(c,"guest").unwrap();set_advanced(c,"guest",true).unwrap();}
+   let t=Instant::now();r3::migrate(&mut new,"guest",&store,false).unwrap();let migration=t.elapsed().as_secs_f64()*1000.;
+   for c in [&old,&new]{c.execute_batch("PRAGMA wal_autocheckpoint=0; PRAGMA wal_checkpoint(TRUNCATE)").unwrap();}
+   let mut a=vec![];let mut b=vec![];
+   for i in 0..samples{
+    let before=state["tasks"][i].clone();state["tasks"][i]["priority"]=json!(3);state["tasks"][i]["title"]=json!(format!("edited {i}"));
+    let rid=Uuid::new_v4().to_string();let req=json!({"op":"update","id":before["id"],"fields":{"priority":3,"title":state["tasks"][i]["title"]}});
+    let rv=json!({"id":rid,"status":"saved","result":{"affected":1,"userConfirmation":{"method":"desktop-modal","at":Local::now().to_rfc3339()}}});
+    let t=Instant::now();enqueue_operation(&mut old,"guest",&rid,req.clone()).unwrap();
+    super::super::persist_store_receipt(&mut old,"guest",&r3::wrap(&state,&k).to_string(),Some(&rv)).unwrap();a.push(t.elapsed().as_secs_f64()*1000.);
+    let t=Instant::now();enqueue_operation(&mut new,"guest",&rid,req).unwrap();
+    let p=json!({"put":[{"id":before["id"],"before":before,"after":state["tasks"][i]}],"remove":[],"order":null,"meta":null,"keys":[]});
+    r3::commit(&mut new,"guest",&rid,i as i64,&p,Some(&rv),false).unwrap();b.push(t.elapsed().as_secs_f64()*1000.);
+    assert_eq!(receipt(&new,"guest",&rid).unwrap(),receipt(&old,"guest",&rid).unwrap());
+    if i%10==9||i+1==samples{r3::compare(&new,&old,"guest");}
+   }
+   let size=|name:&str|std::fs::metadata(dir.join(name)).map(|m|m.len()).unwrap_or(0);
+   for c in [&old,&new]{assert_eq!(c.query_row("PRAGMA integrity_check",[],|r|r.get::<_,String>(0)).unwrap(),"ok");}
+   println!("R3 matrix tasks={n} samples={samples} migration_ms={migration:.3} full_ms={} row_ms={} full_wal={} row_wal={} full_db={} row_db={}",stats(&mut a),stats(&mut b),size("old.sqlite3-wal"),size("r3.sqlite3-wal"),size("old.sqlite3"),size("r3.sqlite3"));
+   drop((old,new));std::fs::remove_dir_all(dir).unwrap();
+  }
+ }
+ #[test]fn single_history_proposals_and_receipts(){
+  let (Ok(script),Ok(fixtures))=(std::env::var("TODO_R3_PROPOSAL"),std::env::var("TODO_R3_FIXTURES"))else{return};
+  use super::super::incremental_single as r3;
+  use std::{io::Write,process::{Command,Stdio}};
+  let fixture:Value=serde_json::from_str(&std::fs::read_to_string(fixtures).unwrap()).unwrap();
+  for lifecycle in [false,true]{
+   let (base,next)=if lifecycle{(fixture["steps"][3]["state"].clone(),fixture["steps"][4]["state"].clone())}else{let base=fixture["base"].clone();let mut next=base.clone();next["tasks"][0]["priority"]=json!(3);(base,next)};
+   let k=json!({"todo-cloud-meta":"synthetic"});let mut c=Connection::open_in_memory().unwrap();let mut oracle=Connection::open_in_memory().unwrap();
+   r3::init(&mut c,"guest",&r3::wrap(&base,&k)).unwrap();super::super::schema(&oracle).unwrap();super::super::persist_store(&mut oracle,"guest",&r3::wrap(&base,&k).to_string()).unwrap();
+   for db in [&mut c,&mut oracle]{bind(db,"guest").unwrap();super::super::persist_store(db,"guest",&r3::wrap(&next,&k).to_string()).unwrap();}
+   let preview_id="00000000-0000-4000-8000-000000000081";let apply_id="00000000-0000-4000-8000-000000000082";
+   let preview_req=json!({"op":"history-preview","version":1});let apply_req=json!({"op":"history-apply","previewId":preview_id,"confirm":true});
+   r3::migrate(&mut c,"guest",&r3::wrap(&next,&k),false).unwrap();r3::compare(&c,&oracle,"guest");
+   for db in [&mut c,&mut oracle]{assert!(enqueue_operation(db,"guest",preview_id,preview_req.clone()).is_err());set_advanced(db,"guest",true).unwrap();enqueue_operation(db,"guest",preview_id,preview_req.clone()).unwrap();}
+   let run=|request:&Value,id:&str,reference:Value,d:&Value,journal:Value|{
+    let mut child=Command::new("node").arg(&script).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap();
+    child.stdin.take().unwrap().write_all(json!({"state":d,"request":request,"id":id,"reference":reference,"journal":journal}).to_string().as_bytes()).unwrap();
+    let out=child.wait_with_output().unwrap();assert!(out.status.success(),"{}",String::from_utf8_lossy(&out.stderr));serde_json::from_slice::<Value>(&out.stdout).unwrap()
+   };
+   let j=r3::journal(&c,"guest").unwrap();let proposal=run(&preview_req,preview_id,Value::Null,&next,j.clone());
+   assert_eq!(proposal["next"],next);assert_eq!(proposal["result"]["rows"].as_array().unwrap().len(),1);
+   let pr=json!({"id":preview_id,"status":"saved","result":proposal["result"]});
+   r3::commit(&mut c,"guest",preview_id,0,&r3::delta(&next,&next,&k,&k),Some(&pr),false).unwrap();
+   super::super::persist_store_receipt(&mut oracle,"guest",&r3::wrap(&next,&k).to_string(),Some(&pr)).unwrap();
+   for db in [&mut c,&mut oracle]{enqueue_operation(db,"guest",apply_id,apply_req.clone()).unwrap();}
+   let result=run(&apply_req,apply_id,json!({"id":preview_id,"kind":"history-preview","status":"saved","result":proposal["result"]}),&next,j);
+   let restored=&result["next"];
+   if lifecycle{assert_eq!(restored["tasks"].as_array().unwrap().iter().find(|t|t["id"]=="b").unwrap()["status"],"pending");assert_eq!(result["result"]["pointsImpact"],json!({"before":5,"after":0}));}
+   else{assert_eq!(restored["tasks"][0]["priority"],0);}
+   let rv=json!({"id":apply_id,"status":"saved","result":result["result"]});let mut p=result["patch"].clone();p["keys"]=json!([]);
+   let mut invalid=rv.clone();invalid["result"]["userConfirmation"]=Value::Null;
+   assert!(r3::commit(&mut c,"guest",apply_id,1,&p,Some(&invalid),false).unwrap_err().contains("confirmation"));
+   let mut extra=restored.clone();extra["tasks"][0]["notes"]=json!("not approved");let bad=r3::delta(&next,&extra,&k,&k);
+   assert!(r3::commit(&mut c,"guest",apply_id,1,&bad,Some(&rv),false).unwrap_err().contains("exceeds preview"));
+   assert!(r3::commit(&mut c,"guest",apply_id,1,&p,Some(&rv),true).is_err());r3::compare(&c,&oracle,"guest");
+   assert_eq!(receipt(&c,"guest",apply_id).unwrap()["status"],"received");
+   let saved=r3::commit(&mut c,"guest",apply_id,1,&p,Some(&rv),false).unwrap();
+   super::super::persist_store_receipt(&mut oracle,"guest",&r3::wrap(restored,&k).to_string(),Some(&rv)).unwrap();
+   r3::compare(&c,&oracle,"guest");assert_eq!(receipt(&c,"guest",apply_id).unwrap(),receipt(&oracle,"guest",apply_id).unwrap());
+   // A newer manual change must survive a lost ACK retry.
+   let mut later=restored.clone();later["theme"]=json!("dark");let p2=r3::delta(restored,&later,&k,&k);
+   r3::commit(&mut c,"guest",&Uuid::new_v4().to_string(),2,&p2,None,false).unwrap();super::super::persist_store(&mut oracle,"guest",&r3::wrap(&later,&k).to_string()).unwrap();
+   assert_eq!(r3::commit(&mut c,"guest",apply_id,1,&p,Some(&rv),false).unwrap(),saved);r3::compare(&c,&oracle,"guest");
+   let redo_preview="00000000-0000-4000-8000-000000000083";let redo_id="00000000-0000-4000-8000-000000000084";
+   let req=json!({"op":"history-preview","version":2});let apply=json!({"op":"history-apply","previewId":redo_preview,"confirm":true});
+   for db in [&mut c,&mut oracle]{enqueue_operation(db,"guest",redo_preview,req.clone()).unwrap();}
+   let j=r3::journal(&c,"guest").unwrap();let pr=run(&req,redo_preview,Value::Null,&later,j.clone());
+   let rv=json!({"id":redo_preview,"status":"saved","result":pr["result"]});
+   r3::commit(&mut c,"guest",redo_preview,3,&r3::delta(&later,&later,&k,&k),Some(&rv),false).unwrap();
+   super::super::persist_store_receipt(&mut oracle,"guest",&r3::wrap(&later,&k).to_string(),Some(&rv)).unwrap();
+   for db in [&mut c,&mut oracle]{enqueue_operation(db,"guest",redo_id,apply.clone()).unwrap();}
+   let redo=run(&apply,redo_id,json!({"id":redo_preview,"kind":"history-preview","status":"saved","result":pr["result"]}),&later,j);
+   if lifecycle{let t=redo["next"]["tasks"].as_array().unwrap().iter().find(|t|t["id"]=="b").unwrap();let old=next["tasks"].as_array().unwrap().iter().find(|t|t["id"]=="b").unwrap();assert_eq!(t["completedAt"],old["completedAt"]);assert_eq!(redo["result"]["pointsImpact"],json!({"before":0,"after":5}));}else{assert_eq!(redo["next"]["tasks"][0]["priority"],3);}
+   assert_eq!(redo["next"]["theme"],"dark");
+   let rv=json!({"id":redo_id,"status":"saved","result":redo["result"]});
+   r3::commit(&mut c,"guest",redo_id,4,&r3::delta(&later,&redo["next"],&k,&k),Some(&rv),false).unwrap();
+   super::super::persist_store_receipt(&mut oracle,"guest",&r3::wrap(&redo["next"],&k).to_string(),Some(&rv)).unwrap();
+   r3::compare(&c,&oracle,"guest");assert_eq!(receipt(&c,"guest",redo_id).unwrap(),receipt(&oracle,"guest",redo_id).unwrap());
+   println!("R3 history lifecycle={lifecycle}, advanced gate, confirmation, exact diff, atomic receipt, lost ACK, redo and newer edit verified");
+  }
+ }
  #[test]fn shadow_history_real_proposal_and_receipt(){
   let (Ok(script),Ok(fixtures))=(std::env::var("TODO_R2_PROPOSAL"),std::env::var("TODO_R2_FIXTURES"))else{return};
   use super::super::incremental_shadow as sh;
