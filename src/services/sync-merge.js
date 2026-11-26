@@ -92,6 +92,18 @@ export function unsafeHistoryPull(base,remote){
   for(const field of ['phaseAt','planned','planBaseline'])if(a[field]!==undefined&&!eq(a[field],b[field]))return true;
   if(a.queueRun&&!eq(a.queueRun,b.queueRun))return true;
  }
+ // Historical clients settle a smart phase as a normal timer. A newly
+ // appended legacy record or a legacy-shaped automatic successor is evidence
+ // that its planning contract was ignored. An ordinary explicit discard
+ // (no successor, no legacy record) remains valid.
+ if(a?.planned){
+  const legacyId='timer:'+a.createdAt+':'+a.mode;
+  if(!base.sessions.some(s=>s.id===legacyId)&&remote.sessions.some(s=>s.id===legacyId&&s.startedAt===a.createdAt&&s.mode===a.mode&&(s.taskId??null)===(a.taskId??null)))return true;
+  if(a.startedAt!==null&&a.mode!=='stopwatch'&&b&&!b.planned&&!b.queueRun&&b.mode===(a.mode==='focus'?'break':'focus')&&(a.taskId??null)===(b.taskId??null)){
+   const end=a.startedAt+Math.max(0,a.target-a.elapsed)*1000;
+   if(b.startedAt===end&&Date.parse(b.createdAt)===end)return true;
+  }
+ }
  if(base.timer?.queueRun){
   const run=base.timer.queueRun;
   if(remote.timer&&focusTimerIdentity(base.timer)===focusTimerIdentity(remote.timer)&&!remote.timer.queueRun)return true;

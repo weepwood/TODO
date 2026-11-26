@@ -81,3 +81,18 @@ test('旧端保留当前计时但丢失规划或阶段元数据时阻止静默�
  const discard=changeFocusTimer(s,{action:'discard',key:focusTimerKey(s.timer),now:now+1000});
  assert.equal(unsafeHistoryPull(s,discard),false);
 });
+
+test('旧引擎按普通计时自动结算智能番茄时阻止拉取，正常新版结算不受影响',()=>{
+ const d=base(),s=startFocusTimer({...d,focusConfig:{...d.focusConfig,autoContinue:true}},{mode:'focus',taskId:'a',now,planned:true});
+ const end=now+s.timer.target*1000,iso=new Date(end).toISOString();
+ const legacy={...s,sessions:[...s.sessions,{id:'timer:'+s.timer.createdAt+':focus',taskId:'a',mode:'focus',startedAt:s.timer.createdAt,seconds:s.timer.target}],timer:{mode:'break',target:300,elapsed:0,startedAt:end,createdAt:iso,taskId:'a'}};
+ assert.equal(unsafeHistoryPull(s,legacy),true);
+ assert.equal(unsafeHistoryPull(s,{...legacy,timer:null}),true);
+ const current=settleFocus(s,end);assert.equal(unsafeHistoryPull(s,current),false);
+ const explicit=changeFocusTimer(s,{action:'discard',key:focusTimerKey(s.timer),now:now+5000});assert.equal(unsafeHistoryPull(s,explicit),false);
+ // A legacy break can create a wrong successor without appending a focus record.
+ const rest={...s,timer:{...s.timer,mode:'break',target:300}},restEnd=now+300000;
+ const successor={...rest,timer:{mode:'focus',target:1500,elapsed:0,startedAt:restEnd,createdAt:new Date(restEnd).toISOString(),taskId:'a'}};
+ assert.equal(unsafeHistoryPull(rest,successor),true);
+ assert.equal(unsafeHistoryPull(rest,settleFocus(rest,restEnd)),false);
+});

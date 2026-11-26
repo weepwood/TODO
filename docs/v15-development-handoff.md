@@ -201,3 +201,14 @@
 ### 剩余门禁及最短复验路径
 
 资源恢复后，通过 run-budgeted 构建 Web，再针对 e2e/ui-rc-gates.spec.js、e2e/ui-feature-forward.spec.js 及 e2e/cloud.spec.js 复验，保留既有测试断言。需要其他引擎时，使用外置 PLAYWRIGHT_BROWSERS_PATH=/Volumes/data/AI-Development/cache/playwright 与项目 Playwright CLI 安装匹配版本，保留现有缓存；通过资源门禁运行 TODO_BROWSER_ENGINE=firefox 或 webkit 的无CDP专项（例如新控件用例及PWA），分引擎保存日志及截图。实体设备、独立QA账号实网同步和恢复、旧版安装包、完整原生升级、最终提交完整CI及签名发行门禁仍未满足，未授权不得执行真实云写入、推送或安装升级。冻结范围，优先消除验收阻塞，不再添加功能。
+
+## 十六、延期验收补齐与历史源码兼容（2026-11-26）
+
+基线 4a99850，继续冻结功能，不修改版本号、不推送、不合并、不发布。先核对第十五节，资源压力1后补齐延期构建及实际浏览器。
+- 基线构建2.76s、main490.96kB，无500kB警告；Chromium 6/6（46.2s，cloud、feature-forward、rc-gates），两处视觉欠账均通过实际交互及布局断言，1440浅/390深截图四张已人工复查：频率标签不折行，月/年目标相邻、选中及移动44px目标正确。云为模拟API，不是实网双设备。
+- 在外置独立缓存 playwright-todo-rc 成功安装项目匹配 WebKit 2388及FFmpeg（76.86s），保留原缓存；Firefox尚未安装，未重复此前双引擎超时下载。
+- 读取实际 V1.0 RC1 历史提交 6b78c9b3e8190cef230dd249b9571781b7d0c57d 的 domain/advanced/smart-lists/focus-engine，独立临时模块探针发现旧引擎按普通全局自动继续规则结算新智能番茄，可能错误派生休息阶段而未触发冲突；新增保护：同一智能计时新增符合旧版身份的记录，或产生与旧版自然到期边界一致的无规划后继阶段，进入冲突保护，不影响新版自然结算、正常暂停或显式放弃。采用保守冲突策略，不自动猜测跨版本业务语义；若用户恰好在相同到期毫秒手动启动一个无规划后继，也可能要求显式确认。
+- 新增可重复脚本 scripts/verify-legacy-source.mjs，固定使用历史源码与内存存储，验证旧数据迁移及原始备份、旧序列化保留新版多段和锁定、旧连续会话结算拒绝、新回执接受、旧智能番茄结算拒绝及正常新结算。4/4通过；无真实账号、无旧包安装、无原始数据改动。新增1项领域测试，累计219/219。
+- 修复后最终构建2.85s，main491.44kB、无体积警告；首屏JS1097786 / gzip337071 / CSS254297字节。真实 WebKit 7/7（22.1s）：离线应用壳/懒加载详情、截止/规划/习惯、专注队列/CSV、目标及双主题周期控件。WebKit截图四张另行归档；仅为自动化引擎验收，不代表Safari/iOS实体设备。
+- 最终同步保护专项 Chromium 1/1（30.4s，模拟账号隔离、双设备、离线和冲突）；与基线6/6、最终WebKit7/7区分。日志 rc-recheck-build.log、rc-recheck-browser.log、rc-webkit-install.log、rc-webkit-browser.log、rc-legacy-source.log、rc-legacy-build.log、rc-recheck-unit.log、rc-sync-final.log；8张原始截图及1张桌面缩略审查图归档 rc-recheck-matrix/。
+- 仍待 Firefox 对应版本及实际回归；当前仅连接 macOS arm64，没有可用 Android 真机或已启动模拟器证据。上轮生产匿名预检不重复，真实独立QA认证、双设备/云恢复、旧版应用覆盖升级、真实休眠/触控、最终完整CI及签名门禁尚未通过，不宣布正式RC。后续以验收阻塞为唯一范围；无明确授权不使用生产账号、安装升级、推送、合并或发布。
