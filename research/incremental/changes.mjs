@@ -1,9 +1,9 @@
 // Research-only. Not imported by production. Inputs are sealed JSON snapshots
 // from the shared editor; unknown/malformed graphs fall back, never silently drop.
 import {sealWorkspace} from '../../src/services/shard-state-plan.js';
-import {canonical} from '../../src/services/cloud-core.js';
+import {sameRecord} from '../../src/core/record-equality.js';
 import {migrateState} from '../../src/core/domain.js';
-const eq=(a,b)=>a===b||canonical(a)===canonical(b);
+const eq=sameRecord;
 const verified=new WeakSet();
 function jsonGraph(v){
  if(v===null||typeof v==='string'||typeof v==='boolean'||typeof v==='number'&&Number.isFinite(v))return;
@@ -22,18 +22,21 @@ const map=tasks=>{const m=new Map();for(const t of tasks){if(typeof t?.id!=='str
 export function changes(before,after){
  sealWorkspace(before);sealWorkspace(after);jsonGraph(before);jsonGraph(after);
  migrateState(before);migrateState(after);
- return diffSealed(before,after);
+ return diffValidated(before,after);
 }
 // Only the controlled R3 editor calls this fast path. It is not an import API.
 export function diffSealed(before,after){
  sealWorkspace(before);sealWorkspace(after);jsonGraph(before);jsonGraph(after);
+ return diffValidated(before,after);
+}
+function diffValidated(before,after){
  const a=map(before.tasks),b=map(after.tasks);
  const put=[],remove=[];
  for(const [id,t] of b)if(!a.has(id)||!eq(a.get(id),t))put.push({id,before:a.get(id)??null,after:t});
  for(const [id,t] of a)if(!b.has(id))remove.push({id,before:t});
- const oldOrder=[...a.keys()],order=[...b.keys()];
+ const unchangedOrder=before.tasks.length===after.tasks.length&&before.tasks.every((t,i)=>t.id===after.tasks[i].id);
  const {tasks:_,...m}=before,{tasks:__,...n}=after;
- return {put,remove,order:eq(oldOrder,order)?null:order,meta:eq(m,n)?null:{before:m,after:n}};
+ return {put,remove,order:unchangedOrder?null:[...b.keys()],meta:eq(m,n)?null:{before:m,after:n}};
 }
 export function replay(before,p){
  const m=map(before.tasks);

@@ -7,6 +7,7 @@ import {canonical} from '../../src/services/cloud-core.js';
 import {plan,replay} from './changes.mjs';
 import {createDeltaQueue} from './queue-r3.mjs';
 import {createCaptureSession} from './capture.mjs';
+import {runQuality} from './native-quality.mjs';
 const K='todo-workbench-v1',scope='guest',out=document.querySelector('pre');
 const ok=(v,msg)=>{if(!v)throw Error(msg)};
 const eq=(a,b,msg)=>ok(canonical(a)===canonical(b),msg);
@@ -25,6 +26,7 @@ async function verify(state,revision){
 function edit(state,fn){return applyWorkspaceEdit(state,fn,{id:uuid(),at:new Date().toISOString(),source:'manual',session:'r4-webview',trigger:'event'},{allowAutomation:false,rules:[]})}
 async function main(){
  let v=await call('load');
+ if(['quality','perf','retention'].includes(v?.phase)){await runQuality(v);return}
  if(v){
   const s=stateOf(v),audit=await verify(s,v.revision);
   ok(s.tasks.some(t=>t.id==='qa-0'&&t.title==='后续人工修改'),'restart retained later edit');

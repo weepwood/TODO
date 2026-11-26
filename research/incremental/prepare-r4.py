@@ -1,6 +1,6 @@
 import json, pathlib, sys
 p=pathlib.Path(sys.argv[1]).resolve()
-if p!=pathlib.Path('/Volumes/data/AI-Development/artifacts/TODO/incremental-native-r4/source') or (p/'.git').exists():raise SystemExit('isolated artifact source required')
+if p!=pathlib.Path('/Volumes/data/AI-Development/artifacts/TODO/incremental-native-r4-quality/source') or (p/'.git').exists():raise SystemExit('isolated artifact source required')
 c=p/'src-tauri/tauri.conf.json'
 v=json.loads(c.read_text());v['identifier']='com.weepwood.todo.qa.r4';v['productName']='TODO R4 Lab'
 v['app']['windows']=[{'label':'main','title':'TODO R4 Lab','width':900,'height':650,'url':'native-r4.html'}]

@@ -8,10 +8,11 @@ export function createDeltaQueue(scope,initial,revision,send){
  migrateState(initial);sealWorkspace(initial);
  let committed=initial,rev=revision,queue=[],inflight=null,running=null,error='';
  function stage(next,receipt=null){
-  const p=plan(queue.at(-1)?.state??inflight?.state??committed,next);
+  const base=queue.at(-1)?.state??inflight?.state??committed;
+  const p=plan(base,next);
   if(p.kind!=='delta')throw Error(p.reason||'explicit full-store fallback required');
-  const job={state:next,receipt:receipt?structuredClone(receipt):null};
-  if(queue.length&&!receipt&&!queue.at(-1).receipt)queue[queue.length-1]=job;
+  const job={state:next,base,patch:p.patch,receipt:receipt?structuredClone(receipt):null};
+  if(queue.length&&!receipt&&!queue.at(-1).receipt){job.base=null;job.patch=null;queue[queue.length-1]=job;}
   else queue.push(job);
  }
  async function drain(){
@@ -20,7 +21,7 @@ export function createDeltaQueue(scope,initial,revision,send){
    while(inflight||queue.length){
     if(!inflight){
      const job=queue[0];
-     const p=plan(committed,job.state);
+     const p=job.base===committed?{kind:"delta",patch:job.patch}:plan(committed,job.state);
      if(p.kind==='reject')throw Error(p.reason);
      const patch=p.kind==='delta'?{...p.patch,keys:[]}:{kind:'snapshot',store:{'todo-workbench-v1':JSON.stringify(job.state)}};
      // This demo queue only handles the state key. No implicit metadata deletion.
