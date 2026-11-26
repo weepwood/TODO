@@ -53,8 +53,7 @@
  .v2.compact-mobile .sidebar{left:env(safe-area-inset-left,0px);width:min(320px,88vw);padding:16px 12px;bottom:calc(66px + env(safe-area-inset-bottom,0px))}
  :root[data-density] .v2.compact-mobile .nav-row,.v2.compact-mobile .nav-row{min-height:46px;height:46px;font-size:14px}
  .v2.compact-mobile .nav-wrap>.icon-button{width:44px;height:44px}
- .v2.compact-mobile .mobile-nav{padding:5px 8px max(5px,env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);gap:3px}
- .v2.compact-mobile .mobile-nav>button{height:54px;font-size:11px}
+ .v2.compact-mobile .mobile-nav{border-top:1px solid var(--line)}
  .v2.compact-mobile .mobile-nav>button svg{width:22px;height:22px}
  .v2.compact-mobile .view-toolbar{width:100%;gap:10px;flex-wrap:wrap}
  .v2.compact-mobile .sort{font-size:12px;display:flex;align-items:center;gap:6px;flex:1;min-width:0}

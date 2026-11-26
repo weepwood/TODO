@@ -92,10 +92,6 @@ input[type=checkbox]:disabled{opacity:.5;cursor:default}
  .v2.compact-mobile .task-row:not(.checked).selected{background:var(--hover)}
  .v2.compact-mobile .task-points{font-size:10px}
  .mobile-sidebar-scrim{display:block;position:fixed;inset:0;z-index:29;background:#10152266;border-radius:0}
- .v2.compact-mobile .mobile-nav{position:relative;isolation:isolate;gap:3px}
- .v2.compact-mobile .mobile-nav-indicator{display:block;position:absolute;z-index:-1;pointer-events:none;top:5px;height:54px;left:8px;width:calc((100% - 28px)/5);transform:translateX(calc(var(--nav-index) * (100% + 3px)));background:var(--active);border-radius:9px}
- .v2.compact-mobile .mobile-nav>button.active{background:transparent}
- .v2.compact-mobile .mobile-nav>button{font-size:11px}
  .v2.compact-mobile .detail-content{padding:16px 14px 28px}
  .v2.compact-mobile .detail-group{padding-block:12px 8px}
  .v2.compact-mobile .detail-content .field>span{font-size:13px}
@@ -117,9 +113,6 @@ input[type=checkbox]:disabled{opacity:.5;cursor:default}
  .stats .stat-grid>div strong{font-size:22px}
 
  .stats .points-dashboard{margin-top:20px}
- @media(prefers-reduced-motion:no-preference){
-  .mobile-nav-indicator{transition:transform 190ms var(--ui-ease)}
- }
 }
 @media(prefers-reduced-motion:reduce){.v2 .task-check,.toast,.mobile-nav-indicator,.dialog.mobile-capture-sheet,.update-panel>label input[type=checkbox]::after{animation:none!important;transition:none!important}}
 @media(forced-colors:active){input[type=checkbox]:checked{background:Highlight;border-color:Highlight}input[type=checkbox]:checked::after{border-color:HighlightText}}
