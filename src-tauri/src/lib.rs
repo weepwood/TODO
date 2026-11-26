@@ -149,10 +149,6 @@ fn native_cli_next(scope:String,active:tauri::State<ActiveScope>,db:tauri::State
  let mut req:Option<serde_json::Value>=c.query_row("SELECT d.id,d.text,d.created_at FROM direct_capture_requests d JOIN cli_operation_meta m ON d.scope=m.scope AND d.id=m.id WHERE d.scope='cli-op:'||?1 AND d.status='pending' ORDER BY d.created_at,d.id LIMIT 1",[&scope],|r|Ok(serde_json::json!({"id":r.get::<_,String>(0)?,"text":r.get::<_,String>(1)?,"created_at":r.get::<_,i64>(2)?}))).optional().map_err(|e|e.to_string())?;
  if let Some(ref mut req)=req{
   if let Ok(payload)=serde_json::from_str::<serde_json::Value>(req["text"].as_str().unwrap_or("")){
-   if payload["op"].as_str().is_some_and(|op|cli::HISTORY.contains(&op))&&cli::advanced_scope(&c,&scope)?{
-    let detail=payload["op"]!="history-list";
-    req["journal"]=operation_history::history_read(&c,&scope,detail,300)?;
-   }
    let reference=match payload["op"].as_str(){Some("preview-apply"|"history-apply")=>payload["previewId"].as_str(),Some("changes-undo")=>payload["receiptId"].as_str(),_=>None};
    if let Some(id)=reference.filter(|id|uuid::Uuid::parse_str(id).is_ok()){
     if cli::advanced_scope(&c,&scope)?{

@@ -72,7 +72,10 @@ export function useCliOperations({uid,storage,data,blocked,apply,editor,onSaved,
      const {applyWorkspaceEdit}=await import('../../components/useWorkspaceMutations.js');
      const {operationGroup,...request}=JSON.parse(req.text);
      if(request.op.startsWith('focus-')&&now.getTime()-req.created_at*1000>30000)throw Error('专注指令已过期，请打开应用后重新提交');
-     const prepared=await prepareCliOperation(expected,request,req.id,now,{reference:req.reference,journal:req.journal,preferencesStorage:latest.current.preferencesStorage});
+     const {HISTORY_OPS,readConsistentHistory}=await import('../../core/operation-history.js');
+     const readJournal=()=>readConsistentHistory(storage,expected,()=>invoke('native_operation_history',{scope,detail:request.op!=='history-list'}));
+     const journal=HISTORY_OPS.includes(request.op)?await readJournal():undefined;
+     const prepared=await prepareCliOperation(expected,request,req.id,now,{reference:req.reference,journal,preferencesStorage:latest.current.preferencesStorage});
      if(prepared.next!==expected){
       next=applyWorkspaceEdit(expected,()=>prepared.next,{id:req.id,at:now.toISOString(),source:'device',session:context.session,trigger:'event'},context);
       // An automation may change other fields; actual saved result is the
@@ -93,7 +96,7 @@ export function useCliOperations({uid,storage,data,blocked,apply,editor,onSaved,
       if(!approved||disposed)throw Object.assign(Error('用户未在应用内确认或已取消'),{code:'USER_CONFIRM_REQUIRED'});
       if(Date.now()-now.getTime()>60000||latest.current.data!==expected||latest.current.blocked)throw Object.assign(Error('确认后状态或时间已变化，请重新提交'),{code:'STALE_WORKSPACE'});
       // Recompute time-dependent preconditions after the approval wait.
-      const fresh=await prepareCliOperation(expected,request,req.id,new Date(),{reference:req.reference,journal:req.journal,preferencesStorage:latest.current.preferencesStorage});
+      const fresh=await prepareCliOperation(expected,request,req.id,new Date(),{reference:req.reference,journal:HISTORY_OPS.includes(request.op)?await readJournal():undefined,preferencesStorage:latest.current.preferencesStorage});
       if(request.op==='preview-apply'||request.op==='history-apply'||request.op==='changes-undo'){
        if(!sameRecord(fresh.next,prepared.next))throw Object.assign(Error('确认期间方案变化，请重新预览'),{code:'STALE_PREVIEW'});
       }

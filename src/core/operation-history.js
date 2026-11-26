@@ -1,7 +1,7 @@
 // Compensate selected, verified task fields, never replace a workspace snapshot.
 import {digest} from '../services/cloud-core.js';
 import {sameRecord} from './record-equality.js';
-import {migrateState} from './domain.js';
+import {migrateState,STORAGE_KEY} from './domain.js';
 import {taskConflicts} from './advanced.js';
 import {calendarBusy} from './productivity.js';
 import {expandPlanBlocks} from './plan-block.js';
@@ -17,13 +17,27 @@ const schedule=['date','time','anchor','duration','deadline','planMinutes','plan
 const classification=['listId','sectionId','tags'];
 const safe=['title','priority',...schedule,...classification,'deletedAt'];
 const ordinary=t=>t&&t.status==='pending'&&t.stage!=='doing'&&t.repeat==='none'&&!t.seriesId&&!t.previousId&&!t.seriesHold&&!t.planLocked;
-const touches=(row,keys)=>row.created||row.removed||row.protected?.some(k=>['status','stage','repeat','seriesId','previousId','seriesHold','planLocked','deletedAt','remindedAt','extraReminders','reminderAt','completedAt'].includes(k))||Object.keys(row.fields||{}).some(k=>keys.includes(k));
+const touches=(row,keys)=>row.created||row.removed||row.unattributed||Object.hasOwn(row.fields||{},'deletedAt')||row.protected?.some(k=>['status','stage','repeat','seriesId','previousId','seriesHold','planLocked','deletedAt','remindedAt','extraReminders','reminderAt','completedAt'].includes(k))||Object.keys(row.fields||{}).some(k=>keys.includes(k));
 const used=(d,t)=>d.timer?.taskId===t.id||d.sessions?.some(s=>s.taskId===t.id)||d.tasks.some(x=>!x.deletedAt&&x.id!==t.id&&(x.parentId===t.id||x.dependsOn?.includes(t.id)||x.previousId===t.id));
 const delivered=t=>!!t.remindedAt||t.extraReminders?.some(r=>r.sentAt);
 const taskMap=d=>new Map(d.tasks.map(t=>[t.id,t]));
 const applyField=(t,k,v)=>{if(v.present)t[k]=v.value;else delete t[k]};
 const describe=(t,k)=>field(t,k);
 const selectionFor=(selection,id)=>!selection?{id}:selection.find(s=>s.id===id);
+// A history read must refer to the exact committed native workspace, not an
+// earlier journal fetched while the asynchronous native store was draining.
+export async function snapshotFingerprint(raw){
+ const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(raw));
+ return Array.from(new Uint8Array(b),x=>x.toString(16).padStart(2,'0')).join('');
+}
+export async function readConsistentHistory(storage,expected,read){
+ check(storage?.flush&&await storage.flush(),'STALE_WORKSPACE','本机保存尚未完成');
+ const raw=storage.getItem(STORAGE_KEY);
+ check(typeof raw==='string'&&sameRecord(JSON.parse(raw),expected),'STALE_WORKSPACE','工作空间已变化，请重新查询');
+ const hash=await snapshotFingerprint(raw),journal=await read();
+ check(journal?.workspaceFingerprint===hash&&storage.getItem(STORAGE_KEY)===raw,'STALE_WORKSPACE','历史与当前已保存工作空间不一致，请重新查询');
+ return journal;
+}
 export async function buildHistoryPreview(d,request,journal,now=new Date()){
  shape(request,['op','version','afterVersion','groupId','selection']);
  check(journal?.intact,'HISTORY_GAP','日志连续性未知，不能安全恢复');
@@ -44,8 +58,8 @@ export async function buildHistoryPreview(d,request,journal,now=new Date()){
  check(range.length===head-oldest+1&&range.every((e,i)=>e.version===head-i&&!e.gap&&e.body&&!e.body.gap),'HISTORY_GAP','历史范围不连续或超出读取预算');
  const sel=request.selection;
  if(sel!==undefined){
-  check(Array.isArray(sel)&&sel.length>=1&&sel.length<=50&&new Set(sel.map(s=>s.id)).size===sel.length,'INVALID_ARGUMENT','选择范围无效');
-  for(const s of sel){shape(s,['id','fields']);check(typeof s.id==='string'&&(!s.fields||Array.isArray(s.fields)&&s.fields.length&&s.fields.every(k=>safe.includes(k))&&new Set(s.fields).size===s.fields.length),'INVALID_ARGUMENT','选择字段无效')}
+  check(Array.isArray(sel)&&sel.length>=1&&sel.length<=50&&sel.every(s=>s&&typeof s==='object'&&!Array.isArray(s))&&new Set(sel.map(s=>s.id)).size===sel.length,'INVALID_ARGUMENT','选择范围无效');
+  for(const s of sel){shape(s,['id','fields']);check(typeof s.id==='string'&&s.id.length>0&&selected.some(e=>e.body.rows.some(r=>r.id===s.id))&&(s.fields===undefined||Array.isArray(s.fields)&&s.fields.length&&s.fields.every(k=>safe.includes(k))&&new Set(s.fields).size===s.fields.length),'INVALID_ARGUMENT','选择字段无效')}
  }
  const chosen=new Set(selected.map(e=>e.version)),initial=taskMap(d),working=new Map(initial),conflicts=[],changed=new Set(),blockedFields=new Map();
  const blocked=(id,version,reason,fields=[],comparison)=>{conflicts.push({id,version,reason,fields,...(comparison?{comparison}:{})});if(id){const set=blockedFields.get(id)||new Set();for(const k of fields.length?fields:safe)set.add(k);blockedFields.set(id,set)}};

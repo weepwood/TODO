@@ -53,3 +53,24 @@ test('saved reference, expiry and current snapshot guard; confirmation contains 
  await assert.rejects(prepareHistory(d,req,id,new Date(+now+16*60000),{journal:j,reference:ref}),e=>e.code==='REFERENCE_EXPIRED');
  const a=await prepareHistory(d,req,id,now,{journal:j,reference:ref});assert.equal(a.next.tasks[0].priority,0);assert.match(confirmationText(req.op,d,a.next),/priority: 3 → 0/);
 });
+test('persisted snapshot and journal must match after the save barrier',async()=>{
+ const {readConsistentHistory,snapshotFingerprint}=await import('../src/core/operation-history.js');
+ const d=state([task('a')]);let raw=JSON.stringify(d);let ready=true;
+ const storage={flush:async()=>ready,getItem:()=>raw};
+ const hash=await snapshotFingerprint(raw);
+ const j={workspaceFingerprint:hash,intact:true,head:1,entries:[]};
+ assert.equal(await readConsistentHistory(storage,d,async()=>j),j);
+ await assert.rejects(readConsistentHistory(storage,d,async()=>({...j,workspaceFingerprint:'stale'})),e=>e.code==='STALE_WORKSPACE');
+ await assert.rejects(readConsistentHistory(storage,d,async()=>{raw=JSON.stringify({...d,theme:'changed'});return j}),e=>e.code==='STALE_WORKSPACE');
+ raw=JSON.stringify(d);ready=false;
+ await assert.rejects(readConsistentHistory(storage,d,async()=>j),e=>e.code==='STALE_WORKSPACE');
+});
+test('invalid selections and later trash lifecycle cannot silently restore earlier fields',async()=>{
+ const d=state([task('a',{priority:3})]);
+ const j=journal(entry(3,[row('a',{deletedAt:field(now.toISOString(),null)})],'local'),entry(2,[row('a',{deletedAt:field(null,now.toISOString())})],'local'),entry(1,[row('a',{priority:field(0,3)})]));
+ const r=await buildHistoryPreview(d,{op:'history-preview',version:1},j,now);
+ assert.equal(r.rows.length,0);assert.equal(r.conflicts.length,1);
+ for(const selection of [[null],[{id:'a',fields:null}],[{id:'missing'}],[{id:'a',fields:[]}]]){
+  await assert.rejects(buildHistoryPreview(d,{op:'history-preview',version:1,selection},j,now),e=>e.code==='INVALID_ARGUMENT');
+ }
+});

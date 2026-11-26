@@ -72,7 +72,7 @@ pub(super) fn history_read(c:&Connection,scope:&str,detail:bool,limit:i64)->Resu
   let row=json!({"version":r.get::<_,i64>(0).map_err(|e|e.to_string())?,"at":r.get::<_,i64>(1).map_err(|e|e.to_string())?,"source":r.get::<_,String>(2).map_err(|e|e.to_string())?,"kind":r.get::<_,String>(3).map_err(|e|e.to_string())?,"requestId":r.get::<_,Option<String>>(4).map_err(|e|e.to_string())?,"groupId":r.get::<_,Option<String>>(5).map_err(|e|e.to_string())?,"count":body["rows"].as_array().map(|a|a.len()).unwrap_or(0),"gap":body["gap"]==true,"body":if detail{body}else{Value::Null}});
   bytes+=row.to_string().len();if bytes>400000{break}out.push(row);
  }
- Ok(json!({"head":head.map(|h|h.0).unwrap_or(0),"intact":intact,"entries":out,"retentionDays":30}))
+ Ok(json!({"head":head.map(|h|h.0).unwrap_or(0),"intact":intact,"entries":out,"retentionDays":30,"workspaceFingerprint":current.map(|raw|format!("{:x}",Sha256::digest(raw.as_bytes())))}))
 }
 
 #[cfg(test)]
