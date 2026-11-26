@@ -212,3 +212,16 @@
 - 修复后最终构建2.85s，main491.44kB、无体积警告；首屏JS1097786 / gzip337071 / CSS254297字节。真实 WebKit 7/7（22.1s）：离线应用壳/懒加载详情、截止/规划/习惯、专注队列/CSV、目标及双主题周期控件。WebKit截图四张另行归档；仅为自动化引擎验收，不代表Safari/iOS实体设备。
 - 最终同步保护专项 Chromium 1/1（30.4s，模拟账号隔离、双设备、离线和冲突）；与基线6/6、最终WebKit7/7区分。日志 rc-recheck-build.log、rc-recheck-browser.log、rc-webkit-install.log、rc-webkit-browser.log、rc-legacy-source.log、rc-legacy-build.log、rc-recheck-unit.log、rc-sync-final.log；8张原始截图及1张桌面缩略审查图归档 rc-recheck-matrix/。
 - 仍待 Firefox 对应版本及实际回归；当前仅连接 macOS arm64，没有可用 Android 真机或已启动模拟器证据。上轮生产匿名预检不重复，真实独立QA认证、双设备/云恢复、旧版应用覆盖升级、真实休眠/触控、最终完整CI及签名门禁尚未通过，不宣布正式RC。后续以验收阻塞为唯一范围；无明确授权不使用生产账号、安装升级、推送、合并或发布。
+
+## 十七、Firefox 环境及正式门禁复核（2026-11-26）
+
+基线 87a84704f7896c904663634df9b357e2d654b9f7。冻结功能；本轮没有修改应用业务逻辑、版本号、正式main或远端PR，不重复已通过的 Chromium/WebKit、219项单测和历史源码/SQLite隔离专项。
+
+- 资源压力1时，在外置独立缓存 playwright-todo-rc 安装匹配 Firefox 159.0 / Playwright 1572 成功（43.88s），保留WebKit 2388。八项 Firefox 测试全部在 launch 前失败（0ms），相同报错 Could not find profile folder；未实际执行页面业务，不能当作产品八项失败或通过。
+- 通过资源门禁执行最小启动探针：默认 scratch、外置独立临时路径及系统 /private/tmp 均失败；查阅 Playwright #42768 和 Mozilla #2062988，使用仅测试子进程的空白 CFFIXED_USER_HOME 后 data 页面实际启动成功。不能证明本机根因就是某个具体权限设置；没有读取原 Firefox 用户目录、改变系统权限或关闭保护。探针退出时自身新建目录 ENOTEMPTY 清理竞争；新脚本 scripts/verify-firefox.mjs 加有界清理重试，仅删除自身创建的目录。脚本语法通过，完整隔离复跑因压力2门禁拒绝，尚未执行；新脚本不可宣称业务验收通过。
+- 真实跨端：核对现有 verify-live-core.mjs 的独立凭据、写入授权、空工作区检查、CAS/Realtime/清理保护；当前进程无 TODO_QA_* 配置，没有执行认证、真实云写入或新建账号。此前匿名预检不重复。两台实体设备和真实云恢复需另行授权与安全测试环境。
+- 原生：当前连接 macOS arm64；adb 不可用，未发现已启动的 iOS 模拟器输出，不进行安装、休眠/重启或原始SQLite访问；原生覆盖升级、实体触控与休眠门禁仍未通过。
+- CI：检查 .github/workflows/ui-review.yml（Ubuntu/Node22、npm ci、全量单测/构建/Chromium两worker）及独立桌面、Android运行、签名工作流。基线与 origin/main 累计156文件、+5082/-487，16个提交，git diff --check通过；非全量逐行语义审计。本机 gh PR只读查询网络EOF；GitHub连接器查询精确基线SHA的PR workflow runs为空。本轮不推送、不触发远端工作流，不能宣布当前提交完整CI通过；未再执行全量本地套件。
+- 证据日志 rc-firefox-install.log、rc-firefox-browser.log、rc-firefox-launch-probe.log、rc-firefox-path-probe.log、rc-firefox-internal-probe.log、rc-firefox-empty-home.log、rc-firefox-isolated.log 位于 artifacts/TODO/v15-motion-polish/。资源压力2时停止新重型任务，4197正常；没有后台业务测试。
+
+后续首先按 RELEASE.md 的隔离脚本及资源门禁完成 Firefox 八项；只有明确授权并具备独立QA账号、隔离旧版安装及测试设备，才执行真实云写入/原生升级。最终同SHA CI须另获推送授权。继续功能冻结，不为追求门禁数字重复已有验收。

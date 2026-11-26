@@ -105,3 +105,15 @@ V1.2.0-alpha.1 为开发候选，不是已发布正式版。当前正式更新�
 本机完整 Git 历史可运行 `TODO_LEGACY_TMP=/Volumes/data/AI-Development/tmp node scripts/verify-legacy-source.mjs`。脚本固定读取 V1.0 RC1 的 6b78c9b 实际历史领域代码，在独立临时目录及内存存储中验证旧数据迁移、原始备份、补充段/锁定保留和旧计时结算冲突。浅克隆缺少该提交时明确失败，不用伪造旧版实现替代。它不安装旧版、不访问生产工作区，不替代实体升级验收。
 
 通过资源门禁，以匹配项目依赖的浏览器缓存运行 `TODO_BROWSER_ENGINE=webkit` 或 `firefox` 的 Playwright 专项；默认仍为 Chromium/Edge。WebKit 引擎通过不等于 Safari/iOS 真机验收，不能据此勾选原生升级或真实跨端云恢复。
+
+### Firefox/macOS 27 本机测试启动隔离
+
+macOS 27 的 Playwright Firefox 直接启动可能因应用数据保护报 `Could not find profile folder`（上游记录 https://github.com/microsoft/playwright/issues/42768 与 https://bugzilla.mozilla.org/show_bug.cgi?id=2062988）。本机 27.2.1、Playwright Firefox 1572 实际复现；改变 TMPDIR 不足以解决。仅给测试子进程指定新建空白的 CFFIXED_USER_HOME 后最小页面探针实际成功，不读取或更改正式 Firefox 数据，不修改权限、沙箱或系统配置。使用资源门禁运行：
+
+```sh
+/Volumes/data/AI-Development/scripts/run-budgeted --kind browser --label TODO-rc-firefox-isolated -- env PLAYWRIGHT_BROWSERS_PATH=/Volumes/data/AI-Development/cache/playwright-todo-rc node scripts/verify-firefox.mjs
+```
+
+脚本仅在 macOS 创建独立临时目录，退出时有界重试清理；其他系统使用 Playwright 默认隔离 profile。须先有匹配当前提交的生产构建。启动探针不是业务验收，资源门禁拒绝时不得勾选 Firefox 业务通过。
+
+真实 QA 验收须在独立且已确认邮件的测试账号中运行。现有 `scripts/verify-live.mjs --live` 需要本机安全环境配置 TODO_QA_EMAIL / TODO_QA_PASSWORD；真实写入另需用户明确授权、`--write` 与 TODO_QA_ALLOW_WRITE=YES，非空工作区拒绝修改。脚本覆盖两个隔离认证会话、实时事件、CAS 冲突与空工作区恢复，不替代两台实体设备及完整备份恢复。不要将凭据写入仓库、聊天或日志。原生安装、升级、实体休眠/触控、正式签名仍需授权与对应隔离设备。未推送提交不能通过远端同 SHA CI；先确认候选代码与门禁，再由用户另行授权推送和正式流程。
