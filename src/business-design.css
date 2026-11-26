@@ -576,7 +576,7 @@
 /* Today's execution: priority information before compact actions. */
 .v2 .today-execution{padding:var(--space-3);border:var(--surface-border);border-radius:var(--surface-radius);margin-bottom:var(--space-3);background:var(--surface-subtle)}
 .v2 .today-execution-summary{display:grid;gap:var(--space-1);min-width:0;flex:1 1 180px}
-.today-execution-head strong{font-size:var(--font-heading);font-weight:var(--surface-heading-weight)}
+.today-execution-head strong,.today-execution[data-empty=true] strong{font-size:var(--font-heading);font-weight:var(--surface-heading-weight)}
 .today-execution-meta{display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:var(--font-caption);color:var(--muted)}
 .today-execution [data-risk=true]{color:var(--danger);font-weight:600}
 .v2 .today-execution-next{background:var(--bg);border:var(--surface-border);border-radius:var(--radius-control);padding:var(--space-2);margin-top:var(--space-1)}
