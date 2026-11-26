@@ -74,3 +74,8 @@
 .appearance-preview-action,.appearance-preview-input{display:inline-flex;align-items:center;min-height:var(--control-height);padding:6px 10px;font-size:var(--control-font);border-radius:var(--radius-control)}
 .appearance-preview-action{background:var(--accent);color:var(--accent-contrast)}
 .appearance-preview-input{border:var(--control-border);color:var(--muted);flex:1}
+
+@media(max-height:480px) and (min-width:861px){
+ .settings-dialog.dialog{height:calc(100dvh - 24px)}
+ .settings-dialog .dialog-head{min-height:48px;padding-block:6px}
+}

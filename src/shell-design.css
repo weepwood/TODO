@@ -38,8 +38,6 @@
  .v2 .sidebar .nav-row{gap:9px}
  .v2 .rail .brand-icon{box-shadow:0 2px 5px color-mix(in srgb,var(--accent) 25%,transparent)}
 
- .app.v2[data-sidebar-hidden=true]{grid-template-columns:var(--shell-rail) minmax(0,1fr) auto}
- .app.v2[data-sidebar-hidden=true]>.sidebar{display:none}
 }
 @media(max-width:860px){
  .v2.compact-mobile .task-content{padding:14px 14px 20px}
@@ -54,12 +52,12 @@
  .note-editor-dialog .note-immersive-toggle{display:none}
 }
 @media(prefers-reduced-motion:no-preference){
- .v2.compact-mobile .mobile-nav-indicator{transition:transform 190ms var(--ui-ease)}
+ .v2.compact-mobile .mobile-nav-indicator{transition:transform var(--motion-selection) var(--motion-ease)}
 }
 
 /* Stable four-track shell on resizable desktop widths. Grid interpolates from
    its current value on rapid toggles. Dragging a handle stays synchronous. */
-@media(min-width:1151px){
+@media(min-width:861px){
  .app.v2:not(.compact-mobile){--shell-side-track:var(--user-sidebar,228px);--shell-detail-track:0px;grid-template-columns:var(--shell-rail) var(--shell-side-track) minmax(0,1fr) var(--shell-detail-track)}
  .app.v2:not(.compact-mobile)[data-detail-visible=true]{--shell-detail-track:var(--user-detail,350px)}
  .app.v2:not(.compact-mobile)[data-sidebar-hidden=true]{--shell-side-track:0px}
@@ -68,6 +66,14 @@
  .app.v2:not(.compact-mobile)[data-sidebar-hidden=true]>.sidebar{display:flex;visibility:hidden;pointer-events:none;padding-inline:0;border:0}
  .app.v2:not(.compact-mobile)>.details{grid-column:4;min-width:0;width:100%;overflow:hidden}
 }
-@media(min-width:1151px) and (prefers-reduced-motion:no-preference){
+/* Intermediate desktop widths retain a usable center column without
+   overwriting the saved wide-screen panel sizes. */
+@media(min-width:861px) and (max-width:1150px){
+ .app.v2:not(.compact-mobile){--shell-side-track:clamp(176px,18vw,198px)}
+ .app.v2:not(.compact-mobile)[data-detail-visible=true]{--shell-detail-track:clamp(280px,28vw,310px)}
+ .app.v2:not(.compact-mobile)[data-sidebar-hidden=true]{--shell-side-track:0px}
+ .v2 .task-content{padding-inline:clamp(14px,2vw,24px)}
+}
+@media(min-width:861px) and (prefers-reduced-motion:no-preference){
  body:not(.resizing-panels) .app.v2:not(.compact-mobile){transition:grid-template-columns var(--motion-layout) var(--motion-ease)}
 }

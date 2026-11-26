@@ -47,7 +47,7 @@
 .points-ledger .points-entry small,.points-wallet .reward-row small{line-height:1.5}
 .points-wallet .reward-row button{border-radius:var(--radius-control)}
 @media(prefers-reduced-motion:no-preference){
- .workspace-segment>button::after{transition:width var(--marker-duration) var(--ui-ease),background-color var(--marker-duration) ease,opacity var(--marker-duration) ease}
+ .workspace-segment>button::after{transition:width var(--marker-duration) var(--motion-ease),background-color var(--marker-duration) ease,opacity var(--marker-duration) ease}
  .agenda-task,.planner .unscheduled>div[draggable],.points-ledger .points-entry,.points-wallet .reward-row{transition:background-color 120ms ease}
 }
 @media(max-width:860px){

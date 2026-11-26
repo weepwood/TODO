@@ -17,7 +17,7 @@
 .shared-segment>button{min-height:var(--control-height);font-size:var(--control-font)}
 .shared-segment>button.chosen{color:var(--accent-text);background:var(--active)}
 .shared-segment>button{border-radius:var(--radius-control)}
-.shared-switch{width:40px;height:24px;border-radius:999px;flex:none;padding:3px;background:var(--muted);display:flex;align-items:center;justify-content:flex-start}
+.shared-switch{position:relative;width:40px;height:24px;border-radius:999px;flex:none;padding:3px;background:var(--muted);display:flex;align-items:center;justify-content:flex-start}
 .shared-switch[aria-checked=true]{background:var(--accent)}
 .shared-switch>span{width:18px;height:18px;border-radius:50%;background:white;transform:translateX(0)}
 .shared-switch[aria-checked=true]>span{transform:translateX(16px)}
@@ -259,3 +259,6 @@ html[data-focus-mode=enhanced] .shared-search:focus-within{box-shadow:0 0 0 2px 
 .search-select-options .smart-select-option>span{min-width:0;overflow-wrap:anywhere}
 .search-select-empty{padding:9px;color:var(--muted);font-size:12px}
 @media(max-width:860px),(pointer:coarse){.search-select-input input{font-size:16px}.search-select-input{min-height:44px}}
+
+@media(max-width:860px),(pointer:coarse){.shared-switch{width:44px;height:44px;background:transparent;padding:5px;isolation:isolate}.shared-switch::before{content:"";position:absolute;inset:10px 2px;border-radius:999px;background:var(--muted);z-index:-1}.shared-switch[aria-checked=true]{background:transparent}.shared-switch[aria-checked=true]::before{background:var(--accent)}.shared-switch[aria-checked=true]>span{transform:translateX(16px)}}
+@media(forced-colors:active) and (max-width:860px){.shared-switch::before{background:ButtonFace;border:1px solid ButtonText}.shared-switch[aria-checked=true]::before{background:Highlight}}
