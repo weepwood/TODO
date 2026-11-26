@@ -1,8 +1,9 @@
-import {blockInterval,uniqueWallInstant,busyRanges,elapsedWindow} from './time-intervals.js';
+import {blockInterval,uniqueWallInstant,busyRanges,elapsedWindow,nearestFreeStart} from './time-intervals.js';
 import {expandPlanBlocks,blockMinutes} from './plan-block.js';
-import {taskConflicts,nextSlot} from './advanced.js';
+import {taskConflicts} from './advanced.js';
+import {deadlineEnd} from './deadline.js';
 import {validDate,validTime,shiftDay} from './domain.js';
-import {validWorkHours,calendarBusy} from './productivity.js';
+import {validWorkHours,calendarBusy,planningWindows} from './productivity.js';
 // Use elapsed minutes, exactly as persisted calendar events do. Half-open
 // intervals include the entire continuation on the following day.
 export function projectBlock(tasks,renderId,date,time,minutes){
@@ -35,11 +36,11 @@ export function deleteWorkHours(storage,name){const next=readWorkHours(storage).
 
 // Conservative reflow: only simple movable tasks on the selected day that
 // overlap another block. Keep locked, recurring, related and multi-block work fixed.
-export function previewReflow(data,date,start,end){
+export function previewReflow(data,date,start,end,{notBefore=null,week=null}={}){
  if(!validDate(date)||!validWorkHours(start,end))return [];
  const busy=calendarBusy(data.calendarEvents),all=[...data.tasks,...busy],conflicts=taskConflicts(all);
  const related=new Set(data.tasks.filter(t=>!t.deletedAt).flatMap(t=>[t.parentId,...(t.dependsOn||[])].filter(Boolean)));
- const movable=data.tasks.filter(t=>t.status==='pending'&&!t.deletedAt&&!t.planLocked&&t.date===date&&t.time&&t.repeat==='none'&&!t.seriesId&&!t.seriesHold&&!t.previousId&&!t.planSegments?.length&&!t.parentId&&!t.dependsOn?.length&&!related.has(t.id)&&conflicts.has(t.id)).sort((a,b)=>b.priority-a.priority||a.time.localeCompare(b.time)||a.id.localeCompare(b.id)).slice(0,30);
+ const movable=data.tasks.filter(t=>t.status==='pending'&&!t.deletedAt&&!t.planLocked&&t.date===date&&t.time&&t.stage!=='doing'&&t.id!==data.timer?.taskId&&t.repeat==='none'&&!t.seriesId&&!t.seriesHold&&!t.previousId&&!t.planSegments?.length&&!t.parentId&&!t.dependsOn?.length&&!related.has(t.id)&&conflicts.has(t.id)).sort((a,b)=>b.priority-a.priority||a.time.localeCompare(b.time)||a.id.localeCompare(b.id)).slice(0,30);
  const rows=[];
  // If one task cannot be fitted, keep its original block and restart. This
  // avoids proposing a move into the original slot of a task that cannot move.
@@ -47,10 +48,10 @@ export function previewReflow(data,date,start,end){
  while(candidates.length){
   const ids=new Set(candidates.map(t=>t.id)),schedule=all.filter(t=>!ids.has(t.id));let rejected=null;rows.length=0;
   for(const t of candidates){
-   const time=nextSlot(schedule,date,blockMinutes(t),start,end);
-   const endAt=time?+new Date(date+'T'+time)+blockMinutes(t)*60000:Infinity;
-   const deadline=t.deadline?(t.deadline.length===10?+new Date(shiftDay(t.deadline,1)+'T00:00:00'):+new Date(t.deadline)):Infinity;
-   if(!time||endAt>deadline){rejected=t.id;break}
+   const deadline=deadlineEnd(t.deadline)??Infinity;
+   const w=planningWindows(schedule,date,{start,end,week,notBefore})[0];
+   const target=blockInterval(t)[0],slot=w&&nearestFreeStart(date,w.free,blockMinutes(t),target,notBefore??-Infinity,deadline);
+   const time=slot?.time;if(!time){rejected=t.id;break}
    schedule.push({...t,time});if(time!==t.time)rows.push({id:t.id,title:t.title,from:t.time,to:time,minutes:blockMinutes(t)});
   }
   if(!rejected)return rows.slice();
@@ -58,7 +59,7 @@ export function previewReflow(data,date,start,end){
  }
  return [];
 }
-export function applyReflow(data,date,start,end,expected){
- const current=previewReflow(data,date,start,end);if(!current.length||JSON.stringify(current)!==JSON.stringify(expected))return data;
+export function applyReflow(data,date,start,end,expected,options){
+ const current=previewReflow(data,date,start,end,options);if(!current.length||JSON.stringify(current)!==JSON.stringify(expected))return data;
  const byId=new Map(current.map(r=>[r.id,r]));return {...data,tasks:data.tasks.map(t=>byId.has(t.id)?{...t,time:byId.get(t.id).to}:t)};
 }

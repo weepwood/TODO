@@ -7,6 +7,7 @@ async function seed(page){
  await page.goto('/');await expect(page.getByRole('textbox',{name:'新任务名称'})).toBeVisible();return today;
 }
 test('截止期限、计划预览、字段显示和习惯联动',async({page})=>{
+ const fixedClock=new Date();fixedClock.setHours(8,0,0,0);await page.clock.setFixedTime(fixedClock);
  const today=await seed(page);await page.locator('[data-view-key=inbox]').click();await page.locator('.task-body').filter({hasText:'阶段验收任务'}).click();
  const detail=page.locator('[data-detail-section=plan]');await detail.getByRole('button',{name:'截止日期',exact:true}).click();
  const popup=page.getByRole('dialog',{name:'截止日期设置'});await popup.getByRole('button',{name:'明天',exact:true}).click();await popup.getByRole('button',{name:'保存截止'}).click();

@@ -29,6 +29,7 @@ test('重复系列批量暂停恢复及模板重命名确认',async({page})=>{
  await command(page,'任务模板管理');d=page.getByRole('dialog',{name:'任务模板',exact:true});await d.getByRole('button',{name:'重命名'}).click();await d.getByRole('textbox',{name:'新模板名称'}).fill('复查模板');await d.getByRole('button',{name:'确认重命名'}).click();await expect(d.getByRole('button',{name:'复查模板'})).toBeVisible();
 });
 test('工作周跨休息日重排与容量确认',async({page})=>{
+ await page.clock.setFixedTime(new Date('2026-11-26T08:00'));
  await seed(page,'dark');await page.getByRole('button',{name:'每日规划',exact:true}).click();await page.getByLabel('规划日期').fill('2026-11-27');await page.getByRole('button',{name:'工作周规划'}).click();const d=page.getByRole('dialog',{name:'工作周与多日重排'});await expect(d.getByLabel('多日容量')).toContainText('休息日');await d.getByRole('button',{name:'保存工作周'}).click();await expect(d.getByRole('status')).toContainText('工作周已保存');await d.getByRole('button',{name:'预览多日重排'}).click();await expect(d.getByLabel('多日重排预览')).toContainText('2026-11-30 09:00');await expect(d.locator('.weekly-hours-list')).toHaveCSS('max-height','none');await shot(page,'weekly-dark');await d.getByRole('button',{name:'确认多日重排'}).click();await expect.poll(async()=>(await stored(page)).tasks.find(t=>t.id==='move').date).toBe('2026-11-30');expect((await stored(page)).tasks.find(t=>t.id==='fixed').time).toBe('09:00');
 });
 test('全天跨午夜键盘拉伸保留预计时长及次日延续',async({page})=>{

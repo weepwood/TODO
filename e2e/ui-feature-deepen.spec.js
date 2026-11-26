@@ -9,6 +9,7 @@ async function seed(page){
  await page.goto('/');await expect(page.getByRole('textbox',{name:'新任务名称'})).toBeVisible();return today;
 }
 test('今日执行与智能占位分离、锁定后禁止计划移动',async({page})=>{
+ const fixedClock=new Date();fixedClock.setHours(8,0,0,0);await page.clock.setFixedTime(fixedClock);
  await seed(page);
  await page.getByRole('button',{name:'展开执行清单'}).click();await expect(page.getByRole('region',{name:'今日执行'})).toContainText('深化验收乙');
  await page.locator('.rail').getByRole('button',{name:'每日规划',exact:true}).click();await page.getByRole('button',{name:'智能安排',exact:true}).click();const plan=page.getByRole('dialog',{name:'智能时间安排'});await expect(plan).toContainText('占位 20 分钟');await plan.getByRole('button',{name:'应用安排'}).click();
