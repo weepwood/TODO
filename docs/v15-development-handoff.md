@@ -424,3 +424,11 @@
 本轮MRR独立浏览器任务及视觉矩阵占用共享浏览器槽，Swap一度single，资源门禁拒绝新的重型任务；普通构建在normal时通过，不抢占/不绕过。证据artifacts/TODO/v15-motion-polish/v16-rc-freeze/：initial-retainer-retest.log、initial-retainer-history-before.json、targeted-final.log、freeze-build-recheck.log、entry.json等。小时级必须针对精确冻结提交另存证据，独立4178、周期资源复核，实际3600秒及最终保存断言和退出码才通过；旧55分钟失败不继承。最终实际启动/验收状态见后续补充，不宣布RC，不推送、不合并、不发布。
 
 **第三十八节最终兼容验收补充**：MRR矩阵142.23秒结束，Swap0.004MiB/s恢复normal后，708afeb普通Chromium真实UI回归5/5（14.6s）：桌面IPC模拟保存失败重试及备份恢复、到期提醒/焦点唤醒去重、快速新建草稿及撤销重做、提醒暂存编辑、自动化规则与创建触发撤销。最终完整UI堆图1/1（13.3s），92094847B/919734节点，超30步旧编辑对象0、初始00仍1，最短非weak路径改为任务导航FiberNode→_debugStack→ErrorStackData→初始render context→displayedTasks；两条已定位的业务回调路径均不再是报告路径。开发模式诊断路径不证明生产无保留，也不再为追求合成探针零值扩大重构；保持历史语义。新增小时级边界证据修正：若最后周期资源检查跨越3600秒，替换同轮末样本，保证时长与采样一致，不降低断言或资源门禁。冻结候选的小时级实跑由外置证据目录commit.txt、run.log、progress/final及exit-code记录，未取得最终文件前不通过。真实账号、系统通知人工可见/导航、Windows/Android、正式迁移部署及独立QA/CI仍待。
+
+## 三十九、冻结候选小时级复验中止及证据核对（2026-11-26）
+
+冻结候选3a4344b3b9fcd3020614fbe1a19a9889a229c9ae。上一轮实际启动的hour-soak-3a4344b-retry最终退出1，门禁日志明确为周期高Swap活动defer；292.7759秒/8轮/5采样，未完成3600秒、未执行最终保存计数断言、无最终结果文件。记录页面异常0、DOM始终854、GC堆72.149112→73.961372MB，6至8轮73.965496→73.961372MB。与旧2349e31相同前8轮对比：72.283748→75.137916MB（增长2.854168MB），修复后增长1.812260MB，减少约36.5%；非随机负载、均为中止的开发模式合成试验，不是小时级成功或无泄漏结论。
+
+证据外置artifacts/TODO/v15-motion-polish/v16-rc-freeze/：hour-retry-verification.json（failed）、hour-interrupted-comparison.json、hour-retry-evidence-manifest.json（SHA-256）；两次启动记录和旧55分钟中止记录均保留。当前macOS arm64 27.2.1/CLT，旧QA包对应cf5ee33加当时UI变更，不是3a4344b当前原生包；常见ADB路径未发现可执行文件，未确认Android设备、Windows实体设备或独立真实云账号。不能继承旧包为当前实体通过证据。此前280单测、普通构建、兼容UI5项及堆图1项证据仍按对应生产代码保留（3a4344b相对708afeb仅测试与文档变化），不重复执行。
+
+复查资源Swap4.033MiB/s、single策略，MRR状态矩阵已占共享槽，不抢占或绕过，不启动新原生构建或浏览器；若资源恢复且独占准入允许，可用新的证据目录继续冻结3a4344b小时级测试，任何再次中止必须独立记录，不能拼接不同会话时长。保持生产代码冻结；本次仅文档交接。真实账号、当前候选实体原生及系统通知人工可见/导航、Windows/Android、正式迁移部署、独立QA及CI仍是阻塞。保持4197和正式main a012057，不推送、不合并、不发布。
