@@ -312,3 +312,10 @@
 
 /* The lazy inspector uses the same surface spacing while its code loads. */
 .v2 .detail-loading{padding:16px;margin:0;font-size:12px}
+
+/* Supplemental blocks use the inspector's compact record density. */
+.v2 .plan-segments{margin-block:8px;min-width:0}
+.v2 .plan-segments .record-row{gap:8px;flex-wrap:wrap}
+.v2 .plan-segment-editor{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center;margin-top:8px}
+.v2 .plan-segment-editor>*{min-width:0}
+@media(max-width:600px){.v2 .plan-segment-editor{grid-template-columns:minmax(0,1fr)}}

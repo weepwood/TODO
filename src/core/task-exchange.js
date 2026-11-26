@@ -1,5 +1,5 @@
 import {validPoints} from './points.js';
-import {canonical} from '../services/cloud-core.js';
+import {canonical,digest} from '../services/cloud-core.js';
 import {validDate,validTime,newTask,migrateState} from './domain.js';
 import {validDeadline} from './deadline.js';
 export const EXCHANGE_FIELDS=['title','notes','date','time','deadline','duration','priority','points','planMinutes'];
@@ -67,7 +67,7 @@ export function appendImportedTasks(data,tasks,receipt){
  const ids=new Set(data.tasks.map(t=>t.id)),keys=new Set(data.tasks.map(key));
  for(const t of tasks){const k=key(t);if(ids.has(t.id)||keys.has(k)||!data.lists.some(l=>l.id===t.listId))return data;ids.add(t.id);keys.add(k)}
  const next={...data,tasks:[...data.tasks,...tasks]};
- if(receipt){const run={...receipt,entries:tasks.map(t=>({id:t.id,signature:importSignature(t)}))};const runs=[run,...(data.importRuns||[])].slice(0,10);while(runs.length>1&&!validImportRuns(runs))runs.pop();if(!validImportRuns(runs))return data;next.importRuns=runs}
+ if(receipt){const run={id:receipt.id,at:receipt.at,entries:receipt.entries||tasks.map(t=>({id:t.id,signature:importSignature(t)}))};if(run.entries.length!==tasks.length||run.entries.some((e,i)=>e.id!==tasks[i].id))return data;const runs=[run,...(data.importRuns||[])].slice(0,10);while(runs.length>1&&!validImportRuns(runs))runs.pop();if(!validImportRuns(runs))return data;next.importRuns=runs}
  try{migrateState(next);return next}catch{return data}
 }
 const csvCell=value=>{let s=String(value??'');if(typeof value!=='number'&&/^[\s]*[=+\-@]|^[\t\r\n]/.test(s))s="'"+s;return '"'+s.replaceAll('"','""')+'"'};
@@ -86,14 +86,32 @@ function importSignature(task){const {activity,...fields}=task;return canonical(
 export function validImportRuns(runs){
  return Array.isArray(runs)&&runs.length<=10&&new TextEncoder().encode(JSON.stringify(runs)).length<=2*1024*1024&&new Set(runs.map(r=>r?.id)).size===runs.length&&runs.every(r=>r&&typeof r.id==='string'&&r.id.length<=100&&Number.isFinite(Date.parse(r.at))&&(r.undone===undefined||r.undone===true)&&Array.isArray(r.entries)&&r.entries.length>0&&r.entries.length<=EXCHANGE_LIMIT&&new Set(r.entries.map(e=>e?.id)).size===r.entries.length&&r.entries.every(e=>e&&typeof e.id==='string'&&typeof e.signature==='string'));
 }
-export function canUndoImport(data,id){
+export function canUndoImport(data,id,proof){
  const run=data.importRuns?.find(r=>r.id===id);if(!run||run.undone||!validImportRuns([run]))return false;
  const ids=new Set(run.entries.map(e=>e.id)),byId=new Map(data.tasks.map(t=>[t.id,t]));
  if(data.timer&&ids.has(data.timer.taskId)||data.sessions.some(s=>ids.has(s.taskId))||data.tasks.some(t=>!t.deletedAt&&(ids.has(t.parentId)||t.dependsOn?.some(x=>ids.has(x))||ids.has(t.previousId))))return false;
- return run.entries.every(e=>{const t=byId.get(e.id);return t&&!t.deletedAt&&t.status==='pending'&&importSignature(t)===e.signature&&(t.activity||[]).every(a=>a.kind==='created')});
+ return run.entries.every(e=>{const t=byId.get(e.id);return t&&!t.deletedAt&&t.status==='pending'&&(e.signature.startsWith('sha256:')?proof?.get(e.id)?.signature===e.signature&&proof.get(e.id).canonical===importSignature(t):importSignature(t)===e.signature)&&(t.activity||[]).every(a=>a.kind==='created')});
 }
-export function undoImport(data,id,at){
- if(!Number.isFinite(Date.parse(at))||!canUndoImport(data,id))return data;
+export function undoImport(data,id,at,proof){
+ if(!Number.isFinite(Date.parse(at))||!canUndoImport(data,id,proof))return data;
  const run=data.importRuns.find(r=>r.id===id),ids=new Set(run.entries.map(e=>e.id));
  return {...data,tasks:data.tasks.map(t=>ids.has(t.id)?{...t,deletedAt:at}:t),importRuns:data.importRuns.map(r=>r.id===id?{...r,undone:true}:r)};
+}
+
+// Cryptographic work happens before the synchronous workspace transaction.
+// A proof is ephemeral and is rechecked against the current exact task content.
+export async function prepareImportReceipt(tasks,receipt){
+ return {...receipt,entries:await Promise.all(tasks.map(async t=>({id:t.id,signature:'sha256:'+await digest(importSignature(t))})))};
+}
+export async function verifyImportUndo(data,id){
+ const run=data.importRuns?.find(r=>r.id===id),proof=new Map();if(!run)return proof;
+ const byId=new Map(data.tasks.map(t=>[t.id,t]));
+ for(const e of run.entries){const t=byId.get(e.id);if(!t||!e.signature.startsWith('sha256:'))continue;
+  const canonical=importSignature(t),signature='sha256:'+await digest(canonical);
+  if(signature===e.signature)proof.set(e.id,{canonical,signature});
+ }
+ return proof;
+}
+export async function compactImportReceipts(runs){
+ return Promise.all(runs.map(async r=>({...r,entries:await Promise.all(r.entries.map(async e=>e.signature.startsWith('sha256:')?e:{id:e.id,signature:'sha256:'+await digest(e.signature)}))})));
 }

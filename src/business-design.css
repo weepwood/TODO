@@ -504,3 +504,13 @@
 }
 
 .calendar-main .workspace-event-deadline{border-style:dashed;background:color-mix(in srgb,var(--block-color) 10%,var(--bg))}
+
+/* Feature-forward surfaces: wrap dense actions before narrowing labels. */
+.v2 [aria-label="今日执行"] .record-row,.v2 [aria-label="今日专注队列"] .record-row,.v2 .queue-history .record-row{gap:8px;flex-wrap:wrap;align-items:center}
+.v2 [aria-label="今日执行"] .record-row>span,.v2 [aria-label="今日专注队列"] .record-row>span{min-width:0;overflow-wrap:anywhere}
+.v2 [aria-label="今日执行"] .workspace-actions,.v2 [aria-label="今日专注队列"] .workspace-actions{flex-wrap:wrap;gap:6px}
+.v2 .queue-history{margin-top:12px}
+.v2 .queue-history>summary{cursor:pointer;padding-block:6px}
+.v2 .planner .segment-time{overflow-wrap:anywhere}
+@media(max-width:600px){.v2 [aria-label="今日执行"] .record-row>span,.v2 [aria-label="今日专注队列"] .record-row>span{flex:1 1 100%}}
+@media(prefers-reduced-motion:reduce){.v2 .plan-segments,.v2 .queue-history{scroll-behavior:auto}}

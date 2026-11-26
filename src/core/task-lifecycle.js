@@ -33,7 +33,7 @@ export function taskSuggestions(tasks,today){
  for(const list of Object.values(groups))list.sort((a,b)=>String(a.task.date||a.task.createdAt).localeCompare(String(b.task.date||b.task.createdAt))||a.task.id.localeCompare(b.task.id));
  return groups;
 }
-export function closeoutEligible(t,today){return !t.deletedAt&&!t.planLocked&&t.status==='pending'&&t.repeat==='none'&&!t.seriesId&&!t.previousId&&validDate(t.date)&&t.date<=today}
+export function closeoutEligible(t,today){return !t.deletedAt&&!t.planLocked&&!t.planSegments?.length&&t.status==='pending'&&t.repeat==='none'&&!t.seriesId&&!t.previousId&&validDate(t.date)&&t.date<=today}
 export function closeoutPreview(tasks,ids,today){
  const wanted=new Set(ids);return tasks.filter(t=>wanted.has(t.id)&&closeoutEligible(t,today)).map(t=>({id:t.id,date:t.date,time:t.time,duration:blockMinutes(t)}));
 }

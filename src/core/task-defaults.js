@@ -17,7 +17,7 @@ export function taskFromCapture(args){const props=captureProperties(args);return
 export function previewPostpone(tasks,ids,days){
  const selected=new Set(ids),rows=[];
  if(![1,3,7].includes(days))return {rows,skipped:selected.size,conflicts:0};
- for(const t of tasks){if(!selected.has(t.id)||t.planLocked||t.deletedAt||t.status!=='pending'||t.repeat!=='none'||t.seriesId||t.previousId||!validDate(t.date))continue;
+ for(const t of tasks){if(!selected.has(t.id)||t.planLocked||t.planSegments?.length||t.deletedAt||t.status!=='pending'||t.repeat!=='none'||t.seriesId||t.previousId||!validDate(t.date))continue;
  const date=shiftDay(t.date,days);if(!validDate(date))continue;
  rows.push({id:t.id,title:t.title,from:t.date,to:date,time:t.time,duration:blockMinutes(t)});}
  const changes=new Map(rows.map(r=>[r.id,r.to]));

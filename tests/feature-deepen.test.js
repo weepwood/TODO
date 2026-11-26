@@ -31,9 +31,9 @@ test('连续会话独立目标、跨任务自然推进、显式终止、延迟�
  const a=task('a',{duration:2}),b=task('b',{duration:3}),data=base([a,b]),q={date,items:[{id:'a',skipped:false},{id:'b',skipped:false}]};
  const run=makeQueueRun(q,data,240,'run'),s=startQueueRun(data,run,at);assert.equal(s.timer.target,120);
  const rest=settleFocus(s,at+120000);assert.equal(rest.timer.mode,'break');assert.equal(rest.timer.taskId,'b');assert.equal(rest.sessions.length,1);
- assert.deepEqual(migrateState(rest).timer.queueRun,run);
+ assert.deepEqual(migrateState(rest).timer.queueRun,s.timer.queueRun);
  const next=settleFocus(rest,rest.timer.startedAt+rest.timer.target*1000);assert.equal(next.timer.mode,'focus');assert.equal(next.timer.target,120);
- const done=settleFocus(next,next.timer.startedAt+120000);assert.equal(done.timer,null);assert.equal(queueRunProgress(run,done).actual,240);assert.equal(done.tasks[0].status,'pending');
+ const done=settleFocus(next,next.timer.startedAt+120000);assert.equal(done.timer,null);assert.equal(queueRunProgress(s.timer.queueRun,done).actual,240);assert.equal(done.tasks[0].status,'pending');
  assert.equal(changeFocusTimer(s,{action:'discard',key:focusTimerKey(s.timer),now:at+120000}).timer,null);
  assert.equal(settleFocus(s,at+181000).timer,null);assert.deepEqual(carryQueue(q,done,'2026-11-27').items.map(i=>i.id),['b']);
 });

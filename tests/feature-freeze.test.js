@@ -1,0 +1,62 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {initialState,newTask,migrateState} from '../src/core/domain.js';
+import {executionPlan,daySegments,workBudget} from '../src/core/productivity.js';
+import {taskConflicts,nextSlot} from '../src/core/advanced.js';
+import {protectLockedTasks,blockPatch} from '../src/core/plan-block.js';
+import {backlogPreview,postponeBacklog} from '../src/core/today-execution.js';
+import {makeQueueRun,queueRunProgress} from '../src/core/focus-queue.js';
+import {startQueueRun,settleFocus,changeFocusTimer,focusTimerKey} from '../src/core/focus-engine.js';
+import {habitPlanAt,changeHabitPlan,habitPlanned} from '../src/core/habit-plan.js';
+import {savePeriodGoal,freezePeriodSnapshot,readPeriodSnapshots} from '../src/core/period-goals.js';
+import {prepareImportReceipt,appendImportedTasks,verifyImportUndo,canUndoImport,undoImport,compactImportReceipts} from '../src/core/task-exchange.js';
+import {unsafeHistoryPull} from '../src/services/sync-merge.js';
+const date='2026-11-26',at=Date.parse(date+'T09:00:00'),iso=new Date(at).toISOString(),task=(id,fields={})=>({...newTask(id,'inbox',date,id),...fields}),base=(tasks=[])=>({...initialState(),tasks});
+const store=()=>{const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v)}};
+test('多段规划完整预算跨日分配、独立占位、冲突及旧端保护',()=>{
+ const fixed=task('fixed',{time:'09:20',planMinutes:20}),a=task('a',{duration:75}),d=base([fixed,a]);
+ const plan=executionPlan(d.tasks,date,{start:'09:00',end:'10:00',remainingBlocks:true,splitDays:3});
+ const p=plan.placements[0];assert.equal(p.planMinutes,20);assert.deepEqual(p.planSegments.map(x=>[x.date,x.time,x.minutes]),[[date,'09:40',20],['2026-11-27','09:00',35]]);
+ const scheduled={...a,...p};assert.equal(scheduled.duration,75);
+ assert.equal(workBudget(daySegments([fixed,scheduled],date),'09:00','10:00').remaining,0);
+ assert.equal(nextSlot([scheduled],'2026-11-27',25,'09:00','10:00'),'09:35');
+ assert(taskConflicts([scheduled,task('other',{date:'2026-11-27',time:'09:15',duration:30})]).has('a'));
+ assert.throws(()=>migrateState(base([{...a,planSegments:[{id:'bad',date:'2026-02-30',time:'09:00',minutes:30}]}])));
+ assert(unsafeHistoryPull(base([scheduled]),base([a])));
+ assert.equal(executionPlan(d.tasks,date,{start:'09:00',end:'10:00',remainingBlocks:true,splitDays:1}).placements.length,0);
+});
+test('锁定计划全局兜底及积压批量延期复核',()=>{
+ const locked=task('locked',{date:'2026-11-25',planLocked:true,planMinutes:30}),a=task('a',{date:'2026-11-25',deadline:date}),multi=task('m',{date:'2026-11-25',planSegments:[{id:'s',date,time:'10:00',minutes:30}]}),d=base([locked,a,multi]);
+ const updated=protectLockedTasks(d,{...d,tasks:[{...locked,date,planMinutes:60,title:'新名称'},a,multi]});assert.equal(updated.tasks[0].date,locked.date);assert.equal(updated.tasks[0].title,'新名称');
+ assert.equal(blockPatch(locked,{planSegments:[]}),null);
+ const rows=backlogPreview(d,date,['locked','a','m']);assert.deepEqual(rows.map(r=>r.id),['a']);
+ const next=postponeBacklog(d,date,rows);assert.equal(next.tasks[1].date,'2026-11-27');assert.equal(next.tasks[1].deadline,date);
+ assert.equal(postponeBacklog({...d,tasks:[locked,{...a,planLocked:true},multi]},date,rows).tasks[1].date,a.date);
+});
+test('连续会话记录归属与独立历史，不计入其他会话记录',()=>{
+ const d=base([task('a',{duration:2}),task('b',{duration:3})]),run=makeQueueRun({items:[{id:'a'},{id:'b'}]},d,240,'r'),s=startQueueRun(d,run,at);
+ const other={...s,sessions:[{id:'other',taskId:'a',mode:'focus',seconds:120,startedAt:iso}]};
+ assert.equal(queueRunProgress(s.timer.queueRun,other).actual,0);
+ const rest=settleFocus(other,at+120000);assert.equal(rest.sessions.at(-1).queueRunId,'r');assert.equal(rest.timer.taskId,'b');
+ const stop=changeFocusTimer(rest,{action:'discard',key:focusTimerKey(rest.timer),now:at+121000});
+ assert.equal(stop.timer,null);assert.equal(stop.queueHistory[0].actual,120);assert.equal(stop.queueHistory[0].reason,'discard');
+ assert.deepEqual(migrateState(stop).queueHistory,stop.queueHistory);assert(unsafeHistoryPull(stop,{...stop,queueHistory:[]}));
+});
+test('习惯计划版本不回填，周期快照冻结后不因目标和实际修改而变化',()=>{
+ const h={id:'h',name:'阅读',days:[],includeInPlan:true},v1=changeHabitPlan(h,{planWeekdays:[4]},date),v2=changeHabitPlan(v1,{planWeekdays:[5]},'2026-11-27');
+ assert.equal(habitPlanAt(v1,'2026-11-25'),null);assert(habitPlanned(v2,date));assert(habitPlanned(v2,'2026-11-27'));assert.equal(v2.planVersions.length,2);
+ const storage=store();savePeriodGoal(storage,'2026-10',{completed:3,focusMinutes:20});
+ const d=base([task('done',{status:'completed',stage:'done',completedAt:'2026-10-31T12:00:00'})]);
+ const first=freezePeriodSnapshot(storage,d,'2026-10',date,new Date(at));assert.equal(first['2026-10'].actual.completed,1);assert.equal(first['2026-10'].end,'2026-10-31');
+ savePeriodGoal(storage,'2026-10',{completed:99,focusMinutes:99});assert.deepEqual(freezePeriodSnapshot(storage,base(),'2026-10',date,new Date(at)),first);assert.deepEqual(readPeriodSnapshots(storage),first);
+ assert.throws(()=>freezePeriodSnapshot(storage,d,'2026-11',date));
+});
+test('摘要收据不重复保存任务文本，事务复核拒绝过期证明，旧收据可压缩',async()=>{
+ const d=base(),t=task('t',{title:'敏感测试文本',notes:'备注内容'}),receipt=await prepareImportReceipt([t],{id:'r',at:iso}),next=appendImportedTasks(d,[t],receipt);
+ assert.match(next.importRuns[0].entries[0].signature,/^sha256:[a-f0-9]{64}$/);assert(!JSON.stringify(next.importRuns).includes('敏感测试文本'));
+ const proof=await verifyImportUndo(next,'r');assert(canUndoImport(next,'r',proof));assert(!canUndoImport(next,'r'));assert(!canUndoImport({...next,tasks:[{...t,notes:'改过'}]},'r',proof));
+ assert.equal(undoImport(next,'r',iso,proof).tasks[0].deletedAt,iso);
+ const old=appendImportedTasks(d,[t],{id:'old',at:iso}),compacted={...old,importRuns:await compactImportReceipts(old.importRuns)};
+ assert(canUndoImport(compacted,'old',await verifyImportUndo(compacted,'old')));
+ assert.deepEqual(migrateState(next).importRuns,next.importRuns);
+});

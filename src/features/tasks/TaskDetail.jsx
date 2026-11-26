@@ -1,3 +1,4 @@
+import {PlanSegments} from './PlanSegments.jsx';
 import {blockMinutes} from '../../core/plan-block.js';
 import {DeadlineProperty} from './DeadlineProperty.jsx';
 import {DndContext,closestCenter,PointerSensor,useSensor,useSensors} from '@dnd-kit/core';
@@ -79,7 +80,7 @@ export function TaskDetail({compactLayout,scope,storage,task,data,updateFocus,on
 
  {property('提醒',reminderDates.length?reminderDates.length+' 项':'未设置',<ScheduleProperty kind="reminder" task={task} patch={patch} seriesLocked={seriesLocked} value={reminderDates.length?reminderDates.length+' 项':'未设置'}/>)}
  {property('重复',recurrenceLabels[task.repeat]||'不重复',<ScheduleProperty kind="repeat" task={task} patch={patch} seriesLocked={seriesLocked} value={recurrenceLabels[task.repeat]||'不重复'}/>)}
-  </PropertyGrid>{reminderGroups.length>0&&<div className="detail-reminder-summary">{reminderGroups.map(([v,n])=><div className="inspector-reminder-row" key={v}><Clock size={13}/><span>{v.replace('T',' ')}</span>{n>1&&<small title="同一时间有多个独立提醒">×{n}</small>}</div>)}</div>}{task.repeat!=='none'&&(task.repeat!=='workdays'||task.repeatUntil||task.repeatCount>0)&&<div className="inspector-repeat-summary"><Repeat size={13}/><span>{task.repeat==='workdays'?'工作日':('间隔 '+(task.interval||1))}{task.repeatUntil?' · 截止 '+task.repeatUntil:''}{task.repeatCount?' · 最多 '+task.repeatCount+' 次':''}</span></div>}{focusDetails}</>),
+  </PropertyGrid><PlanSegments key={task.id} task={task} patch={patch} locked={locked}/>{reminderGroups.length>0&&<div className="detail-reminder-summary">{reminderGroups.map(([v,n])=><div className="inspector-reminder-row" key={v}><Clock size={13}/><span>{v.replace('T',' ')}</span>{n>1&&<small title="同一时间有多个独立提醒">×{n}</small>}</div>)}</div>}{task.repeat!=='none'&&(task.repeat!=='workdays'||task.repeatUntil||task.repeatCount>0)&&<div className="inspector-repeat-summary"><Repeat size={13}/><span>{task.repeat==='workdays'?'工作日':('间隔 '+(task.interval||1))}{task.repeatUntil?' · 截止 '+task.repeatUntil:''}{task.repeatCount?' · 最多 '+task.repeatCount+' 次':''}</span></div>}{focusDetails}</>),
  section("organization","组织与状态",Layers,<><PropertyGrid>
  {property('优先级',priorityValue(task.priority),<SmartSelect aria-label="优先级" value={task.priority} onValueChange={value=>patch({priority:+value})}>{priorityNames.map((n,i)=><SelectOption key={i} value={i}>{priorityValue(i)}</SelectOption>)}</SmartSelect>)}
  {property('清单',listValue(list),<SearchSelect aria-label="清单" value={task.listId} onValueChange={value=>patch({listId:value,sectionId:null})}>{data.lists.map(l=><SelectOption key={l.id} value={l.id} searchText={l.name}>{listValue(l)}</SelectOption>)}</SearchSelect>)}

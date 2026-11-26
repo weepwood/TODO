@@ -11,7 +11,7 @@ const equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const short=v=>String(v??'未设置').slice(0,160);
 const fields=[
  ['title','修改任务名称','property'],['priority','修改优先级','property'],['stage','修改状态','property'],['listId','移动清单','property'],['sectionId','修改分组','property'],
- ['date','调整计划日期','schedule'],['deadline','调整截止期限','schedule'],['time','调整计划时间','schedule'],['duration','修改预计时长','schedule'],['planMinutes','修改规划占位','schedule'],['planLocked','修改时间块锁定','schedule'],['points','修改任务积分','property'],['reminderAt','修改提醒','schedule'],['extraReminders','修改额外提醒','schedule'],
+ ['date','调整计划日期','schedule'],['deadline','调整截止期限','schedule'],['time','调整计划时间','schedule'],['duration','修改预计时长','schedule'],['planMinutes','修改规划占位','schedule'],['planSegments','修改补充时间段','schedule'],['planLocked','修改时间块锁定','schedule'],['points','修改任务积分','property'],['reminderAt','修改提醒','schedule'],['extraReminders','修改额外提醒','schedule'],
  ['repeat','修改重复规则','schedule'],['interval','修改重复间隔','schedule'],['weekdays','修改重复星期','schedule'],['repeatUntil','修改重复截止','schedule'],['repeatCount','修改重复次数','schedule'],['miss','修改过期处理','schedule'],['reset','修改重置时间','schedule'],['seriesHold','修改系列暂停状态','schedule'],
  ['tags','修改标签','content'],['notes','修改备注','content'],['checklist','修改检查清单','content'],['links','修改关联链接','content'],['parentId','修改父任务','relation'],['dependsOn','修改前置任务','relation']
 ];

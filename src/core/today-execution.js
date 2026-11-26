@@ -1,3 +1,4 @@
+import {closeoutPreview,applyCloseout} from './task-lifecycle.js';
 import {deadlineEnd,deadlineStatus} from './deadline.js';
 import {blockers} from './advanced.js';
 import {seriesSafetyKeys} from './series-control.js';
@@ -10,4 +11,15 @@ export function todayExecution(data,today,now=new Date()){
  }));
  items.sort((a,b)=>Number(a.blocked)-Number(b.blocked)||((deadlineEnd(a.task.deadline)??Infinity)-(deadlineEnd(b.task.deadline)??Infinity))||b.task.priority-a.task.priority||(a.task.time||'99:99').localeCompare(b.task.time||'99:99')||a.task.id.localeCompare(b.task.id));
  return {items,next:items.find(i=>!i.blocked),risk:items.filter(i=>['today','overdue'].includes(i.risk)).length,backlog:items.filter(i=>i.backlog).length};
+}
+
+export function backlogPreview(data,today,ids){
+ const wanted=new Set(ids);
+ return closeoutPreview(data.tasks.filter(t=>t.date<today&&!t.planSegments?.length),[...wanted],today);
+}
+export function postponeBacklog(data,today,rows){
+ const current=backlogPreview(data,today,rows.map(r=>r.id));
+ if(JSON.stringify(current)!==JSON.stringify(rows))return data;
+ const tasks=applyCloseout(data.tasks,rows,today);
+ return tasks===data.tasks?data:{...data,tasks};
 }
