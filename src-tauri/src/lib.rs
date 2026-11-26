@@ -11,6 +11,7 @@ use tauri_plugin_notification::NotificationExt;
 
 mod storage;
 mod operation_history;
+#[cfg(test)] mod incremental_research;
 pub mod cli;
 use storage::*;
 struct Database(Mutex<Connection>);
