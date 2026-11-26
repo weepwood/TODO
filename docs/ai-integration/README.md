@@ -85,6 +85,10 @@ Deno bundle 以固定 npm:@supabase/supabase-js@2.119.2 外置依赖生成部署
 新增 integrations/ai/cloud-qa.mjs（用户在本机TTY执行），只接受固定QA ref及明确确认，使用公开key。两账号密码在本机交互隐藏输入，仅进程内使用；三次真实Supabase密码登录及getUser，两账号RLS；对新QA账号初始化空工作空间，若已有非[AI-QA]前缀任务则拒绝继续。两个独立浏览器上下文使用真实同账号的独立Auth会话，不模拟任何HTTP/数据库响应；网络仅允许QA预览及QA项目。实际UI审批、REST幂等、官方MCP stdio三个工具、云端任务回执、双浏览器保存和刷新回读。测试完成/失败尽力撤销本轮令牌并退出测试会话；保留带[AI-QA]前缀的测试任务用于核对，不删除用户数据。无模型调用或费用；真实Codex/Claude模型调用和ChatGPT OAuth仍需独立客户端授权，不将协议测试冒充模型验收。
 本机启动器：/Volumes/data/AI-Development/artifacts/TODO/ai-stage2/run-real-ai-qa.command（仅QA公开key、ref、报告路径，不含密码或令牌）。在Mac终端执行该文件，输入A/B测试邮箱和隐藏密码。结果成功后生成同目录real-cloud-report.json，仅阶段、计数、版本和时间，不保存账号信息/密码/令牌。当前仅已运行--preflight和真实浏览器访客设置检查：精确QA配置、真实HTTP401、登录控件、无其他网络origin均通过；有凭据的正向流程尚未运行，报告未生成。请勿将密码发送给聊天或写入仓库，不使用正式账号。初次预检发现Vite环境JSON有空格，已改为结构化解析复验通过。
 
+## 真实云账号联调结果（2026-11-26，已通过）
+用户在本机执行隐藏密码交互式联调。实际报告 artifacts/TODO/ai-stage2/real-cloud-report.json，完成时间 2026-11-26T11:28:07.630Z（东京20:28:07）。真实 Supabase 密码登录/getUser、两账号 RLS、真实 Edge HTTP、手动审批1项、官方 MCP stdio 单条1项及批量2项、请求查询/幂等、两个独立浏览器同步和本地持久化/刷新通过；云工作空间 revision=4。随后通过QA Supabase只读查询独立复核：2名已确认用户、2个工作空间、4项实际任务、3份saved回执且全部任务ID与所属工作空间匹配、3个令牌全部已撤销、0待处理请求。仍有1条Auth会话记录，不能据此判断是否有效或属于手动会话；不擅自注销或删除。报告未包含密码、令牌或用户标识。保留测试任务用于核对。
+此前“待本机输入凭据”及“正向验收尚未运行”是历史状态，以上结果已覆盖。真实 Codex/Claude 模型自主调用、ChatGPT 远程OAuth及原生实体设备验收尚未进行；SDK真实云调用不等于模型会话。正式数据库及4197保持隔离，未增加付费资源、不推送不合并不发布。当前后续仅考虑实际AI客户端授权，无需再扩建模拟基础设施。
+
 ## 独立真实接入验收顺序（待授权）
 1. 明确独立 Supabase 测试项目及组织/费用，项目 ref 必须不同于正式 TODO 的 xepkhnatnpvopnlqnrrz；不要复用其他项目。创建后确认 ACTIVE_HEALTHY；先审查新空项目，再通过 Supabase CLI 或管理工具逐项应用既有3个工作空间迁移及 schema.sql 候选（生成正式迁移须经 CLI，当前本机无CLI/Docker）。核对 Data API grant、RLS、service_role EXECUTE、anon/authenticated 禁止内部 RPC 和 token 表访问。
 2. 使用生成的 Edge 单文件候选部署独立项目的 todo-external（只该函数 verify_jwt=false，内部逐路由鉴权）；正式项目不部署。验证无凭据401、测试账号真实 Supabase Auth getUser、双账号 RLS，手动审批、自动创建、幂等及回执；先用全新合成测试账号、空工作空间。通过前不得开启真实用户数据或正式构建入口。
