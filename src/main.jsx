@@ -4,7 +4,7 @@ import {recordTaskChanges,recordAttachment} from './core/task-activity.js';
 import {scheduleSnapshot} from './core/task-schedule.js';
 import {DetailSurface} from './components/DetailSurface.jsx';
 import {seriesControl,protectHeldRules,recoverSeries,seriesSafetyKeys} from './core/series-control.js';
-import {readRules,writeRules,previewRules,recordRun,undoRun,eventRules,dueScheduledRules} from './core/workflow-rules.js';
+import {readRules,writeRules,previewRules,recordRun,undoRun,dueScheduledRules} from './core/workflow-rules.js';
 import {automaticSnapshot,isSnapshotDay} from './core/review-schedule.js';
 import {filterHistory} from './core/archive-review.js';
 import {favoriteLists,focusSetup} from './core/task-workflow.js';
@@ -51,7 +51,7 @@ import {CalendarDays,CalendarRange,Layers,Repeat,AlertCircle,CheckCircle2,SkipFo
 import {DndContext,closestCenter,PointerSensor,KeyboardSensor,useSensor,useSensors} from '@dnd-kit/core';
 import {SortableContext,verticalListSortingStrategy,sortableKeyboardCoordinates} from "@dnd-kit/sortable";
 
-import {STORAGE_KEY,BACKUP_KEY,id,dayKey,shiftDay,validDate,newTask,completeTask,reconcile,matches,readState,initialState,migrateState,saveState,reopenTask,reorderTasks,seriesPatch,dueReminderEvents,markReminderEvents,duplicateTask,moveTaskToList} from "./core/domain.js";
+import {STORAGE_KEY,BACKUP_KEY,id,dayKey,shiftDay,validDate,newTask,completeTask,reconcile,matches,readState,initialState,migrateState,reopenTask,reorderTasks,seriesPatch,dueReminderEvents,markReminderEvents,duplicateTask,moveTaskToList} from "./core/domain.js";
 import {Modal,Menu,Empty,Field,ActionButton} from "./ui.jsx";
 
 import {useAccount,useAccountLock,useWorkspaceSync,cloud} from "./cloud.jsx";
@@ -61,6 +61,7 @@ import {DatePicker} from './components/DatePicker.jsx';
 import {quickParse,blockers,taskConflicts} from "./core/advanced.js";
 import {SectionGroup,VirtualTaskList} from './task-list.jsx';
 import {useHistory} from './history.js';
+import {useWorkspaceEdit,useWorkspacePersistence} from './components/useWorkspaceMutations.js';
 import {native,mobileNative,useNativeHydration,useNativeLifecycle,useNativeShortcut,nativeNotify,nativeGuestState,useNativeQuit,nativeRecoveryPayload,useNativeShortcutStatus,useDirectCapture} from "./native.js";
 import {useNativeSearch} from './native-tools.jsx';
 import {settleFocus,focusDue} from './core/focus-engine.js';
@@ -191,11 +192,8 @@ function App({session,hydration}){
  const [workflow,setWorkflow]=useState(()=>{try{return {state:readRules(browserStorage),error:''}}catch(e){return {state:{rules:[],auto:false,lastRun:''},error:e.message}}});
  const saveWorkflow=(rules,auto,snapshot,snapshotAt)=>{try{const current=readRules(browserStorage);const state=writeRules(browserStorage,{...current,rules,auto,snapshot,snapshotAt});setWorkflow({state,error:''});return true}catch(e){setWorkflow(old=>({...old,error:e.message}));return false}};
  const nativeError=hydration.saveError;
- const setData=useCallback((value,source='manual',typingSession)=>{const meta={id:id(),at:new Date().toISOString(),trigger:'event',source,session:typingSession||historyState.session};rawEdit(d=>{const next=protectLockedTasks(d,typeof value==='function'?value(d):value);const recorded=recordTaskChanges(d,next,meta);if(!uid&&!blocked&&!storageError&&!nativeError&&!hydration.pending&&!workflow.error&&workflow.state.auto&&typeof value==='function'){const automated=eventRules(d,next,workflow.state.rules,dayKey(new Date(meta.at)),{id:meta.id,at:meta.at,trigger:meta.trigger});if(automated===next)return recorded;const byId=new Map(recorded.tasks.map(t=>[t.id,t]));const result={...automated,tasks:automated.tasks.map(t=>{const r=byId.get(t.id);return r?.activity?{...t,activity:r.activity}:t})};return recordTaskChanges(recorded,result,{...meta,id:meta.id+':auto',source:'automation'})}return recorded},source,false)},[rawEdit,uid,blocked,storageError,nativeError,hydration.pending,workflow,historyState.session]);
- const pendingWebDraft=useRef({current:data,staged:null});pendingWebDraft.current.current=data;
- const persistWorkspace=useCallback(()=>{if(blocked)return false;try{if(storage.stageWorkspace)storage.stageWorkspace(data);else saveState(storage,data);pendingWebDraft.current.staged=data;setStorageError('');return true}catch(e){setStorageError(e?.name==='QuotaExceededError'?'本地存储空间不足，当前修改尚未保存。请先导出数据。':'本地保存失败，当前修改尚未保存。请先导出数据。');return false}},[storage,data,blocked]);
- useEffect(()=>{persistWorkspace()},[persistWorkspace]);
- useEffect(()=>{if(native||(!hydration.pilot&&(!storageError||blocked)))return;const guard=e=>{if(hydration.pilot&&!storageError&&pendingWebDraft.current.current===pendingWebDraft.current.staged&&!storage.getStatus?.().pending&&!storage.getStatus?.().error)return;e.preventDefault();e.returnValue=''};window.addEventListener('beforeunload',guard);return()=>window.removeEventListener('beforeunload',guard)},[storageError,blocked,hydration.pilot,storage]);
+ const setData=useWorkspaceEdit(rawEdit,{session:historyState.session,allowAutomation:!uid&&!blocked&&!storageError&&!nativeError&&!hydration.pending&&!workflow.error&&workflow.state.auto,rules:workflow.state.rules});
+ const persistWorkspace=useWorkspacePersistence({storage,data,blocked,storageError,pilot:hydration.pilot,native,reportError:setStorageError});
  const alarms=useMobileAlarms({enabled:androidNative,scope:uid||"guest",tasks:data.tasks,storage:hydration.storage,blocked:blocked||!!storageError||!!nativeError});const calendarFeeds=useCalendarFeeds(browserStorage,setSystemData,blocked||!!storageError||!!nativeError);const sync=useWorkspaceSync({uid,storage,data,setData:setSystemData,blocked:blocked||!!storageError||hydration.pending||!!nativeError,logStorage:browserStorage});
  const workflowLatest=useRef(data);workflowLatest.current=data;
  useEffect(()=>{if(uid||blocked||storageError||nativeError||hydration.pending||workflow.error||!workflow.state.auto)return;
