@@ -84,3 +84,14 @@
 .workspace-save-error>div{display:flex;gap:var(--space-2);flex-wrap:wrap}
 .workspace-save-error button{min-height:var(--control-height)}
 @media(max-width:860px){.workspace-save-error button{min-height:44px}}
+
+/* Isolated storage recovery: digest is readable even on narrow screens. */
+.shard-pilot-gate{max-width:min(720px,100%);margin-inline:auto;overflow:auto;max-height:100dvh;text-align:start}
+.shard-pilot-gate section{display:grid;gap:var(--space-2);padding:var(--space-3);border:var(--surface-border);border-radius:var(--surface-radius)}
+.shard-digest{overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.shard-pilot-gate input[type=file]{max-width:100%}
+.shard-pilot-gate{width:min(100%,720px);align-items:stretch;justify-content:flex-start;padding:clamp(16px,4vw,32px);box-sizing:border-box}
+.shard-pilot-gate>h2{text-align:center}
+.shard-pilot-gate p{max-width:none}
+.shard-pilot-gate section label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);min-width:0}
+.shard-pilot-gate input[type=number]{width:7rem;min-height:var(--control-height);border:var(--surface-border);border-radius:var(--radius-control);background:var(--bg);color:var(--text);padding-inline:var(--space-2)}

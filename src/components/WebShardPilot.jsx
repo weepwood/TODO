@@ -1,0 +1,30 @@
+import React,{useEffect,useRef,useState} from 'react';
+import {useAccountLock} from '../cloud.jsx';
+import {legacySnapshot} from '../services/web-workspace-store.js';
+import {openShardDatabase,readShardWorkspace,readRawShardRecords,migrateShardWorkspace,sourceDigest,semanticDigest,makeRecovery,parseRecovery,restoreShardRecovery,retireShardWorkspace,createShardStore,readPriorRecovery} from '../services/web-workspace-shards.js';
+import {STORAGE_KEY} from '../core/domain.js';
+import {CheckInput} from '../design-system/Controls.jsx';
+
+function downloadFile(value,name){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+export default function WebShardPilot({render}){
+ const lock=useAccountLock('guest'),dbRef=useRef(null),[row,setRow]=useState(null),[source,setSource]=useState(null),[hash,setHash]=useState(''),[currentHash,setCurrentHash]=useState(''),[busy,setBusy]=useState(true),[error,setError]=useState(''),[confirmed,setConfirmed]=useState(false),[restore,setRestore]=useState(null),[hydration,setHydration]=useState(null),[priorRevision,setPriorRevision]=useState(''),[scanFailed,setScanFailed]=useState(false);
+ const refresh=async(db)=>{const legacy=legacySnapshot(localStorage);setSource(legacy);setHash(await sourceDigest(legacy));let existing;try{existing=await readShardWorkspace(db,'guest');setScanFailed(false)}catch(e){setScanFailed(true);setRow(null);throw e}setRow(existing);setCurrentHash(existing?await semanticDigest(existing.values):'');setConfirmed(false);setRestore(null)};
+ useEffect(()=>{if(lock!=='ready')return;let alive=true,db;(async()=>{try{db=await openShardDatabase();if(!alive){db.close();return}dbRef.current=db;await refresh(db)}catch(e){if(alive)setError(String(e))}finally{if(alive)setBusy(false)}})();return()=>{alive=false;db?.close();dbRef.current=null}},[lock]);
+ const run=async fn=>{if(busy)return;setBusy(true);setError('');try{await fn()}catch(e){setError(String(e))}finally{setBusy(false)}};
+ const migrate=()=>run(async()=>{if(!confirmed||!source)throw Error('请先确认迁移');localStorage.setItem('todo-shard-pilot-guard','1');await migrateShardWorkspace(dbRef.current,'guest',localStorage,hash);await refresh(dbRef.current)});
+ const open=()=>run(async()=>{const latest=await readShardWorkspace(dbRef.current,'guest');const storage=createShardStore(dbRef.current,latest,localStorage,status=>setHydration(old=>old?{...old,pending:status.pending,saveError:status.error}:old));setRow(null);setSource(null);setRestore(null);setHydration({ready:true,storage,error:'',pending:false,saveError:'',pilot:true,openStorageManager:async()=>{if(!await storage.flush()){setError('当前保存失败，请先导出草稿');return}location.reload()}})});
+ const selectFile=e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;run(async()=>{setRestore(null);if(file.size>64*1024*1024)throw Error('恢复文件超过64 MiB');const raw=await file.text(),parsed=await parseRecovery(raw,'guest');setRestore({raw,parsed})})};
+ if(lock==='busy'||lock==='unsupported')return <div className="account-gate"><h2>隔离工作空间无法取得独占锁</h2><button onClick={()=>location.reload()}>重试</button></div>;
+ if(hydration)return render(hydration);
+ return <main className="account-gate shard-pilot-gate"><h2>Web 存储迁移与恢复试验</h2><p className="muted">仅限隔离合成数据。原始数据不删除、不覆盖；普通应用不会启用此试验。</p>
+ {error&&<p role="alert" className="error">{error}</p>}
+ {source&&<section><h3>原始工作空间</h3><p>原始任务：{(()=>{try{return JSON.parse(source[STORAGE_KEY]||'{}').tasks?.length??0}catch{return '无法读取'}})()}</p><p className="small shard-digest">SHA-256（原始键）：{hash}</p><button disabled={busy} onClick={()=>downloadFile({scope:'guest',source},'todo-legacy-source.json')}>导出原始数据</button></section>}
+ {scanFailed&&<button disabled={busy} onClick={()=>run(async()=>downloadFile({scope:'guest',records:await readRawShardRecords(dbRef.current,'guest'),source:legacySnapshot(localStorage)},'todo-shard-raw-recovery.json'))}>导出未校验原始分片</button>}
+ {!row&&source&&!scanFailed&&<section><CheckInput checked={confirmed} disabled={busy} onChange={e=>setConfirmed(e.target.checked)} aria-label="确认仅复制隔离工作空间"/> 确认仅复制隔离工作空间 <button className="primary" disabled={busy||!confirmed} onClick={migrate}>确认迁移</button></section>}
+ {row&&<section><h3>已提交工作空间 · {row.mode==='retired'?'已回退':'有效'}</h3><p>版本 {row.revision} · {JSON.parse(row.values[STORAGE_KEY]).tasks.length} 项任务</p><p className="small shard-digest">SHA-256（当前内容）：{currentHash}</p>
+ <div className="workspace-actions"><button className="primary" disabled={busy||row.mode!=='active'} onClick={open}>打开试验工作空间</button><button disabled={busy} onClick={()=>run(async()=>downloadFile(await makeRecovery('guest',row.values),'todo-sharded-recovery.json'))}>导出验证备份</button><button disabled={busy||row.mode!=='active'} onClick={()=>run(async()=>{await retireShardWorkspace(dbRef.current,row,localStorage);await refresh(dbRef.current)})}>检查并无损回退</button></div>
+ <label>导入验证备份 <input type="file" accept=".json,application/json" disabled={busy||row.mode!=='active'} onChange={selectFile}/></label>
+ {restore&&<div className="review-section"><p>已验证 {restore.parsed.count} 项任务；恢复将原子保留当前版本。</p><p className="small shard-digest">{restore.parsed.sha256}</p><button disabled={busy} onClick={()=>run(async()=>{await restoreShardRecovery(dbRef.current,row,restore.raw,localStorage);await refresh(dbRef.current)})}>确认恢复</button><button onClick={()=>setRestore(null)}>取消</button></div>}
+ <label>恢复前版本号 <input type="number" min="1" value={priorRevision} onChange={e=>setPriorRevision(e.target.value)}/></label><button disabled={busy||!priorRevision} onClick={()=>run(async()=>{const prior=await readPriorRecovery(dbRef.current,'guest',Number(priorRevision));if(!prior)throw Error('未找到该恢复前版本');downloadFile(await makeRecovery('guest',prior),'todo-prior-recovery.json')})}>导出恢复前版本</button></section>}
+ <button disabled={busy} onClick={()=>location.reload()}>重新检查</button></main>
+}

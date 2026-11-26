@@ -1,3 +1,4 @@
+import {assertCloudCapacity,requireCommittedStorage,prepareSyncSnapshot} from './services/sync-durability.js';
 import {unsafeSeriesPull} from './core/series-control.js';
 import {subscribeSyncWake} from './platform/web/sync-wake.js';
 import {mobileNative,androidNative} from './platform/runtime.js';
@@ -41,7 +42,7 @@ async function getRow(uid,meta,base){
  }
  const {data,error}=await cloud.from(TABLE).select('revision,state,updated_at').eq('user_id',uid).abortSignal(AbortSignal.timeout(12000)).maybeSingle();if(error)throw error;return readRemote(data)}
 async function writeRow(uid,state,revision,remoteState){
- const body=JSON.stringify(state);if(new TextEncoder().encode(body).length>3500000)throw Error('工作空间超过 3.5 MB，请导出备份并整理历史记录');
+ assertCloudCapacity(state);
  const delta=revision!==null?buildTaskDelta(remoteState,state):null;
  if(delta){
   const {data,error}=await cloud.rpc('todo_apply_task_delta',{p_revision:revision,p_tasks:delta}).abortSignal(AbortSignal.timeout(12000));
@@ -67,12 +68,14 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked,logStorage}){
   if(!navigator.onLine){setStatus('离线，修改保存在本机');record('offline');return}
   busy.current=true;setStatus('同步中');setError('');
   try{
-   const snapshot=latest.current.data,meta=readMeta(storage);const base=await loadBaseline(uid,storage,meta);
+   const snapshot=latest.current.data;const current=()=>active.current&&!latest.current.blocked&&latest.current.data===snapshot;
+   if(!await prepareSyncSnapshot(storage,snapshot,current)){if(active.current)setStatus('等待本地保存');return}
+   const meta=readMeta(storage);const base=await loadBaseline(uid,storage,meta);
    const [hash,emptyHash,remote]=await Promise.all([digest(snapshot),digest(initialState()),getRow(uid,meta,base)]);
    if(!active.current)return;
    const remoteHash=remote?await digest(remote.state):null;
    if(!active.current)return;
-   if(latest.current.data!==snapshot){setStatus('等待本地保存');return}
+   if(!current()){setStatus('等待本地保存');return}
    let decision=decideSync({localHash:hash,remoteHash,remoteRevision:remote?.revision??null,meta,emptyHash});
    const unsafePull=!resolution&&decision==='pull'&&remote&&(unsafeSeriesPull(base||snapshot,remote.state)||unsafeHistoryPull(base||snapshot,remote.state)||((base||snapshot).preferenceProfile!==undefined&&remote.state.preferenceProfile===undefined));if(unsafePull)decision='conflict';
    if(resolution){
@@ -83,7 +86,7 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked,logStorage}){
       const merged=resolveTaskFields(base,snapshot,remote.state,resolution.choices);
       if(!merged){decision='conflict'}else{
        storage.setItem('todo-field-merge-backup',JSON.stringify({local:snapshot,remote:remote.state,revision:remote.revision}));
-       saveState(storage,merged);writeMeta(remote.revision,remoteHash,remote.state);latest.current={...latest.current,data:merged};setData(merged);conflictRef.current=null;setConflict(null);setStatus('已安全合并，等待上传');record('merge',remote.revision);return;
+       saveState(storage,merged);writeMeta(remote.revision,remoteHash,remote.state);latest.current={...latest.current,data:merged};setData(merged);await requireCommittedStorage(storage);if(!active.current)return;conflictRef.current=null;setConflict(null);setStatus('已安全合并，等待上传');record('merge',remote.revision);return;
       }
      }
     }
@@ -97,7 +100,7 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked,logStorage}){
      // Keep the new cloud revision as the merge base; persist merged local state
      // before the next CAS write. A newer local edit or cloud revision is never overwritten.
      saveState(storage,merged);writeMeta(remote.revision,remoteHash,remote.state);
-     latest.current={...latest.current,data:merged};setData(merged);setStatus('已安全合并，等待上传');record('merge',remote.revision);return;
+     latest.current={...latest.current,data:merged};setData(merged);await requireCommittedStorage(storage);if(!active.current)return;setStatus('已安全合并，等待上传');record('merge',remote.revision);return;
     }
    }
    if(decision==='conflict'){const c={revision:remote?.revision??null,remote:remote?.state??null,base,localHash:hash};conflictRef.current=c;setConflict(c);setStatus('存在同步冲突');record('conflict',remote?.revision);return}
@@ -105,15 +108,16 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked,logStorage}){
     // Save the downloaded snapshot before replacing the UI; never discard a local edit made during the request.
     if(latest.current.data!==snapshot)return;
     saveState(storage,remote.state);writeMeta(remote.revision,remoteHash,remote.state);
-    latest.current={...latest.current,data:remote.state};setData(remote.state);record(remote.mode==='delta'?'delta-pull':'pull',remote.revision)
+    latest.current={...latest.current,data:remote.state};setData(remote.state);await requireCommittedStorage(storage);if(!active.current)return;record(remote.mode==='delta'?'delta-pull':'pull',remote.revision)
    }else if(decision==='push'||decision==='insert'){
+    if(!await prepareSyncSnapshot(storage,snapshot,current)){if(active.current)setStatus('等待本地保存');return}
     const row=await writeRow(uid,snapshot,decision==='insert'?null:remote.revision,remote?.state);
     if(!active.current)return;
     if(!row){record('retry',remote?.revision);if(resolution){const fresh=await getRow(uid,null,null);if(!active.current)return;const current=latest.current.data;const c={revision:fresh?.revision??null,remote:fresh?.state??null,base:null,localHash:await digest(current)};if(!active.current)return;conflictRef.current=c;setConflict(c);setStatus('云端版本已变化，请重新确认');record('conflict',c.revision)}else setStatus('检测到并发更新，等待重试');return}
-    writeMeta(row.revision,hash,snapshot);record(row.mode==='delta'?'delta':decision,row.revision)
-   }else if(decision==='ack'){writeMeta(remote.revision,remoteHash,remote.state)}
+    writeMeta(row.revision,hash,snapshot);await requireCommittedStorage(storage);if(!active.current)return;record(row.mode==='delta'?'delta':decision,row.revision)
+   }else if(decision==='ack'){writeMeta(remote.revision,remoteHash,remote.state);await requireCommittedStorage(storage);if(!active.current)return}
    conflictRef.current=null;setConflict(null);setLastSync(new Date().toISOString());
-   setStatus(decision==='empty'?'云端工作空间为空':latest.current.data!==snapshot&&decision!=='pull'?'等待同步':'已同步');
+   setStatus(decision==='empty'?'云端工作空间为空':latest.current.data!==(decision==='pull'?remote.state:snapshot)?'等待同步':'已同步');
   }catch(e){if(active.current){setError(e.message||'同步失败');setStatus('同步失败，保留本地数据');record('error')}}
   finally{busy.current=false}
  },[uid,storage,setData,logStorage]);
