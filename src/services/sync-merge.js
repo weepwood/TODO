@@ -1,3 +1,4 @@
+import {blockMinutes} from '../core/plan-block.js';
 import {canonical,digest} from './cloud-core.js';
 import {mergeActivity} from '../core/task-activity.js';
 import {migrateState} from '../core/domain.js';
@@ -95,6 +96,7 @@ export function unsafeHistoryPull(base,remote){
  for(const t of base.tasks){
   const candidate=remoteTasks.get(t.id);if(candidate&&t.deadline&&candidate.deadline===undefined)return true;
   if(candidate&&t.planSegments?.length&&candidate.planSegments===undefined)return true;
+  if(candidate&&t.planLocked===true&&candidate.planLocked===true&&t.status==='pending'&&candidate.status==='pending'&&!t.deletedAt&&!candidate.deletedAt&&(!eq(t.date,candidate.date)||!eq(t.time,candidate.time)||!eq(t.anchor,candidate.anchor)||blockMinutes(t)!==blockMinutes(candidate)||!eq(t.planSegments||[],candidate.planSegments||[])))return true;
   if(candidate&&(t.planMinutes!=null&&candidate.planMinutes===undefined||t.planLocked===true&&candidate.planLocked===undefined))return true;
   if(!t.activity?.length)continue;
   const next=remoteTasks.get(t.id);if(!next||eq(t.activity,next.activity))continue;

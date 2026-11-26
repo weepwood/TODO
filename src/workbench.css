@@ -44,7 +44,7 @@
 .v2 .quick-add:focus-within{border-color:var(--accent)}
 .v2 .bulk-bar{min-height:26px;gap:8px;margin-bottom:10px;flex-wrap:wrap}
 .v2 .task-row{min-height:48px;padding:7px 5px;gap:7px;border-radius:6px}
-.v2 .task-row.selected{background:var(--active)}
+
 .v2 .task-body{gap:3px}
 .v2 .task-body span{font-size:13px;font-weight:500}
 .v2 .task-body small{font-size:11px;line-height:1.25}

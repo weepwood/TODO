@@ -1,4 +1,4 @@
-import {validQueueRun,queueRunProgress,finishQueueRun} from './focus-queue.js';
+import {validQueueRun,queueRunProgress,finishQueueRun,makeQueueRun} from './focus-queue.js';
 import {pomodoroPlan,planningConfig,taskFocusSeconds,plannedBreakSeconds,splitPomodoro} from './pomodoro-planner.js';
 import {dayKey,timerSeconds} from './domain.js';
 export function shouldSaveFocus(config,mode,seconds){return (mode==='focus'||mode==='stopwatch')&&Number.isFinite(seconds)&&seconds>0&&(config?.ignoreShortSessions===false||seconds>=60)}
@@ -88,7 +88,10 @@ export function formatFocusClock(seconds){
 // stop/discard and delayed wake never advance the queue.
 function queueTarget(remaining,config){return splitPomodoro(remaining,config.focus*60,planningConfig(config).planStrategy,60)[0]||60}
 export function startQueueRun(state,run,now){
- if(state.timer||!validQueueRun(run)||!Number.isFinite(now))return state;
+ if(state.timer||!validQueueRun(run)||run.startedAt||!Number.isFinite(now)||state.queueHistory?.some(r=>r.id===run.id)||state.sessions.some(s=>s.queueRunId===run.id))return state;
+ // The preview's budget and eligibility must still match at the transaction boundary.
+ const fresh=makeQueueRun({items:run.items},state,run.goal,run.id);
+ if(!fresh||JSON.stringify(fresh.items)!==JSON.stringify(run.items))return state;
  const next=queueRunProgress(run,state).next;if(!next)return state;
  const target=queueTarget(next.remaining,state.focusConfig);
  return {...state,timer:{mode:'focus',target,elapsed:0,startedAt:now,createdAt:new Date(now).toISOString(),taskId:next.id,queueRun:{...run,startedAt:run.startedAt||new Date(now).toISOString()}}};

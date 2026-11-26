@@ -35,3 +35,18 @@ test('专注聚合维持逐任务统计语义，今日纳入当日补充段',()=
  const d={...base([task('a',{date:'2026-11-27',planSegments:[{id:'s',date,time:'09:00',minutes:30}]})]),sessions};
  assert.equal(todayExecution(d,date,new Date(at)).items[0].remaining,1719);
 });
+
+test('旧锁定数据迁移固化占位，旧端保留锁字段却移动日期时拒绝拉取',()=>{
+ const d=base([task('a',{planLocked:true,duration:42})]),m=migrateState(d),t=m.tasks[0];assert.equal(t.planMinutes,42);
+ assert(unsafeHistoryPull(m,{...m,tasks:[{...t,date:'2026-11-27'}]}));
+ assert(unsafeHistoryPull(m,{...m,tasks:[{...t,planMinutes:30}]}));
+ assert.equal(unsafeHistoryPull(m,{...m,tasks:[{...t,duration:60}]}),false);
+ assert.equal(unsafeHistoryPull(m,{...m,tasks:[{...t,planLocked:false,date:'2026-11-27'}]}),false);
+});
+test('连续队列预览过期拒绝启动，旧会话ID不可复用',()=>{
+ const d=base([task('a',{duration:5})]),run=makeQueueRun({items:[{id:'a'}]},d,300,'r');
+ const changed={...d,sessions:[{id:'s',taskId:'a',mode:'focus',seconds:60,startedAt:iso}]};
+ assert.equal(startQueueRun(changed,run,at),changed);
+ const changedEstimate={...d,tasks:[{...d.tasks[0],duration:6}]};assert.equal(startQueueRun(changedEstimate,run,at),changedEstimate);
+ const s=startQueueRun(d,run,at),done=settleFocus(s,at+300000);assert.equal(startQueueRun(done,run,at+400000),done);
+});

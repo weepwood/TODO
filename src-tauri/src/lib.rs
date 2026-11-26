@@ -332,6 +332,28 @@ pub fn run(){
   state["tasks"][0]["status"]=serde_json::json!("completed");assert!(reminder_candidates(&state,now).is_empty());
  }
 
+ #[test]fn v15_backup_restore_keeps_account_and_extended_data(){
+  let mut c=Connection::open_in_memory().unwrap();schema(&c).unwrap();
+  let other="11111111-1111-1111-1111-111111111111";
+  let state=serde_json::json!({"version":2,"tasks":[{"id":"t","title":"original title","notes":"original notes","planLocked":true,"planMinutes":30,"planSegments":[{"id":"segment","date":"2026-11-27","time":"10:00","minutes":20}]}],"queueHistory":[{"id":"run","actual":120}],"importRuns":[{"id":"r","entries":[{"id":"t","signature":"sha256:example"}]}]});
+  let original=state.to_string();
+  let store=|body:&str|serde_json::json!({"todo-workbench-v1":body}).to_string();
+  let other_body=r#"{"version":2,"tasks":[{"id":"t","title":"other scope","notes":""}]}"#;
+  persist_store(&mut c,"guest",&store(&original)).unwrap();
+  persist_store(&mut c,other,&store(other_body)).unwrap();
+  create_backup(&mut c,"guest").unwrap();
+  let backup:String=c.query_row("SELECT body FROM backups WHERE scope='guest' ORDER BY saved_at DESC LIMIT 1",[],|r|r.get(0)).unwrap();
+  assert_eq!(backup,original);
+  let changed=r#"{"version":2,"tasks":[{"id":"t","title":"changed title","notes":""}]}"#;
+  persist_store(&mut c,"guest",&store(changed)).unwrap();
+  persist_store(&mut c,"guest",&store(&backup)).unwrap();
+  assert_eq!(c.query_row("SELECT body FROM snapshots WHERE scope='guest'",[],|r|r.get::<_,String>(0)).unwrap(),original);
+  assert_eq!(c.query_row("SELECT body FROM snapshots WHERE scope=?1",[other],|r|r.get::<_,String>(0)).unwrap(),other_body);
+  assert_eq!(c.query_row("SELECT count(*) FROM task_search WHERE scope='guest' AND task_search MATCH 'original'",[],|r|r.get::<_,i32>(0)).unwrap(),1);
+  assert_eq!(c.query_row("SELECT count(*) FROM task_search WHERE scope=?1 AND task_search MATCH 'other'",[other],|r|r.get::<_,i32>(0)).unwrap(),1);
+  assert!(persist_store(&mut c,"guest",r#"{"todo-workbench-v1":"invalid"}"#).is_err());
+  assert_eq!(c.query_row("SELECT body FROM workspace_store WHERE scope='guest'",[],|r|r.get::<_,String>(0)).unwrap(),store(&original));
+ }
  #[test]fn feature_forward_snapshot_preserves_extensions_and_rollback(){
   let mut c=Connection::open_in_memory().unwrap();schema(&c).unwrap();
   let state=serde_json::json!({"version":2,"tasks":[{"id":"t","title":"计划","notes":"test","planMinutes":30,"planLocked":true,"planSegments":[{"id":"s","date":"2026-11-27","time":"09:00","minutes":25}]}],"queueHistory":[{"id":"run","actual":120}],"importRuns":[{"id":"r","entries":[{"id":"t","signature":"sha256:example"}]}],"habits":[{"id":"h","planVersions":[{"from":"2026-11-26","days":[1,3],"enabled":true}]}]});

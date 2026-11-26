@@ -31,7 +31,7 @@ for(const theme of ['light','dark'])test('页面截图矩阵 '+theme,async({page
   await button.click();await expect(page.locator(selector).first()).toBeVisible();await page.screenshot({path:'test-results/quality-matrix/'+theme+'-'+name+'.png',animations:'disabled'});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  }
- for(const [name,label] of [['workflow','自动化工作台'],['report','回顾报告'],['goals','目标管理']]){
-  await page.getByRole('button',{name:'打开'+label,exact:true}).first().click();await expect(page.locator('[data-workspace-module='+name+']')).toBeVisible();await page.screenshot({path:'test-results/quality-matrix/'+theme+'-'+name+'.png',animations:'disabled'});
+ for(const [name,label,selector] of [['workflow','自动化工作台','.workflow-config-scroll'],['report','回顾报告','.task-review-dialog'],['goals','目标管理','.goal-workspace']]){
+  await page.getByRole('button',{name:'打开'+label,exact:true}).first().click();await expect(page.locator('[data-workspace-module='+name+'] '+selector)).toBeVisible();await expect(page.getByText('加载工作视图…',{exact:true})).toHaveCount(0);await page.screenshot({path:'test-results/quality-matrix/'+theme+'-'+name+'.png',animations:'disabled'});
  }
 });

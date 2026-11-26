@@ -128,6 +128,7 @@ export function migrateState(input){
   const n={...newTask(t.title,list.id,t.date||'',t.id),...t,listId:list.id,sectionId:list.sections.some(s=>s.id===t.sectionId)?t.sectionId:null};
   check(Array.isArray(n.tags)&&n.tags.every(str)&&validTime(n.reset)&&(!n.time||validTime(n.time))&&Number.isFinite(n.duration)&&n.duration>=1&&n.duration<=1440&&['todo','doing','done'].includes(n.stage)&&(!n.reminderAt||/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(n.reminderAt)&&validDate(n.reminderAt.slice(0,10))&&validTime(n.reminderAt.slice(11))),'任务时间或扩展字段无效');
   check(validBlock(n),'规划占位无效');
+  if(n.planLocked&&n.planMinutes==null)n.planMinutes=Math.round(n.duration);
   check(validDeadline(n.deadline),'任务截止时间无效');
   check(n.points===undefined||validPoints(n.points),'任务积分无效');check(n.anchor===null||Number.isInteger(n.anchor)&&n.anchor>=1&&n.anchor<=31,'重复日期锚点无效');check(n.deletedAt===null||str(n.deletedAt),'回收站状态无效');check(n.seriesId===null||str(n.seriesId),'系列标识无效');check(Array.isArray(n.weekdays)&&n.weekdays.every(x=>Number.isInteger(x)&&x>=0&&x<=6)&&(!n.repeatUntil||validDate(n.repeatUntil))&&(!n.seriesStart||validDate(n.seriesStart))&&Number.isInteger(n.repeatCount)&&n.repeatCount>=0&&n.repeatCount<=100000&&Number.isInteger(n.occurrenceIndex)&&n.occurrenceIndex>=1,'扩展周期无效');
   check((n.parentId===null||str(n.parentId))&&Array.isArray(n.dependsOn)&&n.dependsOn.every(str)&&Array.isArray(n.extraReminders)&&n.extraReminders.length<=20&&unique(n.extraReminders)&&n.extraReminders.every(r=>obj(r)&&str(r.id)&&str(r.at)&&validDate(r.at.slice(0,10))&&validTime(r.at.slice(11))&&(r.sentAt===null||str(r.sentAt))),'扩展任务字段无效');
@@ -154,7 +155,7 @@ export function migrateState(input){
 }
 export function readState(storage){const raw=storage.getItem(STORAGE_KEY);return raw?migrateState(JSON.parse(raw)):initialState()}
 export function saveState(storage,state){const old=storage.getItem(STORAGE_KEY);const next=JSON.stringify(state);if(old===next)return;if(old&&(!storage.getItem(BACKUP_KEY)||Date.now()-Number(storage.getItem(BACKUP_KEY+'-at')||0)>=3600000)){storage.setItem(BACKUP_KEY,old);storage.setItem(BACKUP_KEY+'-at',String(Date.now()))}storage.setItem(STORAGE_KEY,next)}
-export function timerSeconds(timer,now=Date.now()){return Math.max(0,timer.elapsed+(timer.startedAt===null?0:Math.floor((now-timer.startedAt)/1000)))}
+export function timerSeconds(timer,now=Date.now()){return Math.max(0,timer.elapsed)+(timer.startedAt===null?0:Math.max(0,Math.floor((now-timer.startedAt)/1000)))}
 export function dueReminders(tasks,now=new Date()){return tasks.filter(t=>!t.deletedAt&&t.status==='pending'&&t.reminderAt&&!t.remindedAt&&new Date(t.reminderAt)<=now)}
 export function reorderTasks(tasks,active,over){const i=tasks.findIndex(t=>t.id===active),j=tasks.findIndex(t=>t.id===over);if(i<0||j<0||i===j)return tasks;const a=[...tasks];a.splice(j,0,a.splice(i,1)[0]);return a}
 

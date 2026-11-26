@@ -23,8 +23,8 @@ export function protectLockedTasks(before,after){
  let changed=false;
  const tasks=after.tasks.map(t=>{const old=byId.get(t.id);if(!old||t.status!=='pending'||t.deletedAt)return t;
   const fields=['date','time','anchor','planMinutes','planSegments'];
-  if(!fields.some(k=>JSON.stringify(old[k])!==JSON.stringify(t[k])))return t;
-  changed=true;const next={...t};for(const k of fields){if(old[k]===undefined)delete next[k];else next[k]=old[k]}return next;
+  if(!fields.some(k=>JSON.stringify(old[k])!==JSON.stringify(t[k]))&&!(old.planMinutes==null&&blockMinutes(old)!==blockMinutes(t)))return t;
+  changed=true;const next={...t};for(const k of fields){if(old[k]===undefined)delete next[k];else next[k]=old[k]}if(old.planMinutes==null&&blockMinutes(old)!==blockMinutes(t))next.planMinutes=Math.round(blockMinutes(old));return next;
  });return changed?{...after,tasks}:after;
 }
 
