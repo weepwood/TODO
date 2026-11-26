@@ -1,6 +1,6 @@
 export const associationKey=id=>'todo-obsidian-link-v1:'+encodeURIComponent(id);
 export function obsidianURI(vault,file){
- if(typeof vault!=='string'||typeof file!=='string'||!vault.trim()||vault.length>100||!file.trim()||file.length>500||/[\u0000-\u001f\u007f]/.test(vault+file)||file.trim().startsWith('/')||file.includes('\\')||file.trim().split('/').some(x=>x==='..'||x==='.'))return null;
+ if(typeof vault!=='string'||typeof file!=='string'||!vault.trim()||vault.length>100||!file.trim()||file.length>500||/[\u0000-\u001f\u007f]/.test(vault+file)||file.trim().startsWith('/')||/^[a-z]:/i.test(file.trim())||file.includes('\\')||file.trim().split('/').some(x=>x==='..'||x==='.'))return null;
  return 'obsidian://open?vault='+encodeURIComponent(vault.trim())+'&file='+encodeURIComponent(file.trim());
 }
 export function readAssociation(storage,id){

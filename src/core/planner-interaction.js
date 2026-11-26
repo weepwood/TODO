@@ -1,14 +1,15 @@
+import {blockInterval,uniqueWallInstant,busyRanges,elapsedWindow} from './time-intervals.js';
 import {expandPlanBlocks,blockMinutes} from './plan-block.js';
 import {taskConflicts,nextSlot} from './advanced.js';
 import {validDate,validTime,shiftDay} from './domain.js';
-import {daySegments,workBudget,validWorkHours,calendarBusy} from './productivity.js';
+import {validWorkHours,calendarBusy} from './productivity.js';
 // Use elapsed minutes, exactly as persisted calendar events do. Half-open
 // intervals include the entire continuation on the following day.
 export function projectBlock(tasks,renderId,date,time,minutes){
  if(!validDate(date)||!validTime(time)||!Number.isInteger(minutes)||minutes<1||minutes>1440)return null;
- const start=+new Date(date+'T'+time),end=start+minutes*60000;
+ const start=uniqueWallInstant(date,time);if(start===null)return null;const end=start+minutes*60000;
  const blocks=expandPlanBlocks(tasks).filter(t=>t.status==='pending'&&!t.deletedAt&&t.date&&t.time&&t.id!==renderId);
- const overlaps=blocks.filter(t=>{const a=+new Date(t.date+'T'+t.time),b=a+blockMinutes(t)*60000;return Number.isFinite(a)&&start<b&&a<end}).map(t=>t.id);
+ const overlaps=blocks.filter(t=>{const [a,b]=blockInterval(t);return Number.isFinite(a)&&start<b&&a<end}).map(t=>t.id);
  const projected=[...blocks.map(t=>({...t,planSegments:[]})),{id:renderId,date,time,duration:minutes,planMinutes:minutes,status:'pending',planSegments:[]}];
  const dates=[date],last=new Date(end-1),lastDay=last.getFullYear()+'-'+String(last.getMonth()+1).padStart(2,'0')+'-'+String(last.getDate()).padStart(2,'0');
  for(let d=shiftDay(date,1);validDate(d)&&d<=lastDay&&dates.length<4;d=shiftDay(d,1))dates.push(d);
@@ -16,7 +17,7 @@ export function projectBlock(tasks,renderId,date,time,minutes){
 }
 export function projectedCapacity(tasks,renderId,date,time,minutes,start,end){
  const p=projectBlock(tasks,renderId,date,time,minutes);if(!p||!validWorkHours(start,end))return null;
- return {overlaps:p.overlaps,days:p.dates.map(date=>({date,...workBudget(daySegments(p.projected,date),start,end)}))};
+ const ranges=busyRanges(p.projected);return {overlaps:p.overlaps,days:p.dates.map(date=>({date,...(elapsedWindow(ranges,date,start,end)||{remaining:null})}))};
 }
 export const WORK_HOURS_KEY='todo-work-hours-presets-v1';
 export function readWorkHours(storage){

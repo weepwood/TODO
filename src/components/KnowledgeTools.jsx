@@ -1,3 +1,5 @@
+import {androidNative} from '../platform/runtime.js';
+import {invoke} from '@tauri-apps/api/core';
 import React,{useState,useMemo} from 'react';
 import {Modal,Field,ActionButton} from '../ui.jsx';
 import {SmartSelect,SelectOption} from './SmartSelect.jsx';
@@ -17,5 +19,5 @@ export function HistorySearch({data,archived,onClose,onOpen}){
 export function ShareTask({task}){
  const [message,setMessage]=useState('');
  const text=task.title+(task.date?' · '+task.date+(task.time?' '+task.time:''):'');
- return <div className="workspace-actions"><button type="button" className="secondary compact" onClick={async()=>{try{if(typeof navigator.share!=='function'){setMessage('此环境不支持系统分享，可使用复制任务摘要。');return}await navigator.share({title:'TODO',text});setMessage('系统分享已返回')}catch(e){if(e.name!=='AbortError')setMessage('系统分享不可用，可复制摘要')}}}>分享任务摘要</button><button type="button" className="text-link" onClick={async()=>{try{await navigator.clipboard.writeText(text);setMessage('摘要已复制')}catch{setMessage('无法复制，请选择任务标题')}}}>复制任务摘要</button>{message&&<small role="status">{message}</small>}</div>
+ return <div className="workspace-actions"><button type="button" className="secondary compact" onClick={async()=>{try{if(androidNative){await invoke('plugin:todo-mobile|share_summary',{text});setMessage('已请求打开系统分享面板');return}if(typeof navigator.share!=='function'){setMessage('此环境不支持系统分享，可使用复制任务摘要。');return}await navigator.share({title:'TODO',text});setMessage('系统分享面板已返回（不保证接收方已收到）')}catch(e){if(e.name!=='AbortError')setMessage('系统分享不可用，可复制摘要')}}}>分享任务摘要</button><button type="button" className="text-link" onClick={async()=>{try{await navigator.clipboard.writeText(text);setMessage('摘要已复制')}catch{setMessage('无法复制，请选择任务标题')}}}>复制任务摘要</button>{message&&<small role="status">{message}</small>}</div>
 }

@@ -42,6 +42,6 @@ test('层级Markdown保留安全链接及父子关系，禁止孤立导入；整
  assert.equal(parseMarkdownTasks('- [x] 完成\n  - [ ] 子任务\n- [ ] 新',{tree:true}).rows.length,1);
 });
 test('Obsidian URI限定库名和相对路径，历史只读筛选',()=>{
- const s=storage();assert.equal(obsidianURI('个人库','../私密.md'),null);assert.equal(obsidianURI('个人库','/private.md'),null);assert.equal(obsidianURI('个人库',' /private.md'),null);saveAssociation(s,'a','个人库','项目/记录.md');assert.equal(readAssociation(s,'a').file,'项目/记录.md');assert.match(obsidianURI('个人库','项目/记录.md'),/^obsidian:\/\/open\?vault=/);
+ const s=storage();assert.equal(obsidianURI('个人库','../私密.md'),null);assert.equal(obsidianURI('个人库','/private.md'),null);assert.equal(obsidianURI('个人库',' /private.md'),null);assert.equal(obsidianURI('个人库','C:/private.md'),null);saveAssociation(s,'a','个人库','项目/记录.md');assert.equal(readAssociation(s,'a').file,'项目/记录.md');assert.match(obsidianURI('个人库','项目/记录.md'),/^obsidian:\/\/open\?vault=/);
  const a=task('a',{status:'completed',completedAt:date+'T00:00:00Z',notes:'研究'}),b=task('b'),c=task('c',{deletedAt:date+'T00:00:00Z'});assert.deepEqual(historicalSearch(base([a,b,c]),[],'研究','all').map(t=>t.id),['a']);
 });

@@ -1,6 +1,6 @@
 import {normalizeTaskDefaults} from './task-defaults.js';
 import {SORTS,GROUPS,ORDERS,defaultOrder} from './task-list-interaction.js';
-const DETAIL_MODULES=['tasks','calendar','board','matrix','planner','focus','habits','stats'];
+const DETAIL_MODULES=['tasks','calendar','board','matrix','planner','focus','habits','stats','workflow','goals','report'];
 export function normalizeDetailPreferences(value){return Object.fromEntries(DETAIL_MODULES.filter(k=>Object.hasOwn(value||{},k)&&typeof value[k]==='boolean').map(k=>[k,value[k]]))}
 export function updateDetailPreference(state,module,value){if(!DETAIL_MODULES.includes(module))return state;const next=normalizeDetailPreferences(state.detailPreferences);if(typeof value==='boolean')next[module]=value;else delete next[module];return {...state,detailPreferences:next}}
 export const VIEW_PREFS_KEY='todo-view-preferences-v1';

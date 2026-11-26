@@ -1,5 +1,5 @@
 import {initialState,migrateState,STORAGE_KEY,BACKUP_KEY} from '../core/domain.js';
-export function scopedStorage(storage,uid){if(!uid)return storage;const prefix='todo-account:'+uid+':';return {getItem:key=>storage.getItem(prefix+key),setItem:(key,value)=>storage.setItem(prefix+key,value),removeItem:key=>storage.removeItem(prefix+key)}}
+export function scopedStorage(storage,uid){if(!uid)return storage;const prefix='todo-account:'+uid+':';return {getItem:key=>storage.getItem(prefix+key),setItem:(key,value)=>storage.setItem(prefix+key,value),removeItem:key=>storage.removeItem(prefix+key),keys:()=>Array.from({length:storage.length||0},(_,i)=>storage.key(i)).filter(k=>typeof k==="string"&&k.startsWith(prefix)).map(k=>k.slice(prefix.length))}}
 export function canonical(value){if(Array.isArray(value))return '['+value.map(canonical).join(',')+']';if(value&&typeof value==='object')return '{'+Object.keys(value).filter(k=>value[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+canonical(value[k])).join(',')+'}';return JSON.stringify(value)}
 export async function digest(state){const buffer=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(canonical(state)));return Array.from(new Uint8Array(buffer),x=>x.toString(16).padStart(2,'0')).join('')}
 export const META_KEY='todo-cloud-meta';

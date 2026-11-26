@@ -7,11 +7,8 @@ import {TaskList} from '@tiptap/extension-task-list';
 import {TaskItem} from '@tiptap/extension-task-item';
 import {safeLink} from './core/productivity.js';
 const normalized=s=>s.replace(/\r\n/g,'\n').replace(/\n+$/,'');
-export function visualSourceAllowed(text){
- // Avoid parsing arbitrary HTML into the rich editor. Complex/unsupported Markdown
- // stays in the original source editor; conversion must also round-trip losslessly.
- return text.length<=100000&&!/[<>]/.test(text)&&!/(?:!\[|^\s*\[[^\]]+\]:)/m.test(text)&&[...text.matchAll(/\]\(([^)]+)\)/g)].every(m=>!!safeLink(m[1]))
-}
+import {visualSourceAllowed} from './core/markdown-compat.js';
+export {visualSourceAllowed} from './core/markdown-compat.js';
 function Inner({initial,onChange,locked}){
  const [compatible,setCompatible]=useState(null),ready=useRef(false);
  const editor=useEditor({

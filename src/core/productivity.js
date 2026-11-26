@@ -1,3 +1,4 @@
+import {blockInterval,busyRanges,elapsedWindow,representableStart} from './time-intervals.js';
 import {shiftDay,validDate} from './domain.js';
 import {blockMinutes,expandPlanBlocks} from './plan-block.js';
 import {seriesSafetyKeys} from './series-control.js';
@@ -22,12 +23,12 @@ export function executionPlan(tasks,date,{start='09:00',end='18:00',max=30,sessi
   let time=nextSlot(working,date,length,start,end),firstDate=date,firstLength=length,extra=[];
   if(!time&&splitDays>0){
    let left=length;const parts=[];const horizon=task.repeat==='none'&&!task.seriesId?Math.min(7,splitDays):1;
-   const clock=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+   const occupied=busyRanges(working);
    for(let i=0;i<horizon&&left>0;i++){
     const day=shiftDay(date,i);if(!validDate(day))break;
-    for(const [a,b] of workBudget(daySegments(working,day),start,end).free){
-     const minutes=Math.min(left,b-a);if(minutes<1)continue;
-     parts.push({id:'auto-'+parts.length,date:day,time:clock(a),minutes});left-=minutes;if(!left||parts.length>=31)break;
+    for(const [a,b] of elapsedWindow(occupied,day,start,end)?.free||[]){
+     const slot=representableStart(day,a,b),minutes=slot?Math.min(left,Math.floor((b-slot.instant)/60000)):0;if(minutes<1)continue;
+     parts.push({id:'auto-'+parts.length,date:day,time:slot.time,minutes});left-=minutes;if(!left||parts.length>=31)break;
     }if(parts.length>=31)break;
    }
    if(!left&&parts.length){const first=parts.shift();time=first.time;firstDate=first.date;firstLength=first.minutes;extra=parts}
@@ -48,14 +49,14 @@ export function taskActivity(task){const out=[{label:'创建任务',at:task.crea
 export function calendarBusy(events=[]){
  return events.filter(e=>!e.allDay&&e.end&&Number.isFinite(Date.parse(e.start))&&Number.isFinite(Date.parse(e.end))&&Date.parse(e.end)>Date.parse(e.start)).map(e=>{
   const start=new Date(e.start),end=new Date(e.end),date=localDay(start);
-  return {id:'external:'+e.id,title:e.title,external:true,date,time:start.toTimeString().slice(0,5),duration:Math.ceil((end-start+start.getSeconds()*1000+start.getMilliseconds())/60000),status:'pending',deletedAt:null};
+  return {id:'external:'+e.id,title:e.title,external:true,date,time:start.toTimeString().slice(0,5),duration:Math.ceil((end-start+start.getSeconds()*1000+start.getMilliseconds())/60000),startInstant:+start,endInstant:+end,status:'pending',deletedAt:null};
  })
 }
 function localDay(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 export function daySegments(tasks,date){
  const start=new Date(date+'T00:00:00'),end=new Date(start);end.setDate(end.getDate()+1);
  return expandPlanBlocks(tasks).filter(t=>t.status==='pending'&&!t.deletedAt&&t.date&&t.time&&Number.isFinite(blockMinutes(t))&&blockMinutes(t)>0).flatMap(t=>{
-  const a=new Date(t.date+'T'+t.time).getTime(),b=a+blockMinutes(t)*60000;
+  const [a,b]=blockInterval(t);
   if(!Number.isFinite(a)||b<=+start||a>=+end)return [];
   const left=Math.max(a,+start),right=Math.min(b,+end);
   return [{...t,planSegments:[],duration:blockMinutes(t),time:new Date(left).toTimeString().slice(0,5),endTime:right===+end?'24:00':new Date(right).toTimeString().slice(0,5),segmentMinutes:Math.round((right-left)/60000),carryIn:a<+start,carryOut:b>+end}];

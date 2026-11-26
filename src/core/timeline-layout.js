@@ -15,10 +15,10 @@ export function layoutTimeline(segments,start=0,end=1440){
  return result;
 }
 
-export function resizeTimelineDuration(duration,delta,start,end=1440){
+export function resizeTimelineDuration(duration,delta,start,end=1440,allowCarry=false){
  if(![duration,delta,start,end].every(Number.isFinite)||end<=start)return duration;
  // Clamp within the visible day; preserve exact duration when the gesture is canceled.
- const max=Math.min(1440,Math.floor((end-start)/15)*15);
+ const max=allowCarry&&end===1440?1440:Math.min(1440,Math.floor((end-start)/15)*15);
  if(max<15)return duration;
  return Math.max(15,Math.min(max,Math.round((duration+delta)/15)*15));
 }

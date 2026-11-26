@@ -38,6 +38,6 @@ export function attachNativeLifecycle(storage,doc,win){
  const flush=()=>{const status=storage.getStatus?.();if(!active||inFlight||!status?.pending||status.error)return;
   inFlight=true;Promise.resolve().then(()=>storage.flush()).catch(()=>{}).finally(()=>{inFlight=false})};
  const visibility=()=>{if(doc.visibilityState==='hidden')flush()};
- doc.addEventListener('visibilitychange',visibility);win.addEventListener('pagehide',flush);win.addEventListener("blur",flush);
- return ()=>{active=false;doc.removeEventListener('visibilitychange',visibility);win.removeEventListener('pagehide',flush);win.removeEventListener("blur",flush)};
+ doc.addEventListener('visibilitychange',visibility);win.addEventListener('pagehide',flush);win.addEventListener("blur",flush);win.addEventListener("todo-native-pause",flush);
+ return ()=>{active=false;doc.removeEventListener('visibilitychange',visibility);win.removeEventListener('pagehide',flush);win.removeEventListener("blur",flush);win.removeEventListener("todo-native-pause",flush)};
 }

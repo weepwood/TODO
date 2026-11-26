@@ -1,3 +1,4 @@
+import {uniqueWallInstant} from './wall-time.js';
 // A task estimate is not its calendar occupancy. Legacy tasks use the estimate
 // until an explicit block length is chosen. Locks protect scheduling tools.
 export const blockMinutes=t=>Number.isInteger(t.planMinutes)&&t.planMinutes>=1&&t.planMinutes<=1440?t.planMinutes:t.duration;
@@ -46,6 +47,7 @@ export function changePlanBlock(data,expected,fields){
  const task=data.tasks.find(t=>t.id===expected?.id),current=planBlockSnapshot(task,expected?.segmentId);
  if(!current||JSON.stringify(current)!==JSON.stringify(expected))return data;
  const date=fields.date??current.date,time=fields.time??current.time,minutes=fields.planMinutes??current.duration;
+ if(time&&(date!==current.date||time!==current.time)&&uniqueWallInstant(date,time)===null)return data
  if(!dateValid(date)||(!timeValid(time)&&(time!==''||current.segmentId!==null))||!Number.isInteger(minutes)||minutes<1||minutes>1440)return data;
  if(date===current.date&&time===current.time&&minutes===current.duration)return data;
  const patch=current.segmentId===null?{date,time,anchor:Number(date.slice(-2)),...(Object.hasOwn(fields,'planMinutes')?{planMinutes:minutes}:{})}:editPlanSegments(task,current.segments,current.segments.map(s=>s.id===current.segmentId?{...s,date,time,minutes}:s));

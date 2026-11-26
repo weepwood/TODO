@@ -1,3 +1,4 @@
+import {uniqueWallInstant} from './core/wall-time.js';
 import {blockMinutes,expandPlanBlocks,planBlockSnapshot} from './core/plan-block.js';
 import {eventColor} from './core/workspace-visual.js';
 import {SearchField,Segmented} from "./design-system/Controls.jsx";
@@ -29,7 +30,7 @@ export default function CalendarView({compactLayout,data,patch,changeBlock,selec
  const events=[...expandPlanBlocks(pending(data)).filter(t=>t.date).map(t=>({id:t.id,title:(conflicts.has(t.id)?'⚠ ':'')+t.title,start:t.date+(t.time?'T'+t.time:''),allDay:!t.time,editable:!t.planLocked,end:t.time?new Date(new Date(t.date+'T'+t.time).getTime()+blockMinutes(t)*60000):undefined,color:eventColor(data.lists.find(l=>l.id===t.listId)?.color),contrastColor:'var(--text)',extendedProps:{task:true,ownerId:t.ownerId,segmentId:t.segmentId,snapshot:planBlockSnapshot(owners.get(t.ownerId||t.id),t.segmentId||null),conflict:conflicts.has(t.id)}})),...pending(data).filter(t=>t.deadline).map(t=>({id:'deadline:'+t.id,title:'截止 · '+t.title+(t.deadline.length>10?' '+t.deadline.slice(11):''),start:t.deadline.slice(0,10),allDay:true,editable:false,color:eventColor(data.lists.find(l=>l.id===t.listId)?.color),contrastColor:'var(--text)',extendedProps:{task:false,deadlineFor:t.id}})),...(data.calendarEvents||[]).map(e=>({...e,id:'external:'+e.id,editable:false,color:eventColor(null,true),contrastColor:'var(--text)',extendedProps:{task:false}}))];
  function change(e){if(!e.event.extendedProps.task||!e.oldEvent?.extendedProps.snapshot){e.revert();return}const date=dayKey(e.event.start),time=e.event.allDay?'':e.event.start.toTimeString().slice(0,5),duration=e.event.end&&!e.event.allDay?Math.round((e.event.end-e.event.start)/60000):null;if(duration!==null&&(duration<1||duration>1440)){e.revert();setMessage('单个时间块须为 1–1440 分钟');return}const expected=e.oldEvent.extendedProps.snapshot;
  if(expected.segmentId&&!time){e.revert();setMessage('补充时间段必须保留具体时刻');return}
- if(time){if(!validDate(date)||!validTime(time)){e.revert();return}changeBlock(expected,{date,time,...(duration?{planMinutes:duration}:{})})}
+ if(time){if(!validDate(date)||!validTime(time)||((date!==expected.date||time!==expected.time)&&uniqueWallInstant(date,time)===null)){e.revert();setMessage("当地时刻不存在或有两个可能时刻，请选择其他时间。");return}changeBlock(expected,{date,time,...(duration?{planMinutes:duration}:{})})}
  else if(!expected.segmentId)changeBlock(expected,{date,time});
  setPlanningDate(date)}
  function apply(text,label){const imported=parseCalendar(text,label);update(d=>({...d,calendarEvents:[...(d.calendarEvents||[]).filter(x=>x.source!==label),...imported]}));setMessage('已更新 '+imported.length+' 项外部日程')}
