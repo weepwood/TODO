@@ -1,5 +1,5 @@
 /* Interaction and control refinements. Loaded after workbench.css to preserve cascade. */
-.v2{--control-radius:7px;--control-height:32px;--control-gap:6px}
+.v2{--control-radius:var(--radius-control);--control-gap:6px}
 .v2 :is(.secondary,.primary,.sort select,.bulk-bar select,.bulk-bar input,.calendar-info input,.planner-hours input){border-radius:var(--control-radius);min-height:var(--control-height)}
 .v2 .toolbar{gap:var(--control-gap);border-bottom:1px solid var(--line)}
 .v2 .heading .eyebrow{font-size:10px;letter-spacing:.08em;color:var(--muted);font-weight:500}

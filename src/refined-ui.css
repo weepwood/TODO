@@ -64,12 +64,6 @@ input[type=checkbox]:disabled{opacity:.5;cursor:default}
 .points-wallet .wallet-grid>div:first-child{background:var(--active);border-color:transparent}
 .points-wallet .reward-row{padding-block:12px}
 .points-wallet .reward-row>.primary{min-width:56px;justify-content:center}
-.settings-navigation{top:65px}
-.settings-sections .account-panel{display:grid;gap:8px}
-.settings-sections .account-panel .sync-conflict{padding:12px;border-radius:9px;border:1px solid var(--line)}
-.settings-sections .account-panel input:not([type=checkbox]){min-height:40px}
-.settings-sections .settings-section{scroll-margin:0}
-.settings-sections .settings-section:last-child{min-height:190px}
 @media(prefers-reduced-motion:no-preference){
  .v2 .task-row .task-check:active:not(:disabled){transform:scale(.9)}
  .v2 .task-check{transition:transform 120ms var(--ui-ease),background-color 120ms,border-color 120ms}
@@ -123,10 +117,6 @@ input[type=checkbox]:disabled{opacity:.5;cursor:default}
  .stats .stat-grid>div strong{font-size:22px}
  .stats-toolbar .stats-jump{flex-basis:100%;margin-left:0;order:4}
  .stats .points-dashboard{margin-top:20px}
- .settings-navigation{top:58px;position:sticky;justify-content:flex-start}
- .settings-navigation button{min-width:max-content}
- .settings-sections .account-panel input:not([type=checkbox]){min-height:44px;font-size:16px}
- .settings-sections .settings-section:last-child{min-height:calc(100dvh - 180px)}
  @media(prefers-reduced-motion:no-preference){
   .mobile-nav-indicator{transition:transform 190ms var(--ui-ease)}
  }

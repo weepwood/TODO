@@ -62,7 +62,10 @@
 .workspace-action-group{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;min-width:0}
 .calendar-action-group,.planner-mode-group{justify-content:flex-end}
 .workspace-actions :is(.secondary,.smart-select-trigger,.date-control){background:var(--bg)}
-.workspace-actions button{min-height:var(--control-height)}
+.workspace-actions :is(button.secondary,button.primary,.smart-select-trigger,.date-control){min-height:var(--control-height);border-radius:var(--radius-control)}
+.workspace-actions .date-control{height:var(--control-height);box-sizing:border-box}
+.v2 .workspace-actions .date-control>:is(input,.date-trigger){height:100%;min-height:0;border-radius:0}
+.workspace-actions .date-control>.date-trigger{width:var(--control-height);min-width:var(--control-height)}
 .module-summary{display:flex;align-items:center;gap:var(--space-4);flex-wrap:wrap;padding:var(--space-3);margin:0 0 var(--space-3);border:1px solid var(--line);border-radius:var(--radius-surface);background:var(--panel);color:var(--muted);font-size:var(--control-font)}
 .module-summary strong{font-size:18px;color:var(--text);font-variant-numeric:tabular-nums;font-weight:600}
 .module-summary>small{margin-left:auto;font-size:var(--font-caption)}
@@ -94,7 +97,7 @@
  .workspace-actions{padding:var(--space-2);gap:var(--space-2)}
  .workspace-action-group{width:100%;justify-content:flex-start}
  .calendar-action-group button,.planner-mode-group button{flex:1}
- .workspace-actions button,.board-task-card .smart-select-trigger{min-height:44px}
+ .workspace-actions :is(button.secondary,button.primary,.smart-select-trigger,.date-control),.board-task-card .smart-select-trigger{min-height:var(--control-touch-height)}
  .module-summary{gap:var(--space-3)}
  .module-summary>small{margin-left:0;flex-basis:100%}
  .focus-card .focus-options{grid-template-columns:minmax(0,1fr)}
