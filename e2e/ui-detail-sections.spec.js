@@ -282,3 +282,20 @@ test('卡片拖动手柄完整位于外侧且标题对齐',async({page})=>{
  await expect.poll(()=>detail.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
  await expect(handle).toHaveCSS('width','44px');
 });
+
+test('搜索选择器保留百项之外的当前值与键盘确认',async({page})=>{
+ const state=initialState(),today=dayKey(),task=newTask('大规模选择器验收','inbox',today);
+ state.lists[0].sections=Array.from({length:125},(_,i)=>({id:'group-'+i,name:'分组 '+i}));
+ task.sectionId='group-124';state.tasks=[task];
+ await page.addInitScript(d=>{if(!localStorage.getItem('todo-workbench-v1'))localStorage.setItem('todo-workbench-v1',JSON.stringify(d))},state);
+ await page.setViewportSize({width:1440,height:900});await page.goto('/');await page.locator('.task-body').filter({hasText:'大规模选择器验收'}).click();
+ const group=page.locator('[data-detail-section=organization]').getByRole('combobox',{name:'分组',exact:true}),search=page.getByRole('searchbox',{name:'搜索分组'});
+ await group.click();await expect(page.getByRole('option')).toHaveCount(100);
+ const selected=page.getByRole('option',{name:'分组 124',exact:true});await expect(selected).toHaveAttribute('aria-selected','true');
+ await expect(search).toHaveAttribute('aria-activedescendant',await selected.getAttribute('id'));
+ await search.press('Enter');await expect(group).toContainText('分组 124');
+ await group.click();await search.fill('分组 120');await expect(page.getByRole('option')).toHaveCount(1);
+ await search.press('Enter');await expect(group).toContainText('分组 120');
+ await group.click();await search.fill('不存在');await expect(page.getByRole('option')).toHaveCount(0);
+ await search.press('Enter');await expect(search).toBeVisible();await search.press('Escape');await expect(group).toContainText('分组 120');
+});

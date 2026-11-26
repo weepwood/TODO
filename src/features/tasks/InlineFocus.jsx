@@ -3,7 +3,7 @@ import {Clock,Timer,Play,Pause,Square} from 'lucide-react';
 import {pomodoroPlan} from '../../core/pomodoro-planner.js';
 import {PomodoroPlan,durationText} from './PomodoroPlan.jsx';
 import {dayKey} from '../../core/domain.js';
-import {startFocusTimer,changeFocusTimer,focusTimerKey,focusDisplaySeconds,formatFocusClock} from '../../core/focus-engine.js';
+import {startFocusTimer,changeFocusTimer,focusTimerKey,focusDisplaySeconds,formatFocusClock,focusCountOnDay} from '../../core/focus-engine.js';
 
 export function InlineFocus({task,data,now,update,locked,summary}){
  const timer=data.timer,own=timer?.taskId===task.id,running=own&&timer.startedAt!==null;
@@ -11,7 +11,7 @@ export function InlineFocus({task,data,now,update,locked,summary}){
  const baseline=own&&timer.planned?timer.planBaseline:undefined,today=dayKey(new Date(now));
  const plan=useMemo(()=>pomodoroPlan(task,data.sessions,data.focusConfig,{baseline,reserved:activeTarget}),[task,data.sessions,data.focusConfig,baseline,activeTarget]);
  const launch=useMemo(()=>pomodoroPlan(task,data.sessions,data.focusConfig),[task,data.sessions,data.focusConfig]);
- const count=useMemo(()=>data.sessions.filter(s=>s.mode==='focus'&&dayKey(new Date(s.startedAt))===today).length,[data.sessions,today]);
+ const count=useMemo(()=>focusCountOnDay(data.sessions,now),[data.sessions,today]);
  const start=mode=>{const at=Date.now();update(d=>startFocusTimer(d,{mode,minutes:d.focusConfig.focus,taskId:task.id,now:at,planned:mode==='focus'}))};
  const control=action=>{const key=focusTimerKey(timer),at=Date.now();update(d=>changeFocusTimer(d,{action,key,now:at}))};
  const other=timer&&!own;

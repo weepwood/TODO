@@ -139,7 +139,7 @@ export function migrateState(input){
  v.habits=records(v.habits,'习惯');for(const h of v.habits)check(str(h.name)&&Array.isArray(h.days)&&h.days.every(validDate),'习惯无效');
  v.sessions=records(v.sessions,'专注记录');for(const s of v.sessions)check(str(s.startedAt)&&Number.isFinite(s.seconds)&&s.seconds>=0,'专注记录无效');
  if(v.timer!==null)check(obj(v.timer)&&['focus','stopwatch','break'].includes(v.timer.mode)&&Number.isFinite(v.timer.elapsed)&&v.timer.elapsed>=0&&Number.isFinite(v.timer.target)&&v.timer.target>=0&&(v.timer.startedAt===null||Number.isFinite(v.timer.startedAt))&&str(v.timer.createdAt),'计时器无效');
- if(v.timer!==null){check(v.timer.planned===undefined||typeof v.timer.planned==='boolean','番茄规划计时无效');check(v.timer.planBaseline===undefined||Number.isFinite(v.timer.planBaseline)&&v.timer.planBaseline>=0,'番茄规划基线无效');}
+ if(v.timer!==null){check(v.timer.phaseAt===undefined||str(v.timer.phaseAt)&&Number.isFinite(Date.parse(v.timer.phaseAt)),'计时阶段标识无效');check(v.timer.planned===undefined||typeof v.timer.planned==='boolean','番茄规划计时无效');check(v.timer.planBaseline===undefined||Number.isFinite(v.timer.planBaseline)&&v.timer.planBaseline>=0,'番茄规划基线无效');}
  check(Array.isArray(v.notifications)&&v.notifications.every(x=>obj(x)&&str(x.id)&&str(x.title)),'通知无效');
  check(['system','light','dark'].includes(v.theme),'主题无效');return v
 }

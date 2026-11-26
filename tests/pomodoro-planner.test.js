@@ -56,3 +56,30 @@ test('手动提前结束、旧计时兼容、阈值残余补足不循环',()=>{
  const d=startFocusTimer(tiny,{mode:'focus',minutes:25,taskId:'a',now,planned:true});assert.equal(d.timer.target,60);assert.equal(settleFocus(d,now+60000).timer,null);
  assert.equal(migrateState(a).timer.planned,true);
 });
+
+import {focusCountOnDay,focusSessionId} from '../src/core/focus-engine.js';
+test('跨午夜番茄按启动日归属并正确安排长休息',()=>{
+ const start=new Date(2026,10,26,23,59,30).getTime();
+ const s=base(10);s.focusConfig={...s.focusConfig,focus:1,cycles:2,planAutoContinue:true};
+ s.sessions=[{id:'previous',taskId:'b',mode:'focus',seconds:60,startedAt:new Date(start-3600000).toISOString()}];
+ const a=startFocusTimer(s,{mode:'focus',minutes:1,taskId:'a',now:start,planned:true});
+ const end=settleFocus(a,start+60000);
+ assert.equal(focusCountOnDay(end.sessions,start),2);
+ assert.equal(focusCountOnDay(end.sessions,start+60000),0);
+ assert.equal(end.timer.mode,'break');assert.equal(end.timer.target,900);
+});
+test('延迟唤醒不回填下一阶段，显式结束停止普通循环',()=>{
+ const s=base(40);s.focusConfig={...s.focusConfig,focus:1,break:1,autoContinue:true};
+ const a=startFocusTimer(s,{mode:'focus',minutes:1,taskId:'a',now});
+ const late=settleFocus(a,now+119000);
+ assert.equal(late.sessions.length,1);assert.equal(late.timer.startedAt,now+119000);
+ const onTime=settleFocus(a,now+60000);assert.equal(focusSessionId(late.timer),focusSessionId(onTime.timer));assert.equal(focusTimerKey(late.timer),focusTimerKey(onTime.timer));assert.equal(migrateState(late).timer.phaseAt,onTime.timer.phaseAt);
+ assert.equal(settleFocus(late,now+120000),late);
+ const end=changeFocusTimer(a,{action:'save',key:focusTimerKey(a.timer),now:now+60000});
+ assert.equal(end.timer,null);assert.equal(end.sessions.length,1);
+ const discard=changeFocusTimer(a,{action:'discard',key:focusTimerKey(a.timer),now:now+60000});
+ assert.equal(discard.timer,null);
+ assert.equal(settleFocus({...a,tasks:[]},now+60000).timer,null);
+ assert.equal(settleFocus({...a,tasks:a.tasks.map(t=>({...t,status:'completed'}))},now+60000).timer,null);
+ assert.equal(settleFocus(a,now+121000).timer,null);
+});
