@@ -85,6 +85,13 @@ export function unsafeHistoryPull(base,remote){
  const remoteTasks=new Map(remote.tasks.map(t=>[t.id,t]));
  if(base.importRuns?.length&&remote.importRuns===undefined)return true;
  if(base.queueHistory?.length){const rows=remote.queueHistory||[],map=new Map(rows.map(r=>[r.id,r]));if(base.queueHistory.some(r=>map.has(r.id)?!eq(r,map.get(r.id)):rows.length<100||r.endedAt>=rows.at(-1)?.endedAt))return true;}
+ // A legacy client may preserve the active timer but strip phase/plan metadata.
+ // Never silently convert the same running phase into a different planning mode.
+ const a=base.timer,b=remote.timer;
+ if(a&&b&&(focusTimerIdentity(a)===focusTimerIdentity(b)||a.createdAt===b.createdAt&&a.mode===b.mode&&(a.taskId??null)===(b.taskId??null))){
+  for(const field of ['phaseAt','planned','planBaseline'])if(a[field]!==undefined&&!eq(a[field],b[field]))return true;
+  if(a.queueRun&&!eq(a.queueRun,b.queueRun))return true;
+ }
  if(base.timer?.queueRun){
   const run=base.timer.queueRun;
   if(remote.timer&&focusTimerIdentity(base.timer)===focusTimerIdentity(remote.timer)&&!remote.timer.queueRun)return true;

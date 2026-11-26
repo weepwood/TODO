@@ -67,3 +67,17 @@ test('旧配置迁移保留记录、备份原始内容及基线校验失败安�
  const currentHash=await digest(migrated);saveBaseline('a',native,2,currentHash,migrated);
  assert.deepEqual(await loadBaseline('a',native,{revision:2,hash:currentHash}),migrated);
 });
+
+test('旧端保留当前计时但丢失规划或阶段元数据时阻止静默拉取',()=>{
+ const s=startFocusTimer(base(),{mode:'focus',taskId:'a',now,planned:true});
+ assert.equal(s.timer.planned,true);
+ const paused=changeFocusTimer(s,{action:'pause',key:focusTimerKey(s.timer),now:now+60000});
+ assert.equal(unsafeHistoryPull(s,paused),false);
+ for(const field of ['planned','planBaseline']){
+  const timer={...s.timer};delete timer[field];assert.equal(unsafeHistoryPull(s,{...s,timer}),true);
+ }
+ const phase={...s,timer:{...s.timer,phaseAt:new Date(now-1000).toISOString()}};
+ const timer={...phase.timer};delete timer.phaseAt;assert.equal(unsafeHistoryPull(phase,{...phase,timer}),true);
+ const discard=changeFocusTimer(s,{action:'discard',key:focusTimerKey(s.timer),now:now+1000});
+ assert.equal(unsafeHistoryPull(s,discard),false);
+});
