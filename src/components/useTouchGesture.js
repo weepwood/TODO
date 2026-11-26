@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {gestureAxis,gestureAction,gestureOffset} from '../core/touch-gesture.js';
 const idle={offset:0,phase:'idle',release:0};
-export function useTouchGesture({enabled=true,kind='row',onAction,onHold}){
+export function useTouchGesture({enabled=true,kind='row',onAction,onHold,onTap}){
  const active=useRef(null),timer=useRef(null),frame=useRef(null),pending=useRef(idle),suppressUntil=useRef(0),[visual,setVisual]=useState(idle);
  const cancelTimer=()=>{if(timer.current!==null){clearTimeout(timer.current);timer.current=null}};
  const cancelFrame=()=>{if(frame.current!==null){cancelAnimationFrame(frame.current);frame.current=null}};
@@ -34,9 +34,11 @@ export function useTouchGesture({enabled=true,kind='row',onAction,onHold}){
   if(hold||action||a.moved||Math.max(Math.abs(dx),Math.abs(dy))>=10){
    if(e.cancelable)e.preventDefault();suppressUntil.current=Date.now()+700;
   }
+  const tap=kind==='row'&&onTap&&!hold&&!action&&!a.moved&&Math.max(Math.abs(dx),Math.abs(dy))<8;
+  if(tap){if(e.cancelable)e.preventDefault();suppressUntil.current=Date.now()+700}
   const release=action==='dismiss'?gestureOffset(dx,dy,axis,kind):0;
   paint({offset:0,phase:release?'dismiss':'idle',release},true);
-  if(hold)onHold?.();else if(action)onAction?.(action);
+  if(hold)onHold?.();else if(action)onAction?.(action);else if(tap)onTap(e);
  };
  const cancel=()=>{if(active.current)suppressUntil.current=Date.now()+700;reset()};
  return {...visual,handlers:{onTouchStart:start,onTouchMove:move,onTouchEnd:end,onTouchCancel:cancel},suppressClick:()=>Date.now()<suppressUntil.current};

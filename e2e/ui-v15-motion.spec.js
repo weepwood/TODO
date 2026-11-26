@@ -10,7 +10,11 @@ async function end(cdp,type='touchEnd'){await cdp.send('Input.dispatchTouchEvent
 test('触控跟手、长按反馈与短拖动回弹，面板取消及关闭不丢草稿',async({browser})=>{
  const ctx=await browser.newContext({...devices['Pixel 7'],baseURL:'http://127.0.0.1:4178'});
  try{const page=await ctx.newPage();await seed(page,'dark');const row=page.locator('.task-body').filter({hasText:'连续手势任务'}),shell=row.locator('..');await expect(row).toBeVisible();const cdp=await ctx.newCDPSession(page);
- let p=await start(cdp,row);await page.waitForTimeout(550);await expect(shell).toHaveAttribute('data-gesture','held');await expect(page.getByText('已选 1 项',{exact:true})).toHaveCount(0);await end(cdp);await expect(page.getByText('已选 1 项',{exact:true})).toBeVisible();await page.getByRole('button',{name:'结束选择'}).click();
+ let p=await start(cdp,row);await page.waitForTimeout(550);await expect(shell).toHaveAttribute('data-gesture','held');await expect(page.getByText('已选 1 项',{exact:true})).toHaveCount(0);await end(cdp);await expect(page.getByText('已选 1 项',{exact:true})).toBeVisible();
+ const other=page.locator('.task-body').filter({hasText:'另一项任务'});
+ await other.tap();await expect(page.getByText('已选 2 项',{exact:true})).toBeVisible();
+ await other.tap();await expect(page.getByText('已选 1 项',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'结束选择'}).click();
  p=await start(cdp,row);await move(cdp,p,-32,0);await expect(shell).toHaveAttribute('data-gesture','dragging');await expect.poll(()=>row.evaluate(el=>parseFloat(getComputedStyle(el).translate))).toBe(-32);await end(cdp);await expect.poll(()=>row.evaluate(el=>parseFloat(getComputedStyle(el).translate)||0)).toBe(0);await expect(page.getByRole('menu')).toHaveCount(0);await expect(page.locator('.details')).toHaveCount(0);
  // Use the same CDP touch stream, with no fixed suppression-window sleep.
  p=await start(cdp,row);await end(cdp);const detail=page.getByRole('complementary',{name:'任务详情'});await expect(detail).toBeVisible();await expect(detail.locator('.property-grid').first()).toBeVisible();

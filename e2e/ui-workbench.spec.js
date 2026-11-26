@@ -19,7 +19,9 @@ test('统一下拉菜单支持键盘、选中态、空值、Escape 和焦点恢�
  await chooseOption(detail.getByRole('combobox',{name:'优先级',exact:true}),'3');
  await expect(detail.getByRole('combobox',{name:'优先级',exact:true})).toHaveAttribute('data-value','3');
  await detail.getByRole('combobox',{name:'状态',exact:true}).click();
- await expect(menu.locator('[data-option-value="done"]')).toHaveAttribute('aria-disabled','true');
+ await expect(menu.getByRole('option')).toHaveCount(2);
+ await expect(menu.locator('[data-option-value="done"]')).toHaveCount(0);
+ await expect(menu.locator('[data-option-value="todo"]')).toHaveAttribute('aria-selected','true');
  await page.keyboard.press('Escape');
  await expect(detail).toBeVisible();
  await page.screenshot({path:'test-results/ui-workbench-desktop.png',animations:'disabled'});

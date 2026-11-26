@@ -16,7 +16,7 @@ test('置顶、延期、完成撤销、历史筛选及刷新持久化',async({pa
  const menu=async(name)=>{await page.getByRole('button',{name:'任务操作 置顶目标'}).click();await page.getByRole('menuitem',{name,exact:true}).click()};
  await menu('置顶任务');await expect(page.locator('.task-body').first()).toContainText('置顶目标');
  await page.reload();await page.locator('[data-view-key=inbox]').click();await expect(page.locator('.task-body').first()).toContainText('置顶目标');
- await menu('延期一周');await expect.poll(()=>page.evaluate(id=>JSON.parse(localStorage.getItem('todo-workbench-v1')).tasks.find(t=>t.id===id).date,b.id)).toBe(shiftDay(today,7));
+ await page.getByRole('button',{name:'任务操作 置顶目标'}).click();await page.getByRole('menuitem',{name:'延期',exact:true}).hover();await page.getByRole('menuitem',{name:'延期一周',exact:true}).click();await expect.poll(()=>page.evaluate(id=>JSON.parse(localStorage.getItem('todo-workbench-v1')).tasks.find(t=>t.id===id).date,b.id)).toBe(shiftDay(today,7));
  await page.getByRole('button',{name:'完成 置顶目标',exact:true}).click();
  await page.getByRole('button',{name:'撤销完成',exact:true}).click();
  await expect(page.getByRole('button',{name:'完成 置顶目标',exact:true})).toBeVisible();

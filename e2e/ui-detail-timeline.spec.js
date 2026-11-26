@@ -19,7 +19,10 @@ test('属性直接操作、浮层不改变卡片位置及已完成只读保护',
  await page.screenshot({path:'test-results/detail-quick-edit.png',animations:'disabled'});
  await page.locator('.nav-row').filter({hasText:'已完成'}).click();await page.locator('.task-body').filter({hasText:'只读记录'}).click();
  await expect(detail.getByRole('spinbutton')).toHaveCount(0);
- await expect(detail.getByRole('combobox')).toHaveCount(0);
+ await expect(detail.getByRole('combobox')).toHaveCount(1);
+ await expect(detail.getByRole('combobox',{name:'筛选活动记录'})).toBeVisible();
+ await expect(org.getByRole('combobox')).toHaveCount(0);
+ await expect(plan.getByRole('combobox')).toHaveCount(0);
  await expect(detail.getByRole('button',{name:'提醒',exact:true})).toHaveCount(0);
  await expect(detail.getByRole('textbox',{name:'任务备注'})).toHaveAttribute('readonly','');
 });

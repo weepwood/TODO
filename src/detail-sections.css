@@ -306,3 +306,6 @@
  .v2 .detail-content .detail-section-card[data-density=title]{padding-block:4px}
 }
 @media(prefers-reduced-motion:reduce){.v2 .detail-content .detail-section-card{transition:none!important}}
+
+/* External drag gutter reduces available card width on the smallest phones. */
+@media(max-width:359px){.v2 .detail-content[data-inspector=true] .property-grid{grid-template-columns:minmax(0,1fr)}}
