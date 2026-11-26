@@ -145,7 +145,19 @@ fn native_cli_next(scope:String,active:tauri::State<ActiveScope>,db:tauri::State
  // Existing text and simple batch requests take priority. Do not process
  // two independent queue entries at the same time.
  if pending_direct(&c,&scope).map_err(|e|e.to_string())?.is_some(){return Ok(None)}
- c.query_row("SELECT d.id,d.text,d.created_at FROM direct_capture_requests d JOIN cli_operation_meta m ON d.scope=m.scope AND d.id=m.id WHERE d.scope='cli-op:'||?1 AND d.status='pending' ORDER BY d.created_at,d.id LIMIT 1",[scope],|r|Ok(serde_json::json!({"id":r.get::<_,String>(0)?,"text":r.get::<_,String>(1)?,"created_at":r.get::<_,i64>(2)?}))).optional().map_err(|e|e.to_string())
+ let mut req:Option<serde_json::Value>=c.query_row("SELECT d.id,d.text,d.created_at FROM direct_capture_requests d JOIN cli_operation_meta m ON d.scope=m.scope AND d.id=m.id WHERE d.scope='cli-op:'||?1 AND d.status='pending' ORDER BY d.created_at,d.id LIMIT 1",[&scope],|r|Ok(serde_json::json!({"id":r.get::<_,String>(0)?,"text":r.get::<_,String>(1)?,"created_at":r.get::<_,i64>(2)?}))).optional().map_err(|e|e.to_string())?;
+ if let Some(ref mut req)=req{
+  if let Ok(payload)=serde_json::from_str::<serde_json::Value>(req["text"].as_str().unwrap_or("")){
+   let reference=match payload["op"].as_str(){Some("preview-apply")=>payload["previewId"].as_str(),Some("changes-undo")=>payload["receiptId"].as_str(),_=>None};
+   if let Some(id)=reference.filter(|id|uuid::Uuid::parse_str(id).is_ok()){
+    if cli::advanced_scope(&c,&scope)?{
+     let row:Option<(String,String,String)>=c.query_row("SELECT d.status,m.kind,m.result FROM direct_capture_requests d JOIN cli_operation_meta m ON d.scope=m.scope AND d.id=m.id WHERE d.scope='cli-op:'||?1 AND d.id=?2 AND d.status='saved' AND m.result IS NOT NULL AND d.created_at>=?3",params![&scope,id,Local::now().timestamp()-7*86400],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional().map_err(|e|e.to_string())?;
+     if let Some((status,kind,raw))=row{if let Ok(result)=serde_json::from_str::<serde_json::Value>(&raw){req["reference"]=serde_json::json!({"id":id,"kind":kind,"status":status,"result":result});}}
+    }
+   }
+  }
+ }
+ Ok(req)
 }
 #[tauri::command]
 fn native_cli_write_store(scope:String,store:String,receipt:serde_json::Value,active:tauri::State<ActiveScope>,db:tauri::State<Database>)->Result<(),String>{

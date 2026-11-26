@@ -212,7 +212,7 @@ function App({session,hydration}){
  useAutoUpdate(setToast);
  const backgroundCheck=useAndroidBackgroundCheck({enabled:androidNative,uid,storage:hydration.storage||storage,data,blocked:blocked||!!storageError||!!nativeError||hydration.pending,lastSync:sync.lastSync});
  const {quickAdd,incomingCapture,setIncomingCapture,quickDraftRef,receiveCapture}=useCaptureHandlers(quickDraft,setQuickDraft,setDialog);
- useNativeShortcut(uid,receiveCapture);useDirectCapture({uid,storage:hydration.storage,data,blocked:blocked||!!storageError||!!nativeError||hydration.pending,edit:setData,onSaved:()=>setToast("独立录入已保存到本机")});useCliOperations({uid,storage:hydration.storage,data,blocked:blocked||!!storageError||!!nativeError||hydration.pending||!!sync.conflict,apply:historyState.cliApply,editor:editorContext,onSaved:()=>{}});const shortcutStatus=useNativeShortcutStatus();
+ useNativeShortcut(uid,receiveCapture);useDirectCapture({uid,storage:hydration.storage,data,blocked:blocked||!!storageError||!!nativeError||hydration.pending,edit:setData,onSaved:()=>setToast("独立录入已保存到本机")});useCliOperations({uid,storage:hydration.storage,data,blocked:blocked||!!storageError||!!nativeError||hydration.pending||!!sync.conflict,apply:historyState.cliApply,editor:editorContext,preferencesStorage:browserStorage,onSaved:()=>{}});const shortcutStatus=useNativeShortcutStatus();
  useEffect(()=>{document.documentElement.dataset.theme=data.theme},[data.theme]);
  useWorkspaceClock(data,setSystemData,setToday,uid,setToast);
  useWorkspaceKeyboard({shortcuts,dialog,quickAdd,undo:historyState.undo,redo:historyState.redo,setQuery,setChecked,setSelectionMode,selectionAnchor,setDialog});

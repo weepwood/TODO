@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "command": "todo run --file - --request-id UUID --wait 10",
   "status": "received means queued; saved means local SQLite commit (or query result); cancelled means rejected; not_checked means cloud sync unknown",
   "operations": {
@@ -216,6 +216,126 @@
       "optional": [
         "weeklyGoal"
       ]
+    },
+    "context": {
+      "optional": [
+        "date",
+        "days",
+        "start",
+        "end",
+        "reserve",
+        "ignoreWeek",
+        "includeBacklog",
+        "limit"
+      ]
+    },
+    "plan-preview": {
+      "optional": [
+        "date",
+        "days",
+        "start",
+        "end",
+        "reserve",
+        "ignoreWeek",
+        "includeBacklog"
+      ]
+    },
+    "plan-explain": {
+      "required": [
+        "id"
+      ],
+      "optional": [
+        "date",
+        "days",
+        "start",
+        "end",
+        "reserve",
+        "ignoreWeek",
+        "includeBacklog"
+      ]
+    },
+    "reflow-preview": {
+      "optional": [
+        "date",
+        "days",
+        "start",
+        "end",
+        "reserve",
+        "ignoreWeek",
+        "includeBacklog"
+      ]
+    },
+    "changes-preview": {
+      "required": [
+        "changes"
+      ],
+      "change": {
+        "required": [
+          "id",
+          "version",
+          "fields"
+        ],
+        "fields": [
+          "date",
+          "time",
+          "blocks",
+          "planMinutes",
+          "duration",
+          "deadline",
+          "priority",
+          "listId",
+          "sectionId",
+          "tags",
+          "reminders",
+          "reminderOffsets",
+          "reminderAt"
+        ]
+      }
+    },
+    "split-preview": {
+      "required": [
+        "id",
+        "version",
+        "children"
+      ],
+      "child": {
+        "required": [
+          "title",
+          "duration"
+        ],
+        "optional": [
+          "after",
+          "checklist",
+          "notes",
+          "priority"
+        ]
+      }
+    },
+    "preview-apply": {
+      "required": [
+        "previewId",
+        "confirm"
+      ],
+      "confirm": true
+    },
+    "changes-undo": {
+      "required": [
+        "receiptId",
+        "confirm"
+      ],
+      "confirm": true
+    },
+    "audit": {
+      "optional": [
+        "limit",
+        "ageDays"
+      ]
+    },
+    "review": {
+      "optional": [
+        "date",
+        "period"
+      ]
     }
   },
   "repeat": [
@@ -288,5 +408,27 @@
       "to": "2026-12-03"
     }
   ],
-  "authorization": "create uses explicit workspace binding; all other operations require advanced permission enabled in native settings; reads are scoped to the bound workspace"
+  "authorization": "create uses explicit workspace binding; all other operations require advanced permission enabled in native settings; reads are scoped to the bound workspace",
+  "management": {
+    "requires": "operation_api=3 and advanced=true",
+    "previewExpiryMinutes": 15,
+    "receiptResultRetentionDays": 7,
+    "confirm": "User must explicitly approve the actual preview and undo; never invent a reference ID",
+    "undo": "Narrow field inverse only; unchanged workspace and safe schedule required; split has no automatic undo",
+    "errors": [
+      "INVALID_ARGUMENT",
+      "STALE_VERSION",
+      "STALE_PREVIEW",
+      "STALE_WORKSPACE",
+      "REFERENCE_INVALID",
+      "REFERENCE_EXPIRED",
+      "CONFIRM_REQUIRED",
+      "TIME_CONFLICT",
+      "UNSAFE_CHANGE",
+      "UNPREVIEWED_EFFECT",
+      "NOT_FOUND",
+      "DOMAIN_REJECTED",
+      "RECEIPT_TOO_LARGE"
+    ]
+  }
 }

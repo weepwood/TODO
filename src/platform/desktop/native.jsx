@@ -51,8 +51,8 @@ export function useDirectCapture({uid,storage,data,blocked,edit,onSaved}){
 
 // Operation queue is separate from legacy text/batch capture. A request is
 // terminal only when SQLite commits the exact workspace and local-only receipt.
-export function useCliOperations({uid,storage,data,blocked,apply,editor,onSaved}){
- const latest=useRef(null);latest.current={data,blocked,apply,editor,onSaved};
+export function useCliOperations({uid,storage,data,blocked,apply,editor,onSaved,preferencesStorage}){
+ const latest=useRef(null);latest.current={data,blocked,apply,editor,onSaved,preferencesStorage};
  const inFlight=useRef(false);
  useEffect(()=>{if(!desktopNative||!storage?.stageCliWorkspace)return;let disposed=false,attempt=null;
   const scope=uid||'guest';
@@ -70,17 +70,18 @@ export function useCliOperations({uid,storage,data,blocked,apply,editor,onSaved}
      const {applyWorkspaceEdit}=await import('../../components/useWorkspaceMutations.js');
      const request=JSON.parse(req.text);
      if(request.op.startsWith('focus-')&&now.getTime()-req.created_at*1000>30000)throw Error('专注指令已过期，请打开应用后重新提交');
-     const prepared=await prepareCliOperation(expected,request,req.id,now);
+     const prepared=await prepareCliOperation(expected,request,req.id,now,{reference:req.reference,preferencesStorage:latest.current.preferencesStorage});
      if(prepared.next!==expected){
       next=applyWorkspaceEdit(expected,()=>prepared.next,{id:req.id,at:now.toISOString(),source:'device',session:context.session,trigger:'event'},context);
       // An automation may change other fields; actual saved result is the
       // editor output, not an independently constructed snapshot.
      }
-     result={id:req.id,status:'saved',result:prepared.result};
-    }catch(e){next=expected;result={id:req.id,status:'cancelled',result:{error:String(e?.message||'操作失败').slice(0,500)}}}
+     const {finalizeManagement}=await import('../../core/cli-management.js');
+     result={id:req.id,status:'saved',result:await finalizeManagement(expected,prepared,next)};
+    }catch(e){next=expected;result={id:req.id,status:'cancelled',result:{code:typeof e?.code==='string'?e.code:'DOMAIN_REJECTED',error:String(e?.message||'操作失败').slice(0,500)}}}
     if(disposed||latest.current.blocked)return;
     // Bounded result storage; cancellation must not apply a mutation.
-    if(new TextEncoder().encode(JSON.stringify(result)).length>524288){next=expected;result={id:req.id,status:'cancelled',result:{error:'回执过大，请缩小查询范围'}}}
+    if(new TextEncoder().encode(JSON.stringify(result)).length>524288){next=expected;result={id:req.id,status:'cancelled',result:{code:'RECEIPT_TOO_LARGE',error:'回执过大，请缩小查询范围'}}}
     attempt=req.id;latest.current.apply(expected,next,result);
    }catch{}finally{inFlight.current=false}
   };

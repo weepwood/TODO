@@ -23,3 +23,26 @@ export function representableStart(date,start,end,minutes=1){
  }
  return null;
 }
+
+// Find the nearest representable minute, with a deterministic earlier-time tie break.
+// The search is bounded by the free intervals of one day.
+export function nearestFreeStart(date,free,minutes,target,notBefore=-Infinity,deadline=Infinity){
+ let best=null;
+ for(const [a,b] of free){
+  const lo=Math.ceil(Math.max(a,notBefore)/MINUTE)*MINUTE,hi=Math.floor((Math.min(b,deadline)-minutes*MINUTE)/MINUTE)*MINUTE;
+  if(lo>hi)continue;
+  const center=Math.max(lo,Math.min(hi,Math.round(target/MINUTE)*MINUTE));
+  for(let delta=0;center-delta>=lo||center+delta<=hi;delta+=MINUTE){
+   let found=false;
+   for(const instant of delta?[center-delta,center+delta]:[center]){
+    if(instant<lo||instant>hi)continue;
+    const d=new Date(instant),time=d.toTimeString().slice(0,5);
+    if(localDate(d)!==date||uniqueWallInstant(date,time)!==instant)continue;
+    if(!best||Math.abs(instant-target)<Math.abs(best.instant-target)||Math.abs(instant-target)===Math.abs(best.instant-target)&&instant<best.instant)best={instant,time};
+    found=true;
+   }
+   if(found)break;
+  }
+ }
+ return best;
+}

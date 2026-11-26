@@ -1,5 +1,9 @@
 # TODO 功能覆盖矩阵（2026-11-26）
 
+## AI 任务管理深化 v3（2026-11-26，本分支最新）
+基于 CLI d528ccf，精确复用规划3d47350五个领域核心模块及测试（未合并原分支或搬入其UI变更）。增加10项管理操作，累计30项：context/plan-preview/plan-explain/reflow-preview/changes-preview/split-preview/preview-apply/changes-undo/audit/review。仅明确高级授权；真实同工作空间预览回执引用、15分钟有效期、用户确认、完整工作空间指纹和重算、截止/冲突/自动化效果保护；安全字段逆操作，不支持任意撤销或删除。7天v3回执逻辑过期，后续提交清理正文、保留去重墓碑；旧v2保持。详见 docs/ai-integration/cli-management.md、cli-schema.json。真实独立Mac原生6组、11项合成任务/41份saved/5份cancelled、Rust16/16、领域38/38、浏览器6/6、云协议3/3。用户级CLI与共享Skill已更新，正式应用未替换，模型与正式同步待验收。不增加付费资源、不推送合并发布。详见第五十二节。
+
+
 ## CLI 业务完整化（2026-11-26，本分支最新）
 原生 CLI v2 20项结构化操作：丰富录入、重复/多提醒/多段、查询/日历、生命周期、分类、习惯/专注/回顾；统一领域层、版本令牌、事务回执、原历史及同步路径。旧录入保持兼容，绑定默认仅录入，高级权限由用户在原设置明确启用。不得擅自绑定/读取正式数据/授权；CLI 不直接写工作空间，不开放删除、任意撤销、账户或自动排程。见 docs/ai-integration/cli-business.md 与 cli-schema.json。隔离原生验收通过，CLI/共享Skill已升级，正式桌面应用未替换。并行规划专项保留在原工作树；本批从2a9c41e独立 feat/cli-business，不合并。
 

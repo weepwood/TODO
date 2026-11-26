@@ -7,7 +7,7 @@ export function historyReducer(state,action){
   // sync, reminder or timer update raced with preparation, nothing is applied.
   if(state.cliReceipt)return state;
   const same=state.data===action.expected, data=same?action.next:state.data;
-  const result=same?action.result:{id:action.result.id,status:'cancelled',result:{error:'工作空间已变化，请重新查询并提交新请求'}};
+  const result=same?action.result:{id:action.result.id,status:'cancelled',result:{code:'STALE_WORKSPACE',error:'工作空间已变化，请重新查询并提交新请求'}};
   return {...state,data,cliReceipt:{data,result},...(data!==state.data?{past:[...state.past.slice(-29),state.data],future:[]}:{})};
  }
  if(action.type==='undo'||action.type==='redo'){
