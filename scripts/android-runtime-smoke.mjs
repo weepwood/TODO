@@ -84,8 +84,10 @@ try{
  // Assert the actual selected task, rather than clicking the obscured list.
  await expect(page.locator('.details')).toBeVisible();
  await expect(page.locator('.details').getByRole('textbox',{name:'任务标题'})).toHaveValue(title);
- await page.getByRole('button',{name:'编辑 时间与计划',exact:true}).click();
- await expect(page.locator('.details').getByRole('spinbutton',{name:'任务积分'})).toHaveValue('10');
+ // Current inspector exposes editable properties directly (no legacy section-edit button).
+ const points=page.locator('.details').getByRole('spinbutton',{name:'任务积分',exact:true});
+ await expect(points).toBeVisible();
+ await expect(points).toHaveValue('10');
  await waitForAppFocus();
  screenshot('01-task-created');
  // Dismiss the input method only if the OS reports it shown. Then exercise

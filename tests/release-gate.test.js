@@ -2,7 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
-const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+// Git checkout on Windows may use CRLF; preserve all structural assertions.
+const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8').replace(/\r\n/g,'\n');
 test('未配置正式签名时发布门禁拒绝运行，测试构建不自动启用 updater',()=>{
  const env={...process.env};
  for(const k of ['TODO_UPDATER_PUBLIC_KEY','TODO_ANDROID_CERT_SHA256','TAURI_SIGNING_PRIVATE_KEY','TAURI_SIGNING_PRIVATE_KEY_PASSWORD','TODO_SIGN_ANDROID_KEYSTORE','TODO_SIGN_ANDROID_PASSWORD'])delete env[k];
@@ -53,4 +54,11 @@ test('敏捷开发不自动构建安装包，正式发布保留手动门禁',()=
  assert.match(read('.github/workflows/pages.yml'),/^  push:/m);
  assert.match(read('.github/workflows/ui-review.yml'),/^  pull_request:/m);
  assert.match(read('.github/workflows/promote-release.yml'),/if: inputs.verified/);
+});
+
+test('macOS signed release includes both updater-enabled app and DMG',()=>{
+ const workflow=read('.github/workflows/signed-release.yml');
+ assert.match(workflow,/target: aarch64-apple-darwin\n\s+bundle: app,dmg\n\s+kind: mac/);
+ assert.match(workflow,/--bundles \x24\{\{ matrix\.bundle \}\}/);
+ assert.match(read('scripts/collect-release.mjs'),/endsWith\('\.app\.tar\.gz'\)/);
 });
