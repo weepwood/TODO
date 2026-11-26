@@ -2,7 +2,7 @@ import {useEffect,useState} from 'react';
 import {invoke} from '@tauri-apps/api/core';
 import {initialState,migrateState,STORAGE_KEY} from './core/domain.js';
 import {scopedStorage} from './services/cloud-core.js';
-import {STORE_KEYS,migrationStore,createNativeStore} from './services/native-store.js';
+import {STORE_KEYS,migrationStore,createNativeStore,attachNativeLifecycle} from './services/native-store.js';
 import {native,mobileNative} from './platform/runtime.js';
 import {requireMobileNotificationPermission} from './platform/android/notifications.js';
 export {native,desktopNative,mobileNative} from './platform/runtime.js';
@@ -28,6 +28,7 @@ export function useNativeHydration(uid){
  })();return()=>{cancelled=true;invoke('native_activate',{scope:null}).catch(()=>{})}},[uid]);
  return result
 }
+export function useNativeLifecycle(storage){useEffect(()=>{if(!native)return;return attachNativeLifecycle(storage,document,window)},[storage])}
 export async function nativeGuestState(){const raw=await invoke('native_load_store',{scope:'guest'});if(raw)return JSON.parse(raw)[STORAGE_KEY]||null;return window.localStorage.getItem(STORAGE_KEY)||await invoke('native_load',{scope:'guest'})}
 export async function nativeNotify(uid,event){if(!native)return;if(mobileNative)await requireMobileNotificationPermission(invoke);return invoke('native_notify',{scope:uid||'guest',taskId:event.taskId,at:event.at,title:event.title})}
 

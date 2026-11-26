@@ -15,7 +15,7 @@ export function validPlanSegments(rows){
  return rows===undefined||Array.isArray(rows)&&rows.length<=30&&new Set(rows.map(r=>r?.id)).size===rows.length&&rows.every(r=>r&&typeof r.id==='string'&&r.id.length>0&&r.id.length<=100&&dateValid(r.date)&&timeValid(r.time)&&Number.isInteger(r.minutes)&&r.minutes>=1&&r.minutes<=1440);
 }
 export function expandPlanBlocks(tasks){
- return tasks.flatMap(t=>[t,...(t.planSegments||[]).map(s=>({...t,id:'plan-segment:'+JSON.stringify([t.id,s.id]),ownerId:t.id,segmentId:s.id,date:s.date,time:s.time,duration:s.minutes,planMinutes:s.minutes,planSegments:[],planLocked:true}))]);
+ return tasks.flatMap(t=>[t,...(t.planSegments||[]).map(s=>({...t,id:'plan-segment:'+JSON.stringify([t.id,s.id]),ownerId:t.id,segmentId:s.id,date:s.date,time:s.time,duration:s.minutes,planMinutes:s.minutes,planSegments:[],planLocked:!!t.planLocked}))]);
 }
 export function protectLockedTasks(before,after){
  if(before.tasks===after.tasks)return after;
@@ -32,4 +32,23 @@ export function protectLockedTasks(before,after){
 export function editPlanSegments(task,expected,next){
  if(!task||task.status!=='pending'||task.deletedAt||task.planLocked||JSON.stringify(task.planSegments||[])!==JSON.stringify(expected)||!validPlanSegments(next))return null;
  return {planSegments:next};
+}
+
+// Resolve a rendered block back to its owning task. Supplemental IDs are never
+// persisted as task IDs. Commit compares the entire scheduling snapshot.
+export function planBlockSnapshot(task,segmentId=null){
+ if(!task||task.deletedAt||task.status!=='pending'||task.planLocked)return null;
+ const segment=segmentId===null?null:(task.planSegments||[]).find(s=>s.id===segmentId);
+ if(segmentId!==null&&!segment)return null;
+ return {id:task.id,segmentId,date:segment?.date??task.date,time:segment?.time??task.time,duration:segment?.minutes??blockMinutes(task),segments:task.planSegments||[],mainDate:task.date,mainTime:task.time,mainMinutes:blockMinutes(task)};
+}
+export function changePlanBlock(data,expected,fields){
+ const task=data.tasks.find(t=>t.id===expected?.id),current=planBlockSnapshot(task,expected?.segmentId);
+ if(!current||JSON.stringify(current)!==JSON.stringify(expected))return data;
+ const date=fields.date??current.date,time=fields.time??current.time,minutes=fields.planMinutes??current.duration;
+ if(!dateValid(date)||(!timeValid(time)&&(time!==''||current.segmentId!==null))||!Number.isInteger(minutes)||minutes<1||minutes>1440)return data;
+ if(date===current.date&&time===current.time&&minutes===current.duration)return data;
+ const patch=current.segmentId===null?{date,time,anchor:Number(date.slice(-2)),...(Object.hasOwn(fields,'planMinutes')?{planMinutes:minutes}:{})}:editPlanSegments(task,current.segments,current.segments.map(s=>s.id===current.segmentId?{...s,date,time,minutes}:s));
+ if(!patch)return data;
+ return {...data,tasks:data.tasks.map(t=>t===task?{...t,...patch}:t)};
 }

@@ -1,10 +1,12 @@
-import React,{useState,useRef,useEffect} from 'react';
+import {workspaceDiff} from './core/professional-workflow.js';
+import React,{useState,useRef,useEffect,useMemo} from 'react';
 import {Modal} from './ui.jsx';
 import {createWorkspaceArchive,parseWorkspaceArchive} from './workspace-archive.js';
 import {restoreAttachmentArchive} from './attachment-archive.js';
 import {readRecoveryHistory,recordRecovery,clearRecoveryHistory} from './recovery-history.js';
 export default function WorkspaceBackup({scope,data,onClose,onRestore,onDownload,blocked,historyStorage}){
  const [candidate,setCandidate]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[restored,setRestored]=useState(null);
+ const diff=useMemo(()=>candidate?workspaceDiff(data,candidate.workspace):[],[data,candidate]);
  const [history,setHistory]=useState(()=>readRecoveryHistory(historyStorage));
  function log(kind,counts){if(recordRecovery(historyStorage,kind,counts))setHistory(readRecoveryHistory(historyStorage))}
  const active=useRef(true);useEffect(()=>{active.current=true;return()=>{active.current=false}},[]);const input=useRef(null);
@@ -16,6 +18,7 @@ export default function WorkspaceBackup({scope,data,onClose,onRestore,onDownload
  <div className="button-grid"><button className="primary" disabled={busy||blocked} onClick={exportAll}>导出完整归档</button><button className="secondary" disabled={busy} onClick={()=>input.current?.click()}>检查完整归档</button></div><input hidden type="file" ref={input} aria-label="完整归档文件" accept=".json,application/json" onChange={inspect}/>
  {busy&&<p role="status" className="muted">正在处理归档…</p>}{error&&<p role="alert" className="sync-error">{error}</p>}
  {candidate&&<><div className="archive-summary"><strong>完整性校验通过</strong><span>当前工作空间：{data.tasks.length} 项任务 · {data.lists.length} 个清单</span><span>归档内容：{candidate.workspace.tasks.length} 项任务 · {candidate.workspace.lists.length} 个清单 · {candidate.attachments.length} 个附件</span>{candidate.orphaned>0&&<span>{candidate.orphaned} 个附件在归档中没有对应任务，可从附件管理访问。</span>}</div>
+ <div className="professional-preview" aria-label="备份差异预览"><strong>按记录 ID 比较（当前 → 归档）</strong><p className="muted small">仅比较记录内容；未列出的设置和历史也会随完整恢复替换。</p>{diff.map(r=><div className="record-row" key={r.key}><span>{{tasks:'任务',lists:'清单',tags:'标签',habits:'习惯',sessions:'专注记录',templates:'模板',calendarEvents:'外部日历'}[r.key]}</span><small>新增 {r.added} · 移除 {r.removed} · 变化 {r.changed} · 不变 {r.unchanged}</small></div>)}</div>
  <p className="muted small">两种存储不能跨数据库原子恢复。先选择恢复工作空间（会替换当前任务数据），再重新打开此归档追加附件；也可只恢复附件。操作前请先备份当前数据。</p>
  <div className="button-grid"><button className="secondary" disabled={busy} onClick={()=>onRestore(candidate.workspace)}>恢复工作空间</button><button className="primary" disabled={busy||!!restored||!candidate.attachments.length} onClick={append}>{restored?'附件已追加':'追加归档附件'}</button></div>{restored&&<p role="status" className="muted">新增 {restored.added} 个附件，跳过 {restored.skipped} 个重复附件。</p>}</>}
  <details className="sync-diagnostics"><summary>本机备份与恢复记录</summary><p className="muted small">最近 30 次操作，仅记录时间和数量；导出记录表示已请求下载，不保证文件已经保存。恢复工作空间记录表示已载入，实际 SQLite 写入状态请查看状态栏。</p>{history.length?history.map((r,i)=><div className="record-row" key={r.at+i}><span>{r.kind==='export'?'请求导出完整归档':r.kind==='restore-workspace'?'载入工作空间':'附件恢复完成'}<small className="backup-size"> · {r.tasks!==undefined?r.tasks+' 项任务':r.added!==undefined?'新增 '+r.added+' / 跳过 '+r.skipped:''}</small></span><small>{new Date(r.at).toLocaleString()}</small></div>):<p className="muted small">暂无记录</p>}<button type="button" className="text-link" disabled={busy} onClick={()=>{if(clearRecoveryHistory(historyStorage))setHistory([])}}>清空操作记录</button></details>

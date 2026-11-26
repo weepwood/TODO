@@ -5,14 +5,14 @@ import {PropertyPopover} from './components/EditableProperty.jsx';
 import {ExternalLink,Link2,FileText,Eye,Plus,Maximize2,Bold,Code,List,Trash2} from 'lucide-react';
 const MarkdownPreview=lazy(()=>import('./markdown-preview.jsx'));
 const NoteWorkbench=lazy(()=>import('./note-workbench.jsx'));
-export function MarkdownNotes({value,onChange,locked}){
+export function MarkdownNotes({value,onChange,locked,storage,taskId}){
  const [preview,setPreview]=useState(false),[expanded,setExpanded]=useState(false);
  function format(before,after=''){const node=document.getElementById('task-note-input');if(!node)return;const start=node.selectionStart,end=node.selectionEnd;onChange(value.slice(0,start)+before+value.slice(start,end)+after+value.slice(end));requestAnimationFrame(()=>{node.focus();node.setSelectionRange(start+before.length,end+before.length)})}
  return <section className="notes-section inspector-notes"><div className="inspector-subhead"><h3>备注</h3><div className="inspector-note-tools">
  {!locked&&!preview&&<div className="note-format" role="group" aria-label="备注格式"><button type="button" onMouseDown={e=>e.preventDefault()} onClick={()=>format('**','**')} aria-label="粗体" title="粗体"><Bold size={14}/></button><button type="button" onMouseDown={e=>e.preventDefault()} onClick={()=>format(String.fromCharCode(96),String.fromCharCode(96))} aria-label="行内代码" title="行内代码"><Code size={14}/></button><button type="button" onMouseDown={e=>e.preventDefault()} onClick={()=>format(String.fromCharCode(10)+'- ')} aria-label="列表" title="列表"><List size={14}/></button></div>}
  <button type="button" className="icon-button" aria-label={preview?'编辑':'预览'} title={preview?'编辑备注':'预览备注'} aria-pressed={preview} onClick={()=>setPreview(v=>!v)}>{preview?<FileText size={15}/>:<Eye size={15}/>}</button><button type="button" className="icon-button" aria-label="展开编辑" title="展开编辑" onClick={()=>setExpanded(true)}><Maximize2 size={14}/></button></div></div>
  {preview?<div className="markdown-preview inspector-note-preview">{value?<Suspense fallback={<p className="muted">加载预览…</p>}><MarkdownPreview value={value}/></Suspense>:<span className="muted small">暂无备注</span>}</div>:<textarea id="task-note-input" className="notes" aria-label="任务备注" placeholder="点击添加备注…" value={value} readOnly={locked} rows={value?3:1} onChange={e=>onChange(e.target.value)}/>}
- {expanded&&<Suspense fallback={<p className="muted small">加载编辑器…</p>}><NoteWorkbench value={value} onApply={onChange} onClose={()=>setExpanded(false)} locked={locked}/></Suspense>}</section>
+ {expanded&&<Suspense fallback={<p className="muted small">加载编辑器…</p>}><NoteWorkbench value={value} onApply={onChange} storage={storage} taskId={taskId} onClose={()=>setExpanded(false)} locked={locked}/></Suspense>}</section>
 }
 export function TaskLinks({task,patch,locked,compact=false}){
  const [url,setUrl]=useState(''),[name,setName]=useState(''),[error,setError]=useState('');const links=task.links||[],errorId=useId();

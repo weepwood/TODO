@@ -225,3 +225,15 @@
 - 证据日志 rc-firefox-install.log、rc-firefox-browser.log、rc-firefox-launch-probe.log、rc-firefox-path-probe.log、rc-firefox-internal-probe.log、rc-firefox-empty-home.log、rc-firefox-isolated.log 位于 artifacts/TODO/v15-motion-polish/。资源压力2时停止新重型任务，4197正常；没有后台业务测试。
 
 后续首先按 RELEASE.md 的隔离脚本及资源门禁完成 Firefox 八项；只有明确授权并具备独立QA账号、隔离旧版安装及测试设备，才执行真实云写入/原生升级。最终同SHA CI须另获推送授权。继续功能冻结，不为追求门禁数字重复已有验收。
+
+## 十八、V1.6 独立分支第一批（2026-11-26）
+
+用户指定01/02/03/05/06/07/08专项；V1.5 冻结分支 feat/v15-motion-polish 保留 e058716，从同一干净工作树创建 feat/v16-professional-workflow，4197继续开发预览；正式main不变。版本号保持原1.2.0-alpha.1，未推送、不合并、不发布。详细范围与后续路线见 docs/v16-professional-workflow-plan.md，已链接 functional-roadmap.md。
+- 任务：100项批量捕获，批量预计时长/截止日期预览与原值复核，模板实例可设时长/优先级/计划时刻，Shift键范围选择（自定义快捷键优先）。
+- 规划：补充段映射到所属任务，以完整快照防止陈旧覆盖，指针移动/拉伸与键盘跨日，目标日期重叠预览及原历史撤销；日历事件编辑接入相同事务，未单独验证补充段直接日历拖放；跨午夜延续、复杂DST仍待专项。
+- 详情：备注原文提交复核、显式账号/任务隔离本机草稿、检查项排序、位图附件预览。没有引入编辑器或同步字段；草稿不进入云和归档，旧草稿可只读复制。
+- 工作空间：命令面板标准/专注阅读/宽详情模式复用当前模块面板偏好；不是完整命名工作空间配置。
+- 数据：Obsidian Tasks合法行尾日期交换，保留本软件元数据；完整归档按ID只读差异统计。不直接写入知识库，未开放本地API或选择性恢复。
+- 原生：已有待写SQLite队列的退后台/pagehide合并flush，有错误不循环重试；不是完整系统后台任务/真机升级或休眠测试。未修改Rust、签名和安装流程。
+- 工程：复用锁定依赖，业务局部样式及按需加载，不新建第二套控件；沿用500kB阈值。新增6项领域测试，累计225/225；初轮构建2.82s/main496.80kB，专项17/17（39.6s，含原生IPC模拟、附件归档、模板、规划等）。追加三项界面复验2/3，唯一失败为图片定位同时匹配关闭SVG与img，限定实际图片并验证naturalWidth后1/1通过。最终追加Shift范围选择及原生HTML拖放快照保护后225/225复验、生产构建2.61s/main497.18kB，无500kB警告；入口JS1104574/gzip339387/CSS255073字节（V1.5最后构建1097786/337071/254297），新增功能有少量体积增长，后续继续控制余量。最终浏览器29/29（52.8s），含7项V1.6用例及桌面/移动宽度、时间轴、日历和键盘回归；不等于最终全量CI。测试日志 v16-unit.log、v16-build.log、v16-browser.log、v16-additional.log、v16-image-recheck.log、v16-final-build.log、v16-final-browser.log、v16-final-assets.json 位于 artifacts/TODO/v15-motion-polish，实际规划截图归档 v16-professional/。
+- 尚未单独实际操作验收：备份差异界面、补充段FullCalendar直接拖放、全部新增控件明暗窄宽矩阵；独立QA实网、原生实体、Firefox业务及正式CI仍为独立门禁。未做完整第三方依赖许可/漏洞复核。后续优先基于实际使用深化规划、编辑、归档、工作空间和原生功能，不重复本批。

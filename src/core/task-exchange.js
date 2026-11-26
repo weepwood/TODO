@@ -27,7 +27,7 @@ export function parseCSV(raw){
  return {header,rows};
 }
 export function inferMapping(header){return Object.fromEntries(EXCHANGE_FIELDS.map(k=>[k,header.findIndex(v=>names[k].includes(v.toLowerCase()))]))}
-export function parseMarkdownTasks(raw){
+export function parseMarkdownTasks(raw,{obsidian=false}={}){
  if(typeof raw!=='string'||new TextEncoder().encode(raw).length>EXCHANGE_BYTES)throw Error('文件超过1 MiB');
  const rows=[];let ignored=0,previous=null,extended=false;
  for(const line of raw.replace(/^\uFEFF/,'').split(/\r?\n/)){
@@ -35,6 +35,7 @@ export function parseMarkdownTasks(raw){
   if(meta&&previous){
    try{const decoded=new TextDecoder('utf-8',{fatal:true}).decode(Uint8Array.from(atob(meta[1]),c=>c.charCodeAt(0))),value=JSON.parse(decoded);
     if(!value||typeof value!=='object'||Array.isArray(value))throw Error();
+    if(obsidian&&typeof value.title==='string')previous[0]=value.title;
     for(const k of EXCHANGE_FIELDS.slice(1)){const v=value[k];if(v!==undefined&&v!==null&&typeof v!=='string'&&typeof v!=='number')throw Error();previous[EXCHANGE_FIELDS.indexOf(k)]=String(v??'')}
     extended=true;
    }catch{throw Error('Markdown 属性记录无效')}
@@ -42,7 +43,14 @@ export function parseMarkdownTasks(raw){
   }
   const match=line.match(/^\s*[-*+]\s+\[([ xX])\]\s+(.*)$/);
   previous=null;if(!match||match[1].toLowerCase()==='x'){if(line.trim())ignored++;continue}
-  previous=[match[2].replace(/\\([\\\[\]<>*_\x60#])/g,'$1'),...EXCHANGE_FIELDS.slice(1).map(()=>'')];rows.push(previous);
+  let title=match[2],planned='',due='';
+  if(obsidian){
+   const suffix=title.match(/(?:\s+(?:⏳|📅)\s+\d{4}-\d{2}-\d{2})+\s*$/u);
+   if(suffix){const pairs=[...suffix[0].matchAll(/(⏳|📅)\s+(\d{4}-\d{2}-\d{2})/gu)];
+    if(pairs.every(([,k,v])=>validDate(v))&&new Set(pairs.map(p=>p[1])).size===pairs.length){for(const [,k,v] of pairs){if(k==='⏳')planned=v;else due=v}title=title.slice(0,suffix.index);extended=true}
+   }
+  }
+  previous=[title.replace(/\\([\\\[\]<>*_`#])/g,'$1'),...EXCHANGE_FIELDS.slice(1).map(()=> '')];previous[EXCHANGE_FIELDS.indexOf('date')]=planned;previous[EXCHANGE_FIELDS.indexOf('deadline')]=due;rows.push(previous);
   if(rows.length>EXCHANGE_LIMIT)throw Error('每批最多1000项');
  }
  return extended?{header:EXCHANGE_FIELDS,rows,ignored}:{header:['title'],rows:rows.map(r=>[r[0]]),ignored};
@@ -75,11 +83,11 @@ export function appendImportedTasks(data,tasks,receipt){
 const csvCell=value=>{let s=String(value??'');if(typeof value!=='number'&&/^[\s]*[=+\-@]|^[\t\r\n]/.test(s))s="'"+s;return '"'+s.replaceAll('"','""')+'"'};
 export function exportTasks(tasks,format){
  const active=tasks.filter(t=>t.status==='pending'&&!t.deletedAt);
- if(format==='markdown')return active.map(t=>{
+ if(format==='markdown'||format==='obsidian')return active.map(t=>{
   const title=t.title.replace(/[\r\n]+/g,' ').replace(/[\\\[\]<>*_\x60#]/g,'\\$&');
-  const metadata=JSON.stringify(Object.fromEntries(EXCHANGE_FIELDS.slice(1).filter(k=>t[k]!==undefined).map(k=>[k,t[k]])));
+  const metadata=JSON.stringify({...Object.fromEntries(EXCHANGE_FIELDS.slice(1).filter(k=>t[k]!==undefined).map(k=>[k,t[k]])),...(format==='obsidian'?{title:t.title}:{})});
   const encoded=btoa(Array.from(new TextEncoder().encode(metadata),n=>String.fromCharCode(n)).join(''));
-  return '- [ ] '+title+'\n  <!-- todo-meta '+encoded+' -->';
+  return '- [ ] '+title+(format==='obsidian'?(validDate(t.date)?' ⏳ '+t.date:'')+(validDeadline(t.deadline)&&t.deadline?' 📅 '+t.deadline.slice(0,10):''):'')+'\n  <!-- todo-meta '+encoded+' -->';
  }).join('\n')+'\n';
  return '\uFEFF'+[EXCHANGE_FIELDS.join(','),...active.map(t=>EXCHANGE_FIELDS.map(k=>csvCell(t[k])).join(','))].join('\r\n');
 }

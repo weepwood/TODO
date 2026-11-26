@@ -1,10 +1,10 @@
 import {newTask,validDate,validTime,id} from './domain.js';
 import {validPoints} from './points.js';
-export function templateTask(template,data,{listId,date='',title}={}){
+export function templateTask(template,data,{listId,date='',title,duration,priority,time}={}){
  const old=template.task,list=data.lists.find(l=>l.id===listId);
- if(!list||typeof title!=='string'||!title.trim()||(date&&!validDate(date)))return null;
- return {...newTask(title,list.id,date),notes:old.notes,priority:[0,1,2,3].includes(old.priority)?old.priority:0,
- duration:Number.isInteger(old.duration)&&old.duration>=1&&old.duration<=1440?old.duration:30,time:date&&validTime(old.time)?old.time:'',
+ if(!list||typeof title!=='string'||!title.trim()||(date&&!validDate(date))||duration!==undefined&&(!Number.isInteger(duration)||duration<1||duration>1440)||priority!==undefined&&![0,1,2,3].includes(priority)||time!==undefined&&time!==''&&(!date||!validTime(time)))return null;
+ return {...newTask(title,list.id,date),notes:old.notes,priority:priority??([0,1,2,3].includes(old.priority)?old.priority:0),
+ duration:duration??(Number.isInteger(old.duration)&&old.duration>=1&&old.duration<=1440?old.duration:30),time:time??(date&&validTime(old.time)?old.time:''),
  ...(validPoints(old.points)?{points:old.points}:{}),tags:(old.tags||[]).filter(x=>data.tags.some(a=>a.id===x)),
  checklist:old.checklist.map(c=>({id:id(),text:c.text,done:false}))};
 }

@@ -319,3 +319,5 @@
 .v2 .plan-segment-editor{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center;margin-top:8px}
 .v2 .plan-segment-editor>*{min-width:0}
 @media(max-width:600px){.v2 .plan-segment-editor{grid-template-columns:minmax(0,1fr)}}
+.v2 .inspector-checklist .checklist-order{flex:none;min-width:24px;min-height:28px}
+@media(max-width:860px),(pointer:coarse){.v2 .inspector-checklist .check-item{flex-wrap:wrap}.v2 .inspector-checklist .checklist-order{min-width:44px;min-height:44px}}
