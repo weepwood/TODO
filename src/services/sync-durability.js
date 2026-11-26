@@ -20,3 +20,10 @@ export async function prepareSyncSnapshot(storage,snapshot,isCurrent){
  }
  return isCurrent();
 }
+
+// Gate account changes while a cloud request is in flight or local data is
+// not durable. Release on failure; caller holds the lease across auth.
+export async function prepareAccountChange(pause,storage){
+ const release=await pause();
+ try{await requireCommittedStorage(storage);return release}catch(e){release();throw e}
+}

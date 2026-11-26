@@ -1,5 +1,7 @@
 import {initialState,migrateState,STORAGE_KEY} from '../core/domain.js';
-import {STORE_KEYS,createNativeStore} from './native-store.js';
+import {STORE_KEYS} from './native-store.js';
+import {planStateParts,createStateQueue} from './shard-state-plan.js';
+import {assertShardWriter} from './storage-switch-protocol.js';
 import {digest} from './cloud-core.js';
 import {legacySnapshot} from './web-workspace-store.js';
 
@@ -11,6 +13,8 @@ const utf8=new TextEncoder();
 async function hashPart(value){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',utf8.encode(value))),b=>b.toString(16).padStart(2,'0')).join('')}
 async function manifestFor(parts){return Object.fromEntries(await Promise.all([...parts].map(async([k,v])=>[k,await hashPart(v)])))}
 const TABLE='records',ARCHIVE='recovery',MAX_FILE=64*1024*1024;
+export const MAX_ARCHIVES=5,MAX_ARCHIVE_BYTES=128*1024*1024;
+const scopeRange=scope=>IDBKeyRange.bound([scope],[scope,[]],false,true);
 const allowedScope=s=>s==='guest'||/^account:synthetic-[a-z0-9-]{1,64}$/.test(s);
 const checkScope=s=>{if(!allowedScope(s))throw Error('仅允许隔离合成工作空间')};
 const exact=(a,b)=>STORE_KEYS.every(k=>(a[k]??null)===(b[k]??null));
@@ -44,7 +48,7 @@ export function joinSnapshot(parts){
  values[STORAGE_KEY]=JSON.stringify({...meta,tasks:order.map(id=>tasks.get(id))});validate(values);return values;
 }
 export function diffParts(before,after){return {put:[...after].filter(([key,value])=>before.get(key)!==value),remove:[...before.keys()].filter(key=>!after.has(key))}}
-export async function makeRecovery(scope,values){checkScope(scope);const state=validate(values);return {format:'todo-sharded-recovery-v1',scope,count:state.tasks.length,sha256:await semanticDigest(values),values:{...values}}}
+export async function makeRecovery(scope,values){checkScope(scope);const state=validate(values),file={format:'todo-sharded-recovery-v1',scope,count:state.tasks.length,sha256:await semanticDigest(values),values:{...values}};if(utf8.encode(JSON.stringify(file)).length>MAX_FILE)throw Error('恢复文件超过64 MiB');return file}
 export async function parseRecovery(raw,scope){
  checkScope(scope);if(typeof raw!=='string'||new TextEncoder().encode(raw).length>MAX_FILE)throw Error('恢复文件超过64 MiB');
  const file=JSON.parse(raw);if(file?.format!=='todo-sharded-recovery-v1'||file.scope!==scope)throw Error('恢复文件格式或作用域不匹配');
@@ -66,9 +70,9 @@ const record=(scope,kind,key,value)=>({scope,kind,key,value});
 const headerKey=scope=>[scope,'header',''];
 function headerValid(h){if(!h||!Number.isSafeInteger(h.revision)||h.revision<1||!['active','retired'].includes(h.mode)||!h.manifest||typeof h.manifest!=='object'||Array.isArray(h.manifest)||!/^([a-f0-9]{64})$/.test(h.sourceHash))throw Error('工作空间版本无效');return h}
 function checkVersion(h,revision){headerValid(h);if(h.mode!=='active'||h.revision!==revision||revision===Number.MAX_SAFE_INTEGER)throw Error('工作空间版本冲突')}
-export function readRawShardRecords(db,scope){checkScope(scope);return tx(db,'readonly',(store,step)=>{store.getAll(IDBKeyRange.bound([scope],[scope,[]],false,true)).onsuccess=step(rows=>rows)})}
+export function readRawShardRecords(db,scope){checkScope(scope);return tx(db,'readonly',(store,step)=>{store.getAll(scopeRange(scope)).onsuccess=step(rows=>rows)})}
 export async function readShardWorkspace(db,scope){
- checkScope(scope);const row=await tx(db,'readonly',(store,step)=>{store.getAll(IDBKeyRange.bound([scope],[scope,[]],false,true)).onsuccess=step(rows=>{
+ checkScope(scope);const row=await tx(db,'readonly',(store,step)=>{store.getAll(scopeRange(scope)).onsuccess=step(rows=>{
   if(!rows.length)return null;
   const header=headerValid(rows.find(r=>r.kind==='header'&&r.key==='')?.value),source=rows.find(r=>r.kind==='source'&&r.key==='')?.value;sourceValid(source);
   const parts=new Map(rows.filter(r=>r.kind==='part').map(r=>[r.key,r.value]));
@@ -95,19 +99,27 @@ export async function migrateShardWorkspace(db,scope,legacy,confirmedDigest){
  if(await semanticDigest(saved.values)!==await semanticDigest(values)||!exact(saved.source,source))throw Error('迁移后摘要校验失败，保留原始数据');
  return saved;
 }
-export async function commitShardWorkspace(db,base,values,legacy,{archive=false}={}){
- const {scope,revision}=base;checkScope(scope);const parts=splitSnapshot(values),delta=diffParts(base.parts,parts);
+async function commitParts(db,base,parts,legacy,{archive=false,guard=false,checkRuntime=()=>{}}={}){
+ const {scope,revision}=base;checkScope(scope);checkRuntime();const delta=diffParts(base.parts,parts);
  if(!exact(legacySnapshot(legacy),base.source))throw Error('旧客户端数据已变化，请导出当前草稿');
  const changed=!!(delta.put.length||delta.remove.length),prior=archive&&changed?await makeRecovery(scope,base.values):null,manifest={...base.manifest,...await manifestFor(new Map(delta.put))};for(const key of delta.remove)delete manifest[key];
  await tx(db,'readwrite',(store,step,archives)=>{store.get(headerKey(scope)).onsuccess=step(row=>{
-  checkVersion(row?.value,revision);if(!exact(legacySnapshot(legacy),base.source))throw Error('旧客户端数据已变化');
+  checkVersion(row?.value,revision);checkRuntime();if(guard)assertShardWriter(legacy,base.sourceHash);if(!exact(legacySnapshot(legacy),base.source))throw Error('旧客户端数据已变化');
   if(!changed)return;
+  const apply=()=>{
+  checkRuntime();if(guard)assertShardWriter(legacy,base.sourceHash);if(!exact(legacySnapshot(legacy),base.source))throw Error('旧客户端数据已变化');
   if(prior)archives.add({scope,revision,file:prior});
   for(const [key,value] of delta.put)store.put(record(scope,'part',key,value));
   for(const key of delta.remove)store.delete([scope,'part',key]);
   store.put(record(scope,'header','',{revision:revision+1,mode:'active',manifest,sourceHash:base.sourceHash}));
+  };
+  if(prior)archives.getAll(scopeRange(scope)).onsuccess=step(rows=>{const bytes=rows.reduce((n,r)=>n+utf8.encode(JSON.stringify(r.file)).length,0)+utf8.encode(JSON.stringify(prior)).length;if(rows.length>=MAX_ARCHIVES||bytes>MAX_ARCHIVE_BYTES)throw Error('恢复归档达到容量上限，请导出并人工清理后重试');apply()});else apply();
  })},archive);
- return {...base,revision:revision+Number(changed),parts,manifest,values:{...values},metrics:{puts:delta.put.length+Number(changed)+(archive&&changed?1:0),deletes:delta.remove.length,bytes:delta.put.reduce((n,[,v])=>n+utf8.encode(v).length,0),headerBytes:changed?utf8.encode(JSON.stringify({revision:revision+1,mode:'active',manifest,sourceHash:base.sourceHash})).length:0}};
+ return {...base,revision:revision+Number(changed),parts,manifest,metrics:{puts:delta.put.length+Number(changed)+(archive&&changed?1:0),deletes:delta.remove.length,bytes:delta.put.reduce((n,[,v])=>n+utf8.encode(v).length,0),headerBytes:changed?utf8.encode(JSON.stringify({revision:revision+1,mode:'active',manifest,sourceHash:base.sourceHash})).length:0}};
+}
+export async function commitShardWorkspace(db,base,values,legacy,options={}){
+ const result=await commitParts(db,base,splitSnapshot(values),legacy,options);
+ return {...result,values:{...values}};
 }
 export async function retireShardWorkspace(db,base,legacy){
  const source=legacySnapshot(legacy);if(!source[STORAGE_KEY]||!exact(source,base.source)||await semanticDigest(source)!==await semanticDigest(base.values))throw Error('存在后续修改或原始数据已变化，不能无损回退；请导出恢复文件');
@@ -116,11 +128,18 @@ export async function retireShardWorkspace(db,base,legacy){
   store.put(record(base.scope,'header','',{revision:base.revision+1,mode:'retired',manifest:base.manifest,sourceHash:base.sourceHash}));
  })});
 }
-export function createShardStore(db,base,legacy,onStatus){
- let current=base;const scope=base.scope;
+export function createShardStore(db,base,legacy,onStatus,{guard=false,checkRuntime=()=>{}}={}){
+ const scope=base.scope;
  if(base.mode!=='active'||!exact(legacySnapshot(legacy),base.source))throw Error('存储已回退或旧客户端数据已变化');
- const storage=createNativeStore(base.values,async values=>{current=await commitShardWorkspace(db,current,values,legacy)},onStatus);
- return {...storage,readCommitted:()=>readShardWorkspace(db,scope),metrics:()=>current.metrics};
+ if(guard)assertShardWriter(legacy,base.sourceHash);checkRuntime();
+ let {values,...current}=base,previous=null,metrics=null;
+ const storage=createStateQueue(values,async(state,keys)=>{
+  const plan=planStateParts(state,keys,bucket,previous);
+  const next=await commitParts(db,current,plan.parts,legacy,{guard,checkRuntime});
+  current=next;previous=plan;metrics={...next.metrics,reusedBuckets:plan.reused,serializedBuckets:plan.serialized};
+ },onStatus);
+ values=null;
+ return {...storage,readCommitted:()=>readShardWorkspace(db,scope),metrics:()=>({...metrics,...storage.diagnostics()})};
 }
 
 export async function restoreShardRecovery(db,base,raw,legacy){
@@ -133,4 +152,18 @@ export async function restoreShardRecovery(db,base,raw,legacy){
 export async function readPriorRecovery(db,scope,revision){
  checkScope(scope);const row=await tx(db,'readonly',(_store,step,archives)=>{archives.get([scope,revision]).onsuccess=step(value=>value??null)},true);
  return row?(await parseRecovery(JSON.stringify(row.file),scope)).values:null;
+}
+
+export async function listRecoveryArchives(db,scope){
+ checkScope(scope);return tx(db,'readonly',(_store,step,archives)=>{archives.getAll(scopeRange(scope)).onsuccess=step(rows=>rows.map(r=>({revision:r.revision,bytes:utf8.encode(JSON.stringify(r.file)).length,sha256:r.file?.sha256??null})))},true);
+}
+// Removal requires an independently imported and validated copy of precisely
+// the archive, not merely a download click or a claimed success notification.
+export async function removeVerifiedArchive(db,scope,revision,raw){
+ const exported=await parseRecovery(raw,scope),original=await readPriorRecovery(db,scope,revision);
+ if(!original||await semanticDigest(original)!==exported.sha256)throw Error('外部备份与归档不匹配');
+ return tx(db,'readwrite',(_store,step,archives)=>{archives.get([scope,revision]).onsuccess=step(row=>{
+  if(!row||row.file.sha256!==exported.sha256||JSON.stringify(row.file.values)!==JSON.stringify(original))throw Error('归档已变化，请重新验证');
+  archives.delete([scope,revision]);
+ })},true);
 }

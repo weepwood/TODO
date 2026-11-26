@@ -1,3 +1,4 @@
+import {assertLegacyWriter} from './storage-switch-protocol.js';
 import {initialState,migrateState,STORAGE_KEY} from '../core/domain.js';
 import {STORE_KEYS,createNativeStore} from './native-store.js';
 
@@ -61,7 +62,8 @@ export function rollbackPilot(db,legacy,expected){
  });
 }
 export async function createWebPilotStore(db,legacy,onStatus){
+ assertLegacyWriter(legacy);
  let row=await loadOrMigrate(db,legacy);
- const storage=createNativeStore(row.values,async values=>{if(!same(legacySnapshot(legacy),row.source))throw Error('原始工作空间已变化，请导出当前草稿并重新打开');row=await commitPilotSnapshot(db,row.revision,values)},onStatus);
+ const storage=createNativeStore(row.values,async values=>{assertLegacyWriter(legacy);if(!same(legacySnapshot(legacy),row.source))throw Error('原始工作空间已变化，请导出当前草稿并重新打开');row=await commitPilotSnapshot(db,row.revision,values)},onStatus);
  return {...storage,readCommitted:()=>readPilotRecord(db)};
 }

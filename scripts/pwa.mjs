@@ -10,6 +10,8 @@ export async function generateWorker(root='dist'){
 const FILES=${JSON.stringify(assets)};
 const PREFIX='todo-static:'+self.registration.scope+':';
 const CACHE=PREFIX+VERSION;
+// Normal released worker only supports the existing legacy writer.
+self.addEventListener('message',event=>{if(event.data?.type==='TODO_STORAGE_PROTOCOL')event.ports[0]?.postMessage({mode:'legacy',version:1,build:VERSION})});
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES))));
 self.addEventListener('activate',event=>event.waitUntil((async()=>{for(const key of await caches.keys())if(key.startsWith(PREFIX)&&key!==CACHE)await caches.delete(key);await self.clients.claim()})()));
 self.addEventListener('fetch',event=>{

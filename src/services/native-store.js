@@ -25,7 +25,7 @@ export function createNativeStore(initial,write,onStatus=()=>{}){
   if(running)return;scheduled=false;running=true;error='';status();
   try{while(!same(values,committed)){const snapshot={...values};await write(snapshot);committed=snapshot}}
   catch(e){error=String(e)}
-  finally{running=false;status();for(const resolve of waiters.splice(0))resolve(!error)}
+  finally{running=false;const done=!error&&same(values,committed);for(const resolve of waiters.splice(0))resolve(done);status()}
  }
  function schedule(){if(running||scheduled)return;scheduled=true;status();queueMicrotask(drain)}
  return {getItem:key=>values[key]??null,setItem(key,value){if(!STORE_KEYS.includes(key))throw Error('unsupported workspace storage key');const v=String(value);if(values[key]===v)return;values[key]=v;schedule()},removeItem(key){if(Object.hasOwn(values,key)){delete values[key];schedule()}},flush(){if(!running&&!scheduled&&same(values,committed))return Promise.resolve(true);return new Promise(resolve=>{waiters.push(resolve);schedule()})},retry:schedule,getStatus:()=>({pending:running||scheduled||!same(values,committed),error})}

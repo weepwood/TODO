@@ -18,7 +18,7 @@ export const cloud=createClient(CLOUD_URL,CLOUD_KEY,{auth:{persistSession:!mobil
 const TABLE='todo_workspaces';
 export function useAccount(){
  const [session,setSession]=useState(null),[ready,setReady]=useState(false),[error,setError]=useState('');
- useEffect(()=>{let active=true;const {data:{subscription}}=cloud.auth.onAuthStateChange((event,s)=>{if(active){setSession(s);setReady(true)}});cloud.auth.getSession().then(({data,error})=>{if(active){if(error)setError(error.message);else setSession(data.session);setReady(true)}}).catch(e=>{if(active){setError(e.message);setReady(true)}});return()=>{active=false;subscription.unsubscribe()}},[]);
+ useEffect(()=>{let active=true,authEpoch=0;const epoch=authEpoch;const {data:{subscription}}=cloud.auth.onAuthStateChange((event,s)=>{if(active&&event!=='INITIAL_SESSION'){authEpoch++;setSession(s);setError('');setReady(true)}});cloud.auth.getSession().then(({data,error})=>{if(active&&authEpoch===epoch){if(error)setError(error.message);else setSession(data.session);setReady(true)}}).catch(e=>{if(active&&authEpoch===epoch){setError(e.message);setReady(true)}});return()=>{active=false;subscription.unsubscribe()}},[]);
  return {session,ready,error}
 }
 export function useAccountLock(uid){
@@ -129,16 +129,16 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked,logStorage}){
  for(const event of ['INSERT','UPDATE'])channel.on('postgres_changes',{event,schema:'public',table:TABLE,filter:'user_id=eq.'+uid},wake);
  channel.subscribe(status=>{if(!alive)return;setRealtime(status==='SUBSCRIBED'?'connected':status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'?'fallback':'connecting');if(status==='SUBSCRIBED')wake()});return()=>{alive=false;cloud.removeChannel(channel).catch(()=>{})}
  },[uid,sync]);
- const pauseForUpdate=async()=>{
+ const pauseSync=async({allowConflict=false}={})=>{
   if(pausedForUpdate.current)throw Error('正在处理软件更新');
   pausedForUpdate.current=true;
   const resume=()=>{pausedForUpdate.current=false};
   try{
    const end=Date.now()+30000;
    while(busy.current&&Date.now()<end)await new Promise(r=>setTimeout(r,100));
-   if(busy.current||conflictRef.current||latest.current.blocked)throw Error('同步仍在进行或存在冲突，请处理后重试');
+   if(busy.current||(!allowConflict&&conflictRef.current)||latest.current.blocked)throw Error('同步仍在进行或存在冲突，请处理后重试');
    return resume;
   }catch(e){resume();throw e}
  };
- return {status,error,conflict,lastSync,sync,entries,clearLog,realtime,pauseForUpdate}
+ return {status,error,conflict,lastSync,sync,entries,clearLog,realtime,pauseForUpdate:()=>pauseSync(),pauseForAccountChange:()=>pauseSync({allowConflict:true})}
 }
