@@ -9,17 +9,26 @@ export function previewCapture(text,today){
  return lines.map(r=>{const parsed=quickParse(r.text,today);return {...r,parsed,error:!parsed.title||parsed.title.length>500?'标题为空或超过500字符':''}});
 }
 export function captureBatch(data,rows,listId,today,defaults){
+ const tasks=prepareCapture(data,rows,listId,today,defaults);return appendCapture(data,tasks);
+}
+export function prepareCapture(data,rows,listId,today,defaults){
  const list=data.lists.find(l=>l.id===listId);
- if(!list||!rows.length||rows.length>100||rows.some(r=>r.error||!r.parsed?.title)||data.tasks.length+rows.length>100000)return data;
- const tasks=rows.map(r=>taskFromCapture({parsed:r.parsed,list,today,defaults}));
+ if(!list||!rows.length||rows.length>100||rows.some(r=>r.error||!r.parsed?.title)||data.tasks.length+rows.length>100000)return [];
+ return rows.map(r=>taskFromCapture({parsed:r.parsed,list,today,defaults}));
+}
+export function appendCapture(data,tasks){
+ if(!tasks.length||tasks.length>100||data.tasks.length+tasks.length>100000)return data;
+ const ids=new Set(data.tasks.map(t=>t.id));
+ if(tasks.some(t=>ids.has(t.id)||!data.lists.some(l=>l.id===t.listId&&(!t.sectionId||l.sections.some(s=>s.id===t.sectionId)))))return data;
  const next={...data,tasks:[...data.tasks,...tasks]};try{migrateState(next);return next}catch{return data}
 }
 const editable=t=>t.status==='pending'&&!t.deletedAt;
 export function previewBulkProperties(data,ids,fields){
- const allowed=['duration','deadline','priority','sectionId'];if(!Object.keys(fields).length||Object.keys(fields).some(k=>!allowed.includes(k)))return [];
+ const allowed=['duration','deadline','priority','sectionId','listId'];if(!Object.keys(fields).length||Object.keys(fields).some(k=>!allowed.includes(k)))return [];
  if('duration'in fields&&(!Number.isInteger(fields.duration)||fields.duration<1||fields.duration>1440)||'deadline'in fields&&!validDeadline(fields.deadline)||'priority'in fields&&![0,1,2,3].includes(fields.priority))return [];
+ if('listId'in fields&&(!Object.hasOwn(fields,'sectionId')||!data.lists.some(l=>l.id===fields.listId)))return [];
  const selected=new Set(ids);
- return data.tasks.filter(t=>selected.has(t.id)&&editable(t)&&blockPatch(t,fields)&&(!Object.hasOwn(fields,'sectionId')||fields.sectionId===null||data.lists.find(l=>l.id===t.listId)?.sections.some(s=>s.id===fields.sectionId))).map(t=>({id:t.id,title:t.title,listId:t.listId,before:Object.fromEntries(Object.keys(fields).map(k=>[k,t[k]??null]))})).filter(r=>Object.keys(fields).some(k=>r.before[k]!==fields[k]));
+ return data.tasks.filter(t=>selected.has(t.id)&&editable(t)&&blockPatch(t,fields)&&(!Object.hasOwn(fields,'sectionId')||fields.sectionId===null||data.lists.find(l=>l.id===(fields.listId??t.listId))?.sections.some(s=>s.id===fields.sectionId))).map(t=>({id:t.id,title:t.title,listId:t.listId,before:Object.fromEntries(Object.keys(fields).map(k=>[k,t[k]??null]))})).filter(r=>Object.keys(fields).some(k=>r.before[k]!==fields[k]));
 }
 export function applyBulkProperties(data,rows,fields){
  if(!rows.length||JSON.stringify(previewBulkProperties(data,rows.map(r=>r.id),fields))!==JSON.stringify(rows))return data;

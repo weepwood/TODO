@@ -12,7 +12,7 @@ async function seed(page){
 test('批量创建与一次撤销，检查项重新排序',async({page})=>{
  await seed(page);await page.getByRole('button',{name:'批量创建',exact:true}).click();
  const dialog=page.getByRole('dialog',{name:'批量创建任务'});await dialog.getByRole('textbox',{name:'批量任务文本'}).fill('阅读 明天 09:00 !2\n整理资料 后天');await expect(dialog.getByLabel('批量创建预览')).toContainText('阅读');await dialog.getByRole('button',{name:'创建 2 项任务'}).click();
- await expect.poll(async()=>(await stored(page)).tasks.length).toBe(3);
+ await expect.poll(async()=>(await stored(page)).tasks.length).toBe(3);await expect(dialog.getByRole('status')).toContainText('已创建 2 项任务');await dialog.getByRole('button',{name:'完成',exact:true}).click();
  await page.getByRole('button',{name:'撤销',exact:true}).click();await expect.poll(async()=>(await stored(page)).tasks.length).toBe(1);
  await page.locator('[data-view-key=inbox]').click();await page.locator('.task-body').filter({hasText:'多段工作'}).click();await page.getByRole('button',{name:'上移检查项 执行'}).click();
  await expect.poll(async()=>(await stored(page)).tasks[0].checklist.map(c=>c.id)).toEqual(['2','1']);

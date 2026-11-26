@@ -23,3 +23,5 @@
  .planner .work-budget{padding:10px 12px;margin-bottom:10px}
  .planner .planner-overview{margin-bottom:10px}
 }
+.v2 .timeline{position:relative}
+.v2 .planner-gesture-capacity{position:absolute;top:0;inset-inline-end:0;z-index:5;pointer-events:none;max-width:85%;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-control);padding:var(--space-2);box-shadow:0 2px 8px #0001}

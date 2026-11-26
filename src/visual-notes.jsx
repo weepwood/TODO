@@ -19,7 +19,7 @@ function Inner({initial,onChange,locked}){
   content:initial,contentType:'markdown',editable:false,
   editorProps:{attributes:{'aria-label':'可视化备注编辑器',role:'textbox','aria-multiline':'true',class:'visual-note-content'},handleDrop(){return true},handlePaste(view,event){const text=event.clipboardData?.getData('text/plain');if(text===undefined)return true;event.preventDefault();if(text)view.dispatch(view.state.tr.insertText(text));return true}},
   onCreate({editor}){try{const same=normalized(editor.getMarkdown())===normalized(initial);ready.current=same;setCompatible(same);editor.setEditable(same&&!locked)}catch{setCompatible(false)}},
-  onUpdate({editor}){if(ready.current)onChange(editor.getMarkdown())}
+  onUpdate({editor}){if(ready.current){try{const value=editor.getMarkdown();if(normalized(value)!==normalized(initial))onChange(value);else onChange(initial)}catch{ready.current=false;setCompatible(false);editor.setEditable(false)}}}
  });
  useEffect(()=>{if(editor)editor.setEditable(compatible===true&&!locked)},[editor,compatible,locked]);
  const flags=useEditorState({editor,selector:({editor:e})=>e?{bold:e.isActive('bold'),italic:e.isActive('italic'),heading:e.isActive('heading',{level:2}),bullet:e.isActive('bulletList'),ordered:e.isActive('orderedList'),quote:e.isActive('blockquote'),code:e.isActive('codeBlock'),strike:e.isActive('strike'),table:e.isActive('table'),task:e.isActive('taskList')}:{}});

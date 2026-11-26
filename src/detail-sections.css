@@ -321,3 +321,7 @@
 @media(max-width:600px){.v2 .plan-segment-editor{grid-template-columns:minmax(0,1fr)}}
 .v2 .inspector-checklist .checklist-order{flex:none;min-width:24px;min-height:28px}
 @media(max-width:860px),(pointer:coarse){.v2 .inspector-checklist .check-item{flex-wrap:wrap}.v2 .inspector-checklist .checklist-order{min-width:44px;min-height:44px}}
+.v2 .checklist-sort-row{display:flex;align-items:center;min-width:0;gap:var(--space-1)}
+.v2 .checklist-sort-row>.check-item{flex:1;min-width:0}
+.v2 .checklist-drag{flex:none;touch-action:none;cursor:grab}
+@media(max-width:860px),(pointer:coarse){.v2 .checklist-drag{min-width:44px;min-height:44px}}
