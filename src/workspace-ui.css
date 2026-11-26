@@ -34,3 +34,10 @@
 @media(max-width:860px){.v2.compact-mobile .bulk-bar[data-has-selection=true]>.text-link{min-height:44px}.v2.compact-mobile .bulk-bar .bulk-points input{height:44px;font-size:16px}}
 
 .datetime-date-label .date-trigger svg:last-child{margin-left:auto}
+
+/* Operation history: bounded, readable before/after records. */
+.history-diff{display:grid;gap:6px;margin:6px 0;min-width:0}
+.history-diff-row{display:grid;gap:4px;min-width:0}
+.history-diff-values{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:start;font-size:.85em;overflow-wrap:anywhere}
+.history-diff-values>span{min-width:0;white-space:pre-wrap}
+.history-diff-row>.text-link{justify-self:start}

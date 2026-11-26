@@ -1,11 +1,13 @@
 // Compensate selected, verified task fields, never replace a workspace snapshot.
 import {digest} from '../services/cloud-core.js';
 import {sameRecord} from './record-equality.js';
-import {migrateState,STORAGE_KEY} from './domain.js';
+import {migrateState,STORAGE_KEY,dayKey} from './domain.js';
 import {taskConflicts} from './advanced.js';
 import {calendarBusy} from './productivity.js';
 import {expandPlanBlocks} from './plan-block.js';
 import {blockInterval} from './time-intervals.js';
+import {undoOrdinaryCompletion} from './task-review.js';
+import {pointsWallet,programOf} from './points-program.js';
 import {deadlineEnd} from './deadline.js';
 
 export const HISTORY_OPS=['history-list','history-show','history-preview','history-apply'];
@@ -15,7 +17,8 @@ const shape=(r,keys)=>check(r&&typeof r==='object'&&!Array.isArray(r)&&Object.ke
 const field=(t,k)=>Object.hasOwn(t,k)?{present:true,value:t[k]}:{present:false};
 const schedule=['date','time','anchor','duration','deadline','planMinutes','planSegments'];
 const classification=['listId','sectionId','tags'];
-const safe=['title','priority',...schedule,...classification,'deletedAt'];
+const lifecycleKeys=['status','stage','completedAt'];
+const safe=['title','priority',...schedule,...classification,'deletedAt',...lifecycleKeys];
 const ordinary=t=>t&&t.status==='pending'&&t.stage!=='doing'&&t.repeat==='none'&&!t.seriesId&&!t.previousId&&!t.seriesHold&&!t.planLocked;
 const touches=(row,keys)=>row.created||row.removed||row.unattributed||row.activityUncertain||row.activityEvidence?.some(k=>keys.includes(k))||Object.hasOwn(row.fields||{},'deletedAt')||row.protected?.some(k=>['status','stage','repeat','seriesId','previousId','seriesHold','planLocked','deletedAt','remindedAt','extraReminders','reminderAt','completedAt'].includes(k))||Object.keys(row.fields||{}).some(k=>keys.includes(k));
 const executionUsed=(d,t)=>d.timer?.taskId===t.id||d.sessions?.some(s=>s.taskId===t.id);
@@ -87,6 +90,25 @@ export async function buildHistoryPreview(d,request,journal,now=new Date()){
    const s=selectionFor(sel,row.id);if(!s)continue;
    const t=working.get(row.id);
    const later=range.filter(x=>x.version>e.version&&!chosen.has(x.version)).flatMap(x=>x.body.rows.filter(r=>r.id===row.id));
+   if(row.lifecycle){
+    // Explicit single-version restore only; don't mix lifecycle with group
+    // or point-in-time restoration. All other fields and actual facts stay intact.
+    const {activity,...business}=t||{};
+    const f=row.lifecycle.fields;
+    const valid=request.version===e.version&&e.body.rows.length===1&&!e.body.protectedWorkspace?.length&&!row.unattributed&&!later.length&&!s.fields?.some(k=>!lifecycleKeys.includes(k))&&(!s.fields||lifecycleKeys.every(k=>s.fields.includes(k)))&&t&&!t.deletedAt&&t.repeat==='none'&&!t.seriesId&&!t.previousId&&!t.seriesHold&&!t.planLocked&&!t.parentId&&!t.dependsOn?.length&&!d.tasks.some(x=>references(x,t.id))&&!executionUsed(d,t)&&!t.reminderAt&&!t.extraReminders?.length&&!delivered(t)&&(!t.points||!programOf(d).redemptions.length)&&await digest(business)===row.lifecycle.afterHash&&lifecycleKeys.every(k=>sameRecord(field(t,k),f[k]?.after));
+    if(!valid){blocked(row.id,e.version,'完成状态恢复需要独立普通任务、完整证据且无执行、提醒、依赖或兑换影响',lifecycleKeys);continue}
+    let out={...t};
+    if(f.status.before.value==='pending'){
+     const reopened=undoOrdinaryCompletion([t],{id:t.id,completedAt:t.completedAt,stage:'todo'});
+     if(reopened[0]===t){blocked(row.id,e.version,'原有完成撤销约束拒绝',lifecycleKeys);continue}
+     out=reopened[0];
+    }
+    for(const k of lifecycleKeys)applyField(out,k,f[k].before);
+    if(!((out.status==='pending'&&out.stage==='todo'&&out.completedAt===null)||(out.status==='completed'&&out.stage==='done'&&Number.isFinite(Date.parse(out.completedAt))))){blocked(row.id,e.version,'历史完成状态不合法',lifecycleKeys);continue}
+    const candidate={...d,tasks:d.tasks.map(x=>x.id===out.id?out:x)};
+    if(pointsWallet(candidate,dayKey(now)).balance<Math.min(0,pointsWallet(d,dayKey(now)).balance)){blocked(row.id,e.version,'恢复会降低积分余额至负数',lifecycleKeys);continue}
+    working.set(t.id,out);changed.add(t.id);continue;
+   }
    if(!ordinary(t)||d.timer?.taskId===t.id){blocked(row.id,e.version,'任务不存在、已执行、重复或锁定');continue}
    if(row.removed){blocked(row.id,e.version,'永久删除不恢复');continue}
    if(row.unattributed){blocked(row.id,e.version,'同一次保存中来源无法明确，禁止自动恢复');continue}
@@ -144,6 +166,7 @@ export async function buildHistoryPreview(d,request,journal,now=new Date()){
    const related=[t.parentId,...(t.dependsOn||[])].filter(Boolean);
    check(related.every(id=>working.has(id)&&!working.get(id).deletedAt),'UNSAFE_CHANGE','恢复任务仍存在未恢复的父任务或前置依赖');
   }
+  if(r.fields.status&&t.status==='pending')check(!conflictsNow.has(t.id),'TIME_CONFLICT','重新打开任务会产生时间冲突');
   const scheduling=Object.keys(r.fields).some(k=>schedule.includes(k)||k==='deletedAt');
   if(scheduling&&!t.deletedAt){
    check(!conflictsNow.has(t.id),'TIME_CONFLICT','恢复会产生时间冲突');
@@ -151,7 +174,8 @@ export async function buildHistoryPreview(d,request,journal,now=new Date()){
   }
  }
  migrateState(next);
- return {next:rows.length?next:d,rows,conflicts,versions:selected.map(e=>e.version),head};
+ const pointsImpact=rows.some(r=>r.fields.status)?{before:pointsWallet(d,dayKey(now)).balance,after:pointsWallet(next,dayKey(now)).balance}:null;
+ return {next:rows.length?next:d,rows,conflicts,versions:selected.map(e=>e.version),head,pointsImpact};
 }
 export async function prepareHistory(d,r,id,now,{journal,reference}={}){
  if(r.op==='history-list'||r.op==='history-show'){
@@ -162,7 +186,7 @@ export async function prepareHistory(d,r,id,now,{journal,reference}={}){
  }
  if(r.op==='history-preview'){
   const p=await buildHistoryPreview(d,r,journal,now);
-  return {next:d,result:{preview_id:id,request:r,generatedAt:now.toISOString(),workspaceVersion:await digest(d),rows:p.rows,conflicts:p.conflicts,versions:p.versions,head:p.head,proposal:await digest(p.rows)}};
+  return {next:d,result:{preview_id:id,request:r,generatedAt:now.toISOString(),workspaceVersion:await digest(d),rows:p.rows,conflicts:p.conflicts,versions:p.versions,head:p.head,pointsImpact:p.pointsImpact,proposal:await digest(p.rows)}};
  }
  shape(r,['op','previewId','confirm']);
  check(r.confirm===true,'CONFIRM_REQUIRED','必须明确请求恢复，并在应用内确认');
@@ -174,8 +198,9 @@ export async function prepareHistory(d,r,id,now,{journal,reference}={}){
  const p=await buildHistoryPreview(d,old.request,journal,at);
  // Recheck time at apply, even if the original preview had future blocks.
  for(const row of p.rows){const t=p.next.tasks.find(t=>t.id===row.id);if(!t.deletedAt&&Object.keys(row.fields).some(k=>schedule.includes(k)||k==='deletedAt'))for(const b of expandPlanBlocks([t]).filter(x=>x.date&&x.time))check(blockInterval(b)[0]>=+now,'TIME_CONFLICT','预览时间段已过去')}
- check(p.rows.length&&p.head===old.head&&await digest(p.rows)===old.proposal,'STALE_PREVIEW','恢复范围已改变或没有安全变更');
- return {next:p.next,result:{preview_id:r.previewId,affected:p.rows.length,rows:p.rows,conflicts:p.conflicts},historyRecovery:true};
+ if(p.pointsImpact)check(dayKey(now)===dayKey(at),'STALE_PREVIEW','积分统计日期已变化，请重新预览');
+ check(p.rows.length&&p.head===old.head&&sameRecord(p.pointsImpact,old.pointsImpact??null)&&sameRecord(p.conflicts,old.conflicts)&&await digest(p.rows)===old.proposal,'STALE_PREVIEW','恢复范围已改变或没有安全变更');
+ return {next:p.next,result:{preview_id:r.previewId,affected:p.rows.length,rows:p.rows,conflicts:p.conflicts,pointsImpact:p.pointsImpact},historyRecovery:true};
 }
 export function confirmationText(op,before,after){
  const old=taskMap(before),rows=[];

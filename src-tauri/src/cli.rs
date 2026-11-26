@@ -343,6 +343,39 @@ mod tests{
   super::super::save(&mut c,other,&state.to_string()).unwrap();bind(&c,other).unwrap();
   assert!(receipt(&c,other,id).is_err());assert!(enqueue_operation(&mut c,"guest",id,payload).is_err());
  }
+ #[test]fn history_receipt_restart_and_lost_ack(){
+  let path=std::env::temp_dir().join(format!("todo-history-qa-{}.sqlite3",uuid::Uuid::new_v4()));
+  let base=json!({"version":2,"tasks":[{"id":"qa","title":"synthetic","priority":3}]});
+  let mut next=base.clone();next["tasks"][0]["priority"]=json!(0);
+  let store=json!({"todo-workbench-v1":next.to_string()}).to_string();
+  let id="00000000-0000-4000-8000-000000000099";
+  let payload=json!({"op":"history-apply","previewId":"00000000-0000-4000-8000-000000000098","confirm":true});
+  let result=json!({"id":id,"status":"saved","result":{"affected":1}});
+  {
+   let mut c=Connection::open(&path).unwrap();super::super::schema(&c).unwrap();
+   super::super::save(&mut c,"guest",&base.to_string()).unwrap();bind(&c,"guest").unwrap();set_advanced(&c,"guest",true).unwrap();
+   enqueue_operation(&mut c,"guest",id,payload.clone()).unwrap();
+   c.execute_batch("CREATE TRIGGER qa_failure BEFORE UPDATE ON cli_operation_meta BEGIN SELECT RAISE(ABORT,'injected'); END;").unwrap();
+   assert!(super::super::persist_store_receipt(&mut c,"guest",&store,Some(&result)).is_err());
+   assert_eq!(super::super::operation_history::history_read(&c,"guest",true,300).unwrap()["head"],0);
+   c.execute_batch("DROP TRIGGER qa_failure").unwrap();
+  }
+  {
+   let mut c=Connection::open(&path).unwrap();
+   assert_eq!(receipt(&c,"guest",id).unwrap()["status"],"received");
+   super::super::persist_store_receipt(&mut c,"guest",&store,Some(&result)).unwrap();
+   assert_eq!(super::super::operation_history::history_read(&c,"guest",true,300).unwrap()["head"],1);
+  }
+  {
+   let mut c=Connection::open(&path).unwrap();
+   assert_eq!(enqueue_operation(&mut c,"guest",id,payload).unwrap()["status"],"saved");
+   super::super::save(&mut c,"guest",&base.to_string()).unwrap();
+   super::super::persist_store_receipt(&mut c,"guest",&store,Some(&result)).unwrap();
+   assert_eq!(super::super::operation_history::history_read(&c,"guest",true,300).unwrap()["head"],2);
+   assert_eq!(c.query_row("PRAGMA integrity_check",[],|r|r.get::<_,String>(0)).unwrap(),"ok");
+  }
+  std::fs::remove_file(path).unwrap();
+ }
  #[test]fn advanced_access_is_explicit_and_cannot_change_while_pending(){
   let mut c=Connection::open_in_memory().unwrap();super::super::schema(&c).unwrap();
   let state=json!({"version":2,"tasks":[]});let raw=state.to_string();super::super::save(&mut c,"guest",&raw).unwrap();bind(&c,"guest").unwrap();

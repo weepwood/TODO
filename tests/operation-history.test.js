@@ -139,3 +139,26 @@ test('redo of trashed linked tasks cannot resurrect a child alone under a trashe
  const both=await buildHistoryPreview(d,{op:'history-preview',version:1},j,now);
  assert(both.next.tasks.every(t=>!t.deletedAt));
 });
+
+test('exact ordinary lifecycle compensation restores original completion time and derived points',async()=>{
+ const stamp=now.toISOString(),a=task('a',{status:'completed',stage:'done',completedAt:stamp,points:5});
+ const proof={afterHash:await digest(a),fields:{status:field('pending','completed'),stage:field('todo','done'),completedAt:field(null,stamp)}};
+ const r={id:'a',fields:{},protected:['status','stage','completedAt'],lifecycle:proof};
+ const j=journal(entry(1,[r])),d=state([a]);
+ const p=await buildHistoryPreview(d,{op:'history-preview',version:1},j,now);
+ assert.equal(p.next.tasks[0].status,'pending');assert.equal(p.next.tasks[0].points,5);
+ const {pointsWallet}=await import('../src/core/points-program.js');
+ assert.equal(pointsWallet(d,'2026-11-26').earned,5);assert.equal(pointsWallet(p.next,'2026-11-26').earned,0);assert.deepEqual(p.pointsImpact,{before:5,after:0});
+ const inverse={id:'a',fields:{},lifecycle:{afterHash:await digest(p.next.tasks[0]),fields:{status:field('completed','pending'),stage:field('done','todo'),completedAt:field(stamp,null)}}};
+ const redo=await buildHistoryPreview(p.next,{op:'history-preview',version:2},journal(entry(2,[inverse]),j.entries[0]),now);
+ assert.equal(redo.next.tasks[0].completedAt,stamp);
+ for(const bad of [{...d,tasks:[{...a,repeat:'daily'}]},{...d,tasks:[a,task('next',{previousId:'a'})]},{...d,sessions:[{id:'focus',taskId:'a',startedAt:stamp,seconds:120,mode:'stopwatch'}]},{...d,pointsProgram:{goals:{daily:0,weekly:0,monthly:0},rewards:[],redemptions:[{id:'redeem',rewardId:'reward',name:'奖励',cost:1,createdAt:stamp,refundedAt:null}]}},{...d,tasks:[{...a,title:'later'}]}]){
+  assert.equal((await buildHistoryPreview(bad,{op:'history-preview',version:1},j,now)).rows.length,0);
+ }
+ assert.equal((await buildHistoryPreview(d,{op:'history-preview',groupId:id},j,now)).rows.length,0);
+});
+test('repeat rule edits and generated successor remain protected even at series end',async()=>{
+ const d=state([task('a',{repeat:'daily',date:'2026-11-27',repeatCount:2,status:'completed',stage:'done',completedAt:now.toISOString()}),task('b',{repeat:'daily',previousId:'a',seriesId:'a',date:'2026-11-28',occurrenceIndex:2})]);
+ const j=journal(entry(1,[row('a',{},['status','stage','completedAt']),{id:'b',created:true,afterHash:await digest(d.tasks[1])}]));
+ const p=await buildHistoryPreview(d,{op:'history-preview',version:1},j,now);assert.equal(p.rows.length,0);assert.equal(p.conflicts.length,2);
+});

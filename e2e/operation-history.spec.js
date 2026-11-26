@@ -33,6 +33,10 @@ test('现有历史入口展示版本、选择性恢复与实际应用确认（�
  await expect(page.getByText('显示 0 / 2 个版本')).toBeVisible();
  await page.getByRole('combobox',{name:'版本来源'}).selectOption('group');
  await expect(page.getByText('显示 2 / 2 个版本')).toBeVisible();
+ await page.getByRole('button',{name:'版本详情',exact:true}).first().click();
+ await expect(page.getByText('V2 · 版本详情')).toBeVisible();
+ await expect(page.getByText('任务名称',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'关闭详情'}).click();
  await page.getByRole('button',{name:'恢复操作组',exact:true}).first().click();
  await expect(page.getByText(/恢复预览 · 1 项可恢复/)).toBeVisible();
  await expect(page.getByText(/历史旧标题/)).toBeVisible();

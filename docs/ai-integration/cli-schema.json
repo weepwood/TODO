@@ -473,7 +473,7 @@
     "scope": "local SQLite only; recovery is a new compensation, not a workspace snapshot; afterVersion reverts CLI commits only",
     "selection": "task IDs and reversible field groups; schedule and classification are grouped",
     "conflicts": "three-way before/after/current values for reversible fields; conflicting fields stay unchanged",
-    "protected": "lifecycle, repeat series, focus, points, delivered reminders, note/link/checklist bodies are not restored by journal",
+    "protected": "Repeat series, focus, delivered reminders, reward redemption and note/link/checklist bodies remain protected. Exact single-version ordinary lifecycle proof may permit completion/reopen compensation; points are derived and guarded.",
     "errors": [
       "HISTORY_GAP",
       "HISTORY_NOT_FOUND",
@@ -483,6 +483,7 @@
       "STALE_VERSION",
       "STALE_PREVIEW",
       "TIME_CONFLICT"
-    ]
+    ],
+    "ordinaryLifecycle": "Only a single-version, exact ordinary todo/done transition with a saved lifecycle proof, unchanged business fingerprint, no later task changes, no related tasks, focus, reminder, or redemption risk. Original completedAt retained; pointsImpact reports balance before/after. Older versions without proof remain protected."
   }
 }

@@ -87,7 +87,7 @@ export function useCliOperations({uid,storage,data,blocked,apply,editor,onSaved,
      if(prepared.next!==expected&&(!request.op.startsWith('focus-')&&(request.op!=='create'||request.allowConflict===true||createSideEffects))){
       const {confirmationText}=await import('../../core/operation-history.js');
       if(prepared.historyRecovery&&!sameRecord({...prepared.next,tasks:prepared.next.tasks.map(({activity,...t})=>t)},{...next,tasks:next.tasks.map(({activity,...t})=>t)}))throw Object.assign(Error('恢复产生额外自动化变更'),{code:'UNPREVIEWED_EFFECT'});
-      const message=confirmationText(request.op,expected,next)+(prepared.result.conflicts?.length?'\n\n未恢复的变化：'+prepared.result.conflicts.map(c=>c.reason+' '+(c.fields||[]).join('、')).join('\n'):'');
+      const message=confirmationText(request.op,expected,next)+(prepared.result.pointsImpact?'\n\n积分余额：'+prepared.result.pointsImpact.before+' → '+prepared.result.pointsImpact.after:'')+(prepared.result.conflicts?.length?'\n\n未恢复的变化：'+prepared.result.conflicts.map(c=>c.reason+' '+(c.fields||[]).join('、')).join('\n'):'');
       if(message.length>16000)throw Object.assign(Error('确认内容过长，请缩小范围'),{code:'CONFIRM_TOO_LARGE'});
       const approved=await new Promise(resolve=>{
        const finish=decision=>{clearTimeout(timeout);approvalRef.current=null;setApproval(null);resolve(decision)};

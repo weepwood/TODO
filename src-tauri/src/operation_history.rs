@@ -6,8 +6,8 @@ use std::collections::{BTreeMap,BTreeSet};
 const SAFE:&[&str]=&["title","priority","listId","sectionId","tags","date","time","anchor","duration","deadline","planMinutes","planSegments","deletedAt"];
 const DAYS:i64=30*86400;
 fn fingerprint(v:&Value)->String{format!("{:x}",Sha256::digest(v.to_string().as_bytes()))}
-fn task_map(v:&Value)->BTreeMap<String,Value>{
- v["tasks"].as_array().into_iter().flatten().filter_map(|t|Some((t["id"].as_str()?.to_owned(),t.clone()))).collect()
+fn task_map(v:&Value)->BTreeMap<&str,&Value>{
+ v["tasks"].as_array().into_iter().flatten().filter_map(|t|Some((t["id"].as_str()?,t))).collect()
 }
 fn field(t:&Value,k:&str)->Value{match t.get(k){Some(v)=>json!({"present":true,"value":v}),None=>json!({"present":false})}}
 // Keep only field names as evidence of activity not represented by a net
@@ -55,6 +55,23 @@ fn activity_evidence(a:&Value,b:&Value,changed:&BTreeSet<&str>)->(BTreeSet<Strin
  }
  (counts.into_iter().filter(|(k,n)|*n>1||!changed.contains(k.as_str())).map(|(k,_)|k).collect(),uncertain)
 }
+// Exact ordinary completion/reopen only. A compact proof excludes activity
+// but includes every other field, including points and reminder configuration.
+fn lifecycle_proof(a:&Value,b:&Value,changed:&BTreeSet<&str>)->Option<Value>{
+ let keys=["status","stage","completedAt"];
+ if changed!=&BTreeSet::from(keys){return None}
+ let ordinary=|t:&Value|t["repeat"]=="none"&&t["seriesId"].is_null()&&t["previousId"].is_null()&&t["seriesHold"].is_null()&&t["deletedAt"].is_null()&&t["planLocked"]!=true;
+ if !ordinary(a)||!ordinary(b){return None}
+ let pending=|t:&Value|t["status"]=="pending"&&t["stage"]=="todo"&&t["completedAt"].is_null();
+ let completed=|t:&Value|t["status"]=="completed"&&t["stage"]=="done"&&t["completedAt"].as_str().is_some();
+ let kind=if pending(a)&&completed(b){"completed"}else if completed(a)&&pending(b){"reopened"}else{return None};
+ let old=a["activity"].as_array();let new=b["activity"].as_array()?;
+ if old.is_some_and(|old|old.iter().any(|e|!new.contains(e))){return None}
+ let added:Vec<_>=new.iter().filter(|e|!old.is_some_and(|old|old.contains(e))).collect();
+ if added.len()!=1||added[0]["category"]!="lifecycle"||added[0]["kind"]!=kind{return None}
+ let mut business=b.clone();business.as_object_mut()?.remove("activity");
+ Some(json!({"afterHash":fingerprint(&business),"fields":keys.iter().map(|k|(k.to_string(),json!({"before":field(a,k),"after":field(b,k)}))).collect::<serde_json::Map<String,Value>>() }))
+}
 pub(super) fn history_schema(c:&Connection)->rusqlite::Result<()>{
  c.execute_batch("CREATE TABLE IF NOT EXISTS operation_history_head(scope TEXT PRIMARY KEY, version INTEGER NOT NULL, fingerprint TEXT NOT NULL); CREATE TABLE IF NOT EXISTS operation_history(scope TEXT NOT NULL, version INTEGER NOT NULL, at INTEGER NOT NULL, source TEXT NOT NULL, kind TEXT NOT NULL, request_id TEXT, group_id TEXT, body TEXT NOT NULL, PRIMARY KEY(scope,version)); CREATE INDEX IF NOT EXISTS operation_history_age ON operation_history(scope,at);")
 }
@@ -80,10 +97,13 @@ pub(super) fn append_history(c:&Connection,scope:&str,prior:Option<&Value>,next:
     let changed:Vec<_>=am.keys().chain(bm.keys()).collect::<BTreeSet<_>>().into_iter().filter(|k|*k!="activity"&&a.get(*k)!=b.get(*k)).collect();
     let changed_names:BTreeSet<&str>=changed.iter().map(|k|k.as_str()).collect();
     let (evidence,uncertain)=activity_evidence(a,b,&changed_names);
+    let lifecycle=lifecycle_proof(a,b,&changed_names);
     if changed.is_empty()&&evidence.is_empty()&&!uncertain{continue}
     let mut fields=serde_json::Map::new();let mut protected=vec![];
     for k in changed{if SAFE.contains(&k.as_str()){fields.insert(k.clone(),json!({"before":field(a,k),"after":field(b,k)}));}else{protected.push(k)}}
-    rows.push(json!({"id":id,"fields":fields,"protected":protected,"activityEvidence":evidence,"activityUncertain":uncertain}));
+    let mut row=json!({"id":id,"fields":fields,"protected":protected,"activityEvidence":evidence,"activityUncertain":uncertain});
+    if let Some(proof)=lifecycle{row["lifecycle"]=proof;}
+    rows.push(row);
    },_=>{}
   }
  }
@@ -150,6 +170,41 @@ mod tests{
   c["tasks"][0]["activity"].as_array_mut().unwrap().push(json!({"id":"redo:restored","operation":"redo","category":"lifecycle","kind":"restored","changes":[]}));
   assert_eq!(activity_evidence(&b["tasks"][0],&c["tasks"][0],&changed),(BTreeSet::new(),false));
   assert!(activity_evidence(&a["tasks"][0],&c["tasks"][0],&BTreeSet::new()).1);
+ }
+ #[test]fn lifecycle_proof_only_exact_ordinary_transition(){
+  let mut a=snapshot(3);a["tasks"][0]=json!({"id":"qa","title":"task","repeat":"none","status":"pending","stage":"todo","completedAt":null,"points":5,"activity":[]});
+  let mut b=a.clone();let t=&mut b["tasks"][0];t["status"]=json!("completed");t["stage"]=json!("done");t["completedAt"]=json!("2026-11-26T08:00:00Z");t["activity"]=json!([{"id":"complete","category":"lifecycle","kind":"completed","changes":[]}]);
+  let keys=BTreeSet::from(["status","stage","completedAt"]);
+  assert!(lifecycle_proof(&a["tasks"][0],&b["tasks"][0],&keys).is_some());
+  let mut repeated=b.clone();repeated["tasks"][0]["repeat"]=json!("daily");
+  assert!(lifecycle_proof(&a["tasks"][0],&repeated["tasks"][0],&keys).is_none());
+  let mut extra=b.clone();extra["tasks"][0]["activity"].as_array_mut().unwrap().push(json!({"id":"remote","category":"property","kind":"priority"}));
+  assert!(lifecycle_proof(&a["tasks"][0],&extra["tasks"][0],&keys).is_none());
+ }
+ #[test]fn retained_versions_and_read_budget(){
+  let c=Connection::open_in_memory().unwrap();super::super::schema(&c).unwrap();
+  let base=snapshot(0);let mut a=base.clone();
+  let now=Local::now().timestamp();
+  for i in 1..=305{let mut b=a.clone();b["tasks"][0]["priority"]=json!(i);append_history(&c,"guest",Some(&a),&b,now,None).unwrap();a=b;}
+  let (count,min,max):(i64,i64,i64)=c.query_row("SELECT count(*),min(version),max(version) FROM operation_history WHERE scope='guest'",[],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).unwrap();
+  assert_eq!((count,min,max),(300,6,305));
+  c.execute("UPDATE operation_history SET body=?1 WHERE scope='guest'",[json!({"rows":[],"padding":"x".repeat(100000)}).to_string()]).unwrap();
+  let mut b=a.clone();b["tasks"][0]["priority"]=json!(306);append_history(&c,"guest",Some(&a),&b,now,None).unwrap();
+  let size:i64=c.query_row("SELECT SUM(length(CAST(body AS BLOB))) FROM operation_history WHERE scope='guest'",[],|r|r.get(0)).unwrap();assert!(size<=16777216);
+  let read=history_read(&c,"guest",true,300).unwrap();assert!(read["entries"].as_array().unwrap().len()<10);
+  assert_eq!(read["head"],306);
+ }
+ #[test]#[ignore]fn history_save_benchmark(){
+  use std::time::Instant;
+  let mut c=Connection::open_in_memory().unwrap();super::super::schema(&c).unwrap();
+  let mut a=json!({"version":2,"tasks":(0..1000).map(|i|json!({"id":format!("qa-{i}"),"title":format!("synthetic task {i}"),"notes":"","priority":0,"activity":[]})).collect::<Vec<_>>()});
+  super::super::save(&mut c,"guest",&a.to_string()).unwrap();
+  let mut ms=vec![];
+  for i in 0..305{a["tasks"][i%1000]["priority"]=json!(3);let start=Instant::now();super::super::save(&mut c,"guest",&a.to_string()).unwrap();ms.push(start.elapsed().as_secs_f64()*1000.0);}
+  ms.sort_by(|a,b|a.total_cmp(b));let start=Instant::now();let h=history_read(&c,"guest",true,300).unwrap();let read=start.elapsed().as_secs_f64()*1000.0;
+  let bytes:i64=c.query_row("SELECT sum(length(CAST(body AS BLOB))) FROM operation_history WHERE scope='guest'",[],|r|r.get(0)).unwrap();
+  assert_eq!(h["head"],305);assert_eq!(h["entries"].as_array().unwrap().len(),300);
+  println!("history_benchmark tasks=1000 saves=305 retained=300 p50_ms={:.3} p95_ms={:.3} max_ms={:.3} read_ms={:.3} body_bytes={bytes}",ms[152],ms[289],ms[304],read);
  }
  #[test]fn journal_is_atomic_private_scoped_and_monotonic(){
   let mut c=Connection::open_in_memory().unwrap();super::super::schema(&c).unwrap();
