@@ -386,3 +386,11 @@
 **原生**：独立外置源码副本与构建目标TODO.noindex/rc-native-cf5ee33，独立identifier com.weepwood.todo.qa.v16cf5ee33、假云地址127.0.0.1:9及隔离CSP；无全局Rust默认工具链，显式stable后锁定离线解析通过，首次构建45.17s/50.74MiB。临时Rust eval探针仅在QA副本运行真实macOS WebView：实际UI新增、SQLite搜索、备份、两个合成UUID作用域隔离、旧作用域通知拒绝、系统通知API返回成功、SQLite integrity_check=ok、退出码0；guest及另一合成作用域各1任务，证据作用域0任务。未人工确认通知可见/点击导航、未连接真实云账户。恢复QA副本原生源码并移除探针，11/11 Rust单测，干净调试包重建18.78s/50.74MiB，留外置路径及SHA-256；不安装正式应用，不触及正式SQLite。Windows/Android真机、真实账号生命周期及独立人工QA仍待。
 
 **最终回归**：273/273 JS单测，新增真实旧客户端+PWA三引擎最终各1/1；普通构建2.64s/main493.61kB/gzip159.39kB，入口JS1106640/gzip339562/CSS269858字节，不含试验入口/数据库/围栏标志。累计差异检查；审查本批存储队列、旧兼容写入器、原生隔离权限/作用域，不宣称完整独立语义QA。证据artifacts/TODO/v15-motion-polish/v16-rc-blockers/：contract-before/final.json、compatible-pwa-final.log、unit-final.log、build.log、entry.json、native-preflight-stable.log、native-build.log、native-run-result.json、native-final.log、native-clean-package.json等。正式部署、小时级最终结果及完整UI堆路径、真实账号/通知可见与导航、Windows/Android、独立QA/正式CI仍是RC门禁，不发布，不推送、不合并。
+
+## 三十五、V1.6 小时级在途复核与业务语义审计（2026-11-26）
+
+基线2349e31，读取第三十四节和发布门禁，继续冻结业务范围。小时级任务在外置冻结副本hour-soak-source-2349e31运行，隔离4178；初次复查292.10秒/8轮，后续439.03秒/12轮、7次采样，GC堆72.28→76.05MB，DOM854、页面异常0。当前只有进度，未完成3600秒，不启动第二个浏览器任务、不修改在途冻结副本。新增只读scripts/verify-rc-hour.mjs，核对精确提交、退出码、实际时长、最终/进度一致、持久化任务数及采样顺序；不把工作负载成功等同无泄漏。2项证据核验测试通过。
+
+累计语义定向审查了层级导入、选择性恢复、系列规则、模板、草稿、计划锁定、账号同步和原生通知导航源码/插件权限。实际反例：重复父任务的子任务在父约束校验前占用去重签名，后续合法同名独立任务被误判重复；修复为先校验父索引及有效性，再登记可接受行的签名。新增2项测试覆盖多层拒绝、有效独立任务、正常关联/去重与非法前向父索引，定向19/19通过。此变更不在冻结长测副本内，最终候选须另行验收真实UI导入及构建；本轮不抢占浏览器槽或构建新原生包。没有声称全部累计语义已独立审核。
+
+新增docs/v16-rc-independent-qa.md，明确独立评审者、证据版本/哈希、真实通知显式动作与模态保护、真实账号A/B和跨平台真机验收、正式部署授权。既有原生通知API成功及真实WebView/SQLite证据保留，未实际观察通知点击、未登录真实账号，未验收Windows/Android。原有资源门禁、真实数据保护及4197不变。证据外置artifacts/TODO/v15-motion-polish/v16-rc-followup/targeted.log；小时级进度见原证据目录，待最终结果，不宣布RC，不推送、不合并、不发布。

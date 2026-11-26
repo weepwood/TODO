@@ -18,10 +18,10 @@
 
 - 随机差分：固定5个种子1200步，独立完整分片与重建；真实浏览器两个连接竞态36步，各引擎一次。不可变边界深度冻结普通对象/数组、拒绝循环/访问器/非普通对象，弱引用缓存不强持有历史对象。
 - 保留路径：真实Chromium CDP采集合成IndexedDB队列堆图，GC后标记当前/已退役对象。仅100任务、上限32MiB快照，保留摘要，不保留堆原文；不代表完整React组件和撤销历史。
-- 小时级：新增显式长测入口，不在本轮后台启动。需独占隔离4178和预算槽；禁止抢占其他项目。命令如下（从独立工作树执行）：
+- 小时级：新增显式长测入口，不在本轮后台启动。需独占隔离4178和预算槽；禁止抢占其他项目。命令如下（从独立工作树执行，先设置 EVIDENCE_DIR 为已存在的独立外置证据目录）：
 
 ```sh
-/Volumes/data/AI-Development/scripts/run-budgeted --kind browser --label TODO-v16-hour-soak -- env TODO_IDB_PILOT=1 TODO_SUSTAINED=1 TODO_HOUR_SOAK=1 node node_modules/playwright/cli.js test e2e/ui-shard-lifecycle.spec.js --workers=1
+/Volumes/data/AI-Development/scripts/run-budgeted --kind browser --label TODO-v16-hour-soak -- env TODO_IDB_PILOT=1 TODO_SUSTAINED=1 TODO_HOUR_SOAK=1 TODO_HOUR_EVIDENCE="$EVIDENCE_DIR" node node_modules/playwright/cli.js test e2e/ui-shard-lifecycle.spec.js --workers=1
 ```
 
 小时模式每30秒执行实际新增/工作台往返，每两轮GC和记录，达到至少3600秒、最终SQLite之外的IDB数据数量/页面错误断言才输出 shard-hour-final.json；进度文件不视为成功。采样任务数随新增变化，撤销历史正常保留；应进一步核对稳定阶段及完整真实UI保留路径。运行中若其他项目资源需求或Swap过高，由操作者按现有资源规则终止并记录未完成，不绕过门禁。
@@ -47,3 +47,7 @@
 - 合作旧写入器已在隔离实际业务工作台和真实旧SW联合演练三引擎通过；普通构建不含试验，阶段A/B仅合成验证，尚未正式上线。旧非合作版本仍不可追溯冻结。
 - macOS独立QA包真实WebView/SQLite保存、搜索、备份、合成作用域切换及通知旧作用域拒绝通过；通知API成功非人工可见验收。11/11 Rust单测、干净QA包重建通过。真实账号、Windows/Android、人工通知与独立QA/CI仍待，不标记RC通过。
 - 详情与证据见交接第三十四节。
+
+## 6. 2349e31 之后的冻结验收
+
+小时级测试已在2349e31冻结副本实际运行（独立4178、外置证据及周期门禁）；使用scripts/verify-rc-hour.mjs只读复核提交、最终/进度一致性、退出码、时长、采样及保存计数，不将未完成状态算作成功。完整UI内存趋势仍需判断；不自动继承到改动相关路径的新提交。新增层级导入语义修复：拒绝父任务的子孙不占去重签名，合法独立根任务可正常导入。独立评审步骤、证据要求与平台/账号边界见docs/v16-rc-independent-qa.md。未执行独立人工QA，不宣布RC。

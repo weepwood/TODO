@@ -78,8 +78,16 @@ export function previewExchange(parsed,mapping,listId,data){
   const fields={title,notes,listId:target?.length===1?target[0].id:listId,date,time,deadline,duration,priority,...(points!==undefined?{points}:{}),...(planMinutes!==undefined?{planMinutes}:{})};
   let error=row.length!==parsed.header.length?'列数不匹配':!title||title.length>500?'任务名称为空或超过500字符':notes.length>50000?'备注超长':date&&!validDate(date)||time&&(!date||!validTime(time))||!validDeadline(deadline)?'日期或时间无效':!Number.isInteger(duration)||duration<1||duration>1440||![0,1,2,3].includes(priority)||points!==undefined&&!validPoints(points)||planMinutes!==undefined&&(!Number.isInteger(planMinutes)||planMinutes<1||planMinutes>1440)?'时长、积分或优先级无效':'';
   if(parsed.listNames&&(!target||target.length!==1))error='清单名称缺失、不存在或不唯一';
+  const parentIndex=parsed.parents?.[i]??null;
+  if(!error&&parentIndex!==null){
+   const parent=Number.isInteger(parentIndex)&&parentIndex>=1&&parentIndex<=i?rows[parentIndex-1]:null;
+   if(!parent||parent.error||parent.duplicate)error='父任务不可导入';
+  }
+  // Rejected children must never reserve a duplicate signature for a later
+  // valid independent task. Check the parent before admitting this row.
   const signature=key(fields),duplicate=!error&&seen.has(signature);
-  if(!error)seen.add(signature);const parentIndex=parsed.parents?.[i]??null;if(parentIndex!==null&&(rows[parentIndex-1]?.error||rows[parentIndex-1]?.duplicate))error='父任务不可导入';rows.push({index:i+1,fields:{...fields,...(parsed.links?.[i]?.length?{links:parsed.links[i]}:{})},error,duplicate,...(parentIndex!==null?{parentIndex}:{})});
+  if(!error&&!duplicate)seen.add(signature);
+  rows.push({index:i+1,fields:{...fields,...(parsed.links?.[i]?.length?{links:parsed.links[i]}:{})},error,duplicate,...(parentIndex!==null?{parentIndex}:{})});
  }
  return rows;
 }
