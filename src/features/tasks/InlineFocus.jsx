@@ -2,7 +2,7 @@ import React,{useMemo} from 'react';
 import {Clock,Timer,Play,Pause,Square} from 'lucide-react';
 import {pomodoroPlan} from '../../core/pomodoro-planner.js';
 import {PomodoroPlan,durationText} from './PomodoroPlan.jsx';
-import {dayKey,id} from '../../core/domain.js';
+import {dayKey} from '../../core/domain.js';
 import {startFocusTimer,changeFocusTimer,focusTimerKey,focusDisplaySeconds,formatFocusClock} from '../../core/focus-engine.js';
 
 export function InlineFocus({task,data,now,update,locked,summary}){
@@ -13,7 +13,7 @@ export function InlineFocus({task,data,now,update,locked,summary}){
  const launch=useMemo(()=>pomodoroPlan(task,data.sessions,data.focusConfig),[task,data.sessions,data.focusConfig]);
  const count=useMemo(()=>data.sessions.filter(s=>s.mode==='focus'&&dayKey(new Date(s.startedAt))===today).length,[data.sessions,today]);
  const start=mode=>{const at=Date.now();update(d=>startFocusTimer(d,{mode,minutes:d.focusConfig.focus,taskId:task.id,now:at,planned:mode==='focus'}))};
- const control=action=>{const key=focusTimerKey(timer),at=Date.now(),sessionId=id();update(d=>changeFocusTimer(d,{action,key,now:at,sessionId}))};
+ const control=action=>{const key=focusTimerKey(timer),at=Date.now();update(d=>changeFocusTimer(d,{action,key,now:at}))};
  const other=timer&&!own;
  const otherTitle=other?(data.tasks.find(t=>t.id===timer.taskId)?.title||'其他计时'):'';
  return <div className="inline-focus" role="group" aria-label="任务内专注">

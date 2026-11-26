@@ -92,7 +92,13 @@ export function recordTaskChanges(before,next,meta,{restore=false}={}){
    if(changes.length){const first=changes[0];entries.push(event(meta,t,changes.length===1?first.field:'updated',changes.length===1?first.label:'更新任务属性',first.category,changes.map(({category,...c})=>c)))}
   }
   if(!equal(oldChildren.get(t.id)||[],children.get(t.id)||[])&&prev)entries.push(event(meta,t,'children','修改子任务','relation',[{field:'children',label:'子任务数量',before:String((oldChildren.get(t.id)||[]).length),after:String((children.get(t.id)||[]).length)}]));
-  if(sessions.has(t.id))entries.push(event(meta,t,'focus','完成专注','focus',[{field:'focus',label:'专注时长',before:'',after:Math.round(sessions.get(t.id).reduce((n,s)=>n+s.seconds,0)/60)+' 分钟'}]));
+  if(sessions.has(t.id))for(const s of sessions.get(t.id)){
+   const seconds=Math.floor(s.seconds),minutes=Math.floor(seconds/60),remainder=seconds%60;
+   const duration=(minutes?minutes+' 分钟':'')+(remainder?(minutes?' ':'')+remainder+' 秒':minutes?'':'0 秒');
+   // Stable record-linked events collapse replicated settlements without hiding distinct sessions.
+   const identity='focus:'+s.id;
+   entries.push(event(identity.length<=174?{...meta,id:identity}:meta,t,'focus','完成专注','focus',[{field:'focus',label:'专注时长',before:'',after:duration}]));
+  }
   if(!entries.length&&!restore){if(prev||!t.activity)return t;const {activity,...clean}=t;modified=true;return clean}
   if(entries.length&&prev){const known=new Set(logs.map(e=>e.kind+'|'+e.at));logs=mergeActivity(logs,legacy(prev).filter(e=>['completed','deleted'].includes(e.kind)&&!known.has(e.kind+'|'+e.at)))}
   for(const e of entries)logs=append(logs,e);

@@ -8,7 +8,7 @@ import {createClient} from '@supabase/supabase-js';
 import {isTauri} from '@tauri-apps/api/core';
 import {CLOUD_URL,CLOUD_KEY} from './cloud-config.js';
 import {initialState,migrateState,readState,saveState,STORAGE_KEY} from './core/domain.js';
-import {mergeTasks,resolveTaskFields,saveBaseline,loadBaseline} from './services/sync-merge.js';
+import {mergeTasks,resolveTaskFields,saveBaseline,loadBaseline,unsafeHistoryPull} from './services/sync-merge.js';
 import {buildTaskDelta,replayTaskDeltas} from './services/task-delta.js';
 import {appendSyncLog,readSyncLog,SYNC_LOG_KEY} from './services/sync-diagnostics.js';
 import {SyncDiagnostics,ConflictPreview,FieldMerge} from './sync-ui.jsx';
@@ -76,7 +76,7 @@ export function useWorkspaceSync({uid,storage,data,setData,blocked,logStorage}){
    if(!active.current)return;
    if(latest.current.data!==snapshot){setStatus('等待本地保存');return}
    let decision=decideSync({localHash:hash,remoteHash,remoteRevision:remote?.revision??null,meta,emptyHash});
-   const unsafePull=!resolution&&decision==='pull'&&remote&&(unsafeSeriesPull(base||snapshot,remote.state)||((base||snapshot).preferenceProfile!==undefined&&remote.state.preferenceProfile===undefined));if(unsafePull)decision='conflict';
+   const unsafePull=!resolution&&decision==='pull'&&remote&&(unsafeSeriesPull(base||snapshot,remote.state)||unsafeHistoryPull(base||snapshot,remote.state)||((base||snapshot).preferenceProfile!==undefined&&remote.state.preferenceProfile===undefined));if(unsafePull)decision='conflict';
    if(resolution){
     // Recheck the exact cloud revision presented to the user.
     if((remote?.revision??null)!==conflictRef.current?.revision){decision='conflict'}

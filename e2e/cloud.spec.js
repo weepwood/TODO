@@ -159,6 +159,35 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
   await expect(a.page.locator('.sync-footer')).toContainText('存在同步冲突',{timeout:15000});
   a.page.once('dialog',d=>d.accept());await a.page.getByRole('button',{name:'保留本地并上传'}).click();
   await expect.poll(()=>row.state.preferenceProfile,{timeout:15000}).toEqual(beforeProfile);
+  // A remote append-only focus record and a local independent task edit
+  // must merge without replacing either side or duplicating sessions.
+  await expect(a.page.locator('.sync-footer')).toContainText('已同步',{timeout:15000});
+  await a.page.keyboard.press('Escape');
+  await a.page.locator('[data-view-key=inbox]').click();
+  const ordinary=row.state.tasks.find(t=>t.title==='云端字段选择');
+  expect(ordinary).toBeTruthy();
+  await a.ctx.setOffline(true);
+  await a.page.locator('.task-body').filter({hasText:'云端字段选择'}).click();
+  await a.page.getByRole('textbox',{name:'任务标题'}).fill('专注并发合并验收');
+  await expect(a.page.locator('.sync-footer')).toContainText('离线');
+  const record={id:'sync-focus-test',taskId:ordinary.id,startedAt:new Date().toISOString(),seconds:120,mode:'stopwatch'};
+  row={...row,revision:row.revision+1,state:{...row.state,sessions:[...row.state.sessions,record]},updated_at:new Date().toISOString()};patches=[];
+  await a.ctx.setOffline(false);
+  await expect.poll(()=>row.state.tasks.find(t=>t.id===ordinary.id)?.title,{timeout:20000}).toBe('专注并发合并验收');
+  expect(row.state.sessions.filter(s=>s.id===record.id)).toEqual([record]);
+  await expect(a.page.locator('.sync-footer')).toContainText('已同步',{timeout:15000});
+  // A legacy full snapshot that loses retained logs is not silently pulled.
+  const retained=row.state.tasks.find(t=>t.id===ordinary.id).activity;
+  expect(retained.length).toBeGreaterThan(0);
+  row={...row,revision:row.revision+1,state:{...row.state,tasks:row.state.tasks.map(t=>{if(t.id!==ordinary.id)return t;const old={...t};delete old.activity;return old})},updated_at:new Date().toISOString()};patches=[];
+  await a.page.getByRole('button',{name:'设置',exact:true}).click();
+  await a.page.getByRole('button',{name:'立即同步'}).click();
+  await expect(a.page.locator('.sync-footer')).toContainText('存在同步冲突',{timeout:15000});
+  const local=await a.page.evaluate(uid=>JSON.parse(localStorage.getItem('todo-account:'+uid+':todo-workbench-v1')),uid);
+  expect(local.tasks.find(t=>t.id===ordinary.id).activity).toEqual(retained);
+  a.page.once('dialog',d=>d.accept());await a.page.getByRole('button',{name:'保留本地并上传'}).click();
+  await expect.poll(()=>row.state.tasks.find(t=>t.id===ordinary.id).activity,{timeout:15000}).toEqual(retained);
+
 
  }finally{await Promise.all(contexts.map(c=>c.close()))}
 });

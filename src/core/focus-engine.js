@@ -1,6 +1,13 @@
 import {pomodoroPlan,planningConfig,taskFocusSeconds,plannedBreakSeconds} from './pomodoro-planner.js';
 import {dayKey,timerSeconds} from './domain.js';
 export function shouldSaveFocus(config,mode,seconds){return (mode==='focus'||mode==='stopwatch')&&Number.isFinite(seconds)&&seconds>0&&(config?.ignoreShortSessions===false||seconds>=60)}
+// The same logical timer must produce the same record on every device,
+// whether it is saved manually or reaches its target automatically.
+export function focusSessionId(t){return 'timer:'+t.createdAt+':'+t.mode+':'+JSON.stringify(t.taskId??null)}
+function hasTimerSession(sessions,t){
+ const legacy='timer:'+t.createdAt+':'+t.mode;
+ return sessions.some(s=>(s.id===focusSessionId(t)||s.id===legacy)&&s.startedAt===t.createdAt&&s.mode===t.mode&&(s.taskId??null)===(t.taskId??null));
+}
 export function settleFocus(state,now=Date.now()){
  const t=state.timer;
  if(!t||t.startedAt===null||t.mode==='stopwatch'||t.target<=0||timerSeconds(t,now)<t.target)return state;
@@ -8,7 +15,7 @@ export function settleFocus(state,now=Date.now()){
  const endIso=new Date(end).toISOString();
  const eventId='timer:'+t.createdAt+':'+t.mode;
  let sessions=state.sessions,notifications=state.notifications;
- if(shouldSaveFocus(state.focusConfig,t.mode,t.target)&&t.mode==='focus'&&!sessions.some(s=>s.id===eventId))sessions=[...sessions,{id:eventId,taskId:t.taskId,startedAt:t.createdAt,seconds:t.target,mode:'focus'}];
+ if(shouldSaveFocus(state.focusConfig,t.mode,t.target)&&t.mode==='focus'&&!hasTimerSession(sessions,t))sessions=[...sessions,{id:focusSessionId(t),taskId:t.taskId,startedAt:t.createdAt,seconds:t.target,mode:'focus'}];
  if(!notifications.some(n=>n.id===eventId))notifications=[...notifications,{id:eventId,title:t.mode==='focus'?'专注结束':'休息结束',at:endIso}].slice(-100);
  const c=state.focusConfig;
  // Only advance a recently completed phase. Never fill in unattended sessions after sleep.
@@ -42,7 +49,7 @@ export function startFocusTimer(state,{mode,minutes,taskId=null,now,planned=fals
  const target=mode==='stopwatch'?0:usePlan?plan.next:Math.round(minutes*60);
  return {...state,timer:{mode,target,elapsed:0,startedAt:now,createdAt:new Date(now).toISOString(),taskId,...(usePlan?{planned:true,planBaseline:taskFocusSeconds(state.sessions,taskId)}:{})}};
 }
-export function changeFocusTimer(state,{action,key,now,sessionId}){
+export function changeFocusTimer(state,{action,key,now}){
  const t=state.timer;
  if(!t||focusTimerKey(t)!==key||!Number.isFinite(now))return state;
  // A due countdown is settled once, even if clicked just before the next tick.
@@ -51,8 +58,8 @@ export function changeFocusTimer(state,{action,key,now,sessionId}){
  if(action==='resume'&&t.startedAt===null)return {...state,timer:{...t,startedAt:now}};
  if(action==='discard'||action==='save'){
   const seconds=Math.min(timerSeconds(t,now),t.mode==='stopwatch'?Infinity:t.target);
-  const save=action==='save'&&shouldSaveFocus(state.focusConfig,t.mode,seconds)&&sessionId&&!state.sessions.some(s=>s.id===sessionId);
-  return {...state,timer:null,sessions:save?[...state.sessions,{id:sessionId,taskId:t.taskId,startedAt:t.createdAt,seconds,mode:t.mode}]:state.sessions};
+  const save=action==='save'&&shouldSaveFocus(state.focusConfig,t.mode,seconds)&&!hasTimerSession(state.sessions,t);
+  return {...state,timer:null,sessions:save?[...state.sessions,{id:focusSessionId(t),taskId:t.taskId,startedAt:t.createdAt,seconds,mode:t.mode}]:state.sessions};
  }
  return state;
 }
