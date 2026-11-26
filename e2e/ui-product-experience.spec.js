@@ -48,3 +48,15 @@ test('移动规划控件完整展示、统计区段跳转及习惯输入语义',
  await page.getByRole('button',{name:'更多',exact:true}).click();await page.getByRole('dialog',{name:'工作空间'}).getByRole('button',{name:'习惯',exact:true}).click();
  await expect(page.getByRole('textbox',{name:'习惯名称'})).toBeVisible();
 });
+
+for(const width of [1440,390])test('录入优先于执行建议 '+width,async({page})=>{
+ await page.setViewportSize({width,height:900});await seed(page);
+ const input=page.getByRole('textbox',{name:'新任务名称'}),panel=page.getByRole('region',{name:'今日执行'});
+ await expect(input).toBeVisible();await expect(panel).toBeVisible();
+ await panel.getByRole('button',{name:'展开执行清单'}).click();
+ await expect(panel.locator('.today-execution-item').first()).toBeVisible();
+ expect((await input.boundingBox()).y).toBeLessThan((await panel.boundingBox()).y);
+ await input.fill('克制专项合成录入');await input.press('Enter');
+ await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('todo-workbench-v1')).tasks.some(t=>t.title==='克制专项合成录入'))).toBe(true);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+});
