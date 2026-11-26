@@ -1,6 +1,7 @@
+import {deadlineInRange} from './deadline.js';
 import {id,validDate,validTime,shiftDay,dayKey} from './domain.js';
 export const RULE_KEY='todo-workflow-rules-v1';
-const conditions=['overdue','unscheduled','today','any','high','unblocked','doing','todo'];
+const conditions=['due-today','due-overdue','due-next7','overdue','unscheduled','today','any','high','unblocked','doing','todo'];
 const actions=['today','tomorrow','high','low','clear-date','doing','todo','closeout'];
 const triggers=['daily','created','completed','changed','time','manual'];
 export function validRule(r){return !!r&&typeof r.id==='string'&&typeof r.name==='string'&&r.name.trim().length>0&&r.name.length<=80&&typeof r.list==='string'&&conditions.includes(r.condition)&&actions.includes(r.action)&&typeof r.enabled==='boolean'&&(r.extra===undefined||conditions.includes(r.extra))&&(r.match===undefined||['all','any'].includes(r.match))&&(r.trigger===undefined||triggers.includes(r.trigger))&&(r.trigger!=='time'||validTime(r.at))&&(r.tag===undefined||typeof r.tag==='string')}
@@ -11,7 +12,7 @@ export function writeRules(storage,state){
 }
 export const newRule=()=>({id:id(),name:'新规则',list:'all',condition:'overdue',action:'tomorrow',enabled:true,trigger:'daily'});
 const ordinary=t=>!t.deletedAt&&t.status==='pending'&&t.repeat==='none'&&!t.seriesId&&!t.previousId&&!t.seriesHold;
-function condition(c,t,today,byId){switch(c){case 'overdue':return validDate(t.date)&&t.date<today;case 'unscheduled':return !t.date;case 'today':return t.date===today;case 'high':return t.priority===3;case 'doing':return t.stage==='doing';case 'todo':return t.stage==='todo';case 'unblocked':return !!t.dependsOn?.length&&t.dependsOn.every(i=>byId.get(i)?.status==='completed'&&!byId.get(i)?.deletedAt);default:return true}}
+function condition(c,t,today,byId){switch(c){case 'due-today':case 'due-overdue':case 'due-next7':return deadlineInRange(t,today,c);case 'overdue':return validDate(t.date)&&t.date<today;case 'unscheduled':return !t.date;case 'today':return t.date===today;case 'high':return t.priority===3;case 'doing':return t.stage==='doing';case 'todo':return t.stage==='todo';case 'unblocked':return !!t.dependsOn?.length&&t.dependsOn.every(i=>byId.get(i)?.status==='completed'&&!byId.get(i)?.deletedAt);default:return true}}
 export function previewRules(data,rules,today,ids=null){
  if(!validDate(today))return [];
  const lists=new Set(data.lists.map(l=>l.id)),byId=new Map(data.tasks.map(t=>[t.id,t])),active=rules.filter(r=>validRule(r)&&r.enabled&&(r.list==='all'||lists.has(r.list)));
@@ -58,7 +59,7 @@ export function undoRun(data,runId){
 export function eventRules(before,after,rules,today,meta){
  if(before.tasks===after.tasks)return after;
  const old=new Map(before.tasks.map(t=>[t.id,t])),created=new Set(),changed=new Set(),completed=new Set();
- for(const t of after.tasks){const b=old.get(t.id);if(!b){created.add(t.id);continue}if(b.status==='pending'&&t.status==='completed'&&!t.deletedAt)completed.add(t.id);if(ordinary(t)&&['title','date','time','duration','priority','stage','listId','sectionId','tags','dependsOn'].some(k=>JSON.stringify(b[k])!==JSON.stringify(t[k])))changed.add(t.id)}
+ for(const t of after.tasks){const b=old.get(t.id);if(!b){created.add(t.id);continue}if(b.status==='pending'&&t.status==='completed'&&!t.deletedAt)completed.add(t.id);if(ordinary(t)&&['title','date','deadline','time','duration','priority','stage','listId','sectionId','tags','dependsOn'].some(k=>JSON.stringify(b[k])!==JSON.stringify(t[k])))changed.add(t.id)}
  const byId=new Map(after.tasks.map(t=>[t.id,t]));
  const dependents=new Set(after.tasks.filter(t=>ordinary(t)&&t.dependsOn?.some(i=>completed.has(i))&&t.dependsOn.every(i=>byId.get(i)?.status==='completed'&&!byId.get(i)?.deletedAt)).map(t=>t.id));
  const groups={created,changed,completed:dependents};let result=after;

@@ -1,3 +1,4 @@
+import {useFocusClock} from '../../components/useFocusClock.js';
 import React,{useMemo} from 'react';
 import {Clock,Timer,Play,Pause,Square} from 'lucide-react';
 import {pomodoroPlan} from '../../core/pomodoro-planner.js';
@@ -5,7 +6,8 @@ import {PomodoroPlan,durationText} from './PomodoroPlan.jsx';
 import {dayKey} from '../../core/domain.js';
 import {startFocusTimer,changeFocusTimer,focusTimerKey,focusDisplaySeconds,formatFocusClock,focusCountOnDay} from '../../core/focus-engine.js';
 
-export function InlineFocus({task,data,now,update,locked,summary}){
+export function InlineFocus({task,data,update,locked,summary}){
+ const now=useFocusClock(data.timer);
  const timer=data.timer,own=timer?.taskId===task.id,running=own&&timer.startedAt!==null;
  const activeTarget=own&&timer.mode==='focus'?timer.target:0;
  const baseline=own&&timer.planned?timer.planBaseline:undefined,today=dayKey(new Date(now));

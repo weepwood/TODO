@@ -104,3 +104,18 @@ test('智能番茄规划三种策略、设置持久化及运行目标稳定',asy
  await expect(focus.getByRole('button',{name:'继续当前专注'})).toBeVisible();await expect.poll(async()=>(await stored()).timer.target).toBe(1200);await expect.poll(async()=>(await stored()).focusConfig.planStrategy).toBe('balanced');
  await focus.getByRole('button',{name:'结束并保存专注'}).click();await settings();await page.getByRole('switch',{name:'根据预计时长规划番茄钟'}).click();await close();await expect(focus.getByRole('button',{name:'开始番茄钟'})).toContainText('25:00');await expect(budget).not.toContainText('智能番茄规划');
 });
+
+test('计时界面未打开时仍独立结算后台番茄并保留记录',async({page})=>{
+ const state=initialState(),now=new Date(2026,10,26,12,0,0),task=newTask('后台计时验收','inbox',dayKey(now));
+ state.tasks=[task];state.timer={mode:'focus',target:60,elapsed:0,startedAt:now.getTime()-58000,createdAt:new Date(now.getTime()-58000).toISOString(),taskId:task.id};
+ await page.clock.install({time:now});
+ await page.addInitScript(d=>{if(!localStorage.getItem('todo-workbench-v1'))localStorage.setItem('todo-workbench-v1',JSON.stringify(d))},state);
+ await page.goto('/');await expect(page.getByRole('textbox',{name:'新任务名称'})).toBeVisible();
+ const stored=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('todo-workbench-v1')));
+ await page.clock.runFor(4000);
+ await expect.poll(async()=>(await stored()).sessions.length).toBe(1);await expect.poll(async()=>(await stored()).timer).toBeNull();
+ expect((await stored()).sessions[0].seconds).toBe(60);
+ await page.clock.runFor(4000);expect((await stored()).sessions.length).toBe(1);
+ await page.locator('[data-view-key=inbox]').click();await page.locator('.task-body').filter({hasText:'后台计时验收'}).click();
+ await expect(page.getByRole('group',{name:'任务内专注'})).toContainText('实际专注 1 分钟');
+});

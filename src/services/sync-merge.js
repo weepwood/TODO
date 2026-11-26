@@ -82,6 +82,7 @@ export function mergeTasks(base,local,remote,resolveField){
 export function unsafeHistoryPull(base,remote){
  const remoteTasks=new Map(remote.tasks.map(t=>[t.id,t]));
  for(const t of base.tasks){
+  const candidate=remoteTasks.get(t.id);if(candidate&&t.deadline&&candidate.deadline===undefined)return true;
   if(!t.activity?.length)continue;
   const next=remoteTasks.get(t.id);if(!next||eq(t.activity,next.activity))continue;
   if(!eq(mergeActivity(t.activity,next.activity),mergeActivity(next.activity)))return true;

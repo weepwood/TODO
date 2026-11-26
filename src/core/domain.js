@@ -1,3 +1,4 @@
+import {validDeadline,repeatDeadline} from './deadline.js';
 import {planningConfig,PLAN_STRATEGIES} from './pomodoro-planner.js';
 import {validActivity} from './task-activity.js';
 import {validPreferenceProfile} from './preference-sync.js';
@@ -34,7 +35,7 @@ export function nextOccurrence(task,key){
 export function addOccurrence(tasks,task,date,index=(task.occurrenceIndex||1)+1){
  if(task.seriesHold||!validDate(date)||(task.repeatUntil&&date>task.repeatUntil)||(task.repeatCount>0&&index>task.repeatCount)||tasks.some(t=>series(t)===series(task)&&t.date===date&&(task.repeat!=='completion'||t.status==='pending'||t.previousId===task.id)))return tasks;
  const {activity,...content}=task;
- return [...tasks,{...content,id:id(),seriesId:series(task),seriesStart:task.seriesStart||task.date,occurrenceIndex:index,previousId:task.id,date,status:'pending',stage:'todo',deletedAt:null,createdAt:new Date().toISOString(),completedAt:null,remindedAt:null,reminderAt:offsetDate(task.reminderAt,task.date,date),extraReminders:(task.extraReminders||[]).map(r=>({id:id(),at:offsetDate(r.at,task.date,date),sentAt:null})),checklist:task.checklist.map(c=>({...c,id:id(),done:false}))}]
+ return [...tasks,{...content,id:id(),seriesId:series(task),seriesStart:task.seriesStart||task.date,occurrenceIndex:index,previousId:task.id,date,...(task.deadline!==undefined?{deadline:repeatDeadline(task,date)}:{}),status:'pending',stage:'todo',deletedAt:null,createdAt:new Date().toISOString(),completedAt:null,remindedAt:null,reminderAt:offsetDate(task.reminderAt,task.date,date),extraReminders:(task.extraReminders||[]).map(r=>({id:id(),at:offsetDate(r.at,task.date,date),sentAt:null})),checklist:task.checklist.map(c=>({...c,id:id(),done:false}))}]
 }
 // Fast-forward fixed daily/weekly series without iterating over years of missed dates.
 export function advanceOccurrence(task,next,index,boundary){
@@ -120,6 +121,7 @@ export function migrateState(input){
   const list=v.lists.find(l=>l.id===t.listId)||v.lists.find(l=>l.id==='inbox');
   const n={...newTask(t.title,list.id,t.date||'',t.id),...t,listId:list.id,sectionId:list.sections.some(s=>s.id===t.sectionId)?t.sectionId:null};
   check(Array.isArray(n.tags)&&n.tags.every(str)&&validTime(n.reset)&&(!n.time||validTime(n.time))&&Number.isFinite(n.duration)&&n.duration>=1&&n.duration<=1440&&['todo','doing','done'].includes(n.stage)&&(!n.reminderAt||/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(n.reminderAt)&&validDate(n.reminderAt.slice(0,10))&&validTime(n.reminderAt.slice(11))),'任务时间或扩展字段无效');
+  check(validDeadline(n.deadline),'任务截止时间无效');
   check(n.points===undefined||validPoints(n.points),'任务积分无效');check(n.anchor===null||Number.isInteger(n.anchor)&&n.anchor>=1&&n.anchor<=31,'重复日期锚点无效');check(n.deletedAt===null||str(n.deletedAt),'回收站状态无效');check(n.seriesId===null||str(n.seriesId),'系列标识无效');check(Array.isArray(n.weekdays)&&n.weekdays.every(x=>Number.isInteger(x)&&x>=0&&x<=6)&&(!n.repeatUntil||validDate(n.repeatUntil))&&(!n.seriesStart||validDate(n.seriesStart))&&Number.isInteger(n.repeatCount)&&n.repeatCount>=0&&n.repeatCount<=100000&&Number.isInteger(n.occurrenceIndex)&&n.occurrenceIndex>=1,'扩展周期无效');
   check((n.parentId===null||str(n.parentId))&&Array.isArray(n.dependsOn)&&n.dependsOn.every(str)&&Array.isArray(n.extraReminders)&&n.extraReminders.length<=20&&unique(n.extraReminders)&&n.extraReminders.every(r=>obj(r)&&str(r.id)&&str(r.at)&&validDate(r.at.slice(0,10))&&validTime(r.at.slice(11))&&(r.sentAt===null||str(r.sentAt))),'扩展任务字段无效');
   if(n.activity!==undefined){check(validActivity(n.activity),'任务活动记录无效');if(n.activity.some(e=>e.taskId!==undefined&&e.taskId!==n.id))n.activity=n.activity.filter(e=>e.taskId===undefined||e.taskId===n.id)}
@@ -136,7 +138,7 @@ export function migrateState(input){
  check(v.focusConfig.planStrategy===undefined||PLAN_STRATEGIES.includes(v.focusConfig.planStrategy),'番茄拆分策略无效');
  v.focusConfig={...v.focusConfig,ignoreShortSessions:v.focusConfig.ignoreShortSessions!==false,...planningConfig(v.focusConfig)};
  v.templates=records(v.templates,'模板');for(const t of v.templates)check(str(t.name)&&obj(t.task)&&str(t.task.title)&&str(t.task.notes)&&(t.task.points===undefined||validPoints(t.task.points))&&Array.isArray(t.task.checklist)&&t.task.checklist.every(c=>obj(c)&&str(c.text)),'模板无效');
- v.habits=records(v.habits,'习惯');for(const h of v.habits)check(str(h.name)&&Array.isArray(h.days)&&h.days.every(validDate),'习惯无效');
+ v.habits=records(v.habits,'习惯');for(const h of v.habits)check(str(h.name)&&Array.isArray(h.days)&&h.days.every(validDate)&&(h.includeInPlan===undefined||typeof h.includeInPlan==='boolean'),'习惯无效');
  v.sessions=records(v.sessions,'专注记录');for(const s of v.sessions)check(str(s.startedAt)&&Number.isFinite(s.seconds)&&s.seconds>=0,'专注记录无效');
  if(v.timer!==null)check(obj(v.timer)&&['focus','stopwatch','break'].includes(v.timer.mode)&&Number.isFinite(v.timer.elapsed)&&v.timer.elapsed>=0&&Number.isFinite(v.timer.target)&&v.timer.target>=0&&(v.timer.startedAt===null||Number.isFinite(v.timer.startedAt))&&str(v.timer.createdAt),'计时器无效');
  if(v.timer!==null){check(v.timer.phaseAt===undefined||str(v.timer.phaseAt)&&Number.isFinite(Date.parse(v.timer.phaseAt)),'计时阶段标识无效');check(v.timer.planned===undefined||typeof v.timer.planned==='boolean','番茄规划计时无效');check(v.timer.planBaseline===undefined||Number.isFinite(v.timer.planBaseline)&&v.timer.planBaseline>=0,'番茄规划基线无效');}

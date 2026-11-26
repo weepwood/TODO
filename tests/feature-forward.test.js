@@ -1,0 +1,73 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {initialState,newTask,migrateState,addOccurrence,duplicateTask,dayKey} from '../src/core/domain.js';
+import {deadlineStatus,validDeadline,repeatDeadline,deadlineInRange} from '../src/core/deadline.js';
+import {unsafeHistoryPull} from '../src/services/sync-merge.js';
+import {executionPlan,calendarBusy} from '../src/core/productivity.js';
+import {normalizeQueue,queueItems,moveQueue} from '../src/core/focus-queue.js';
+import {startFocusTimer,settleFocus} from '../src/core/focus-engine.js';
+import {savePeriodGoal,readPeriodGoals} from '../src/core/period-goals.js';
+import {reviewInsights,validInsights,insightsMarkdown} from '../src/core/review-insights.js';
+import {normalizeFilter,smartMatches,validSmartLists,readDeadlineSmartLists,DEADLINE_SMART_KEY} from '../src/core/smart-lists.js';
+import {previewRules,newRule} from '../src/core/workflow-rules.js';
+import {normalizeView,normalizeViewFields} from '../src/core/view-preferences.js';
+import {parseCSV,parseMarkdownTasks,inferMapping,previewExchange,makeImportTasks,appendImportedTasks,exportTasks} from '../src/core/task-exchange.js';
+const date='2026-11-26',base=()=>initialState(),task=(title='任务',id='t',day=date)=>newTask(title,'inbox',day,id);
+test('截止日期迁移、日期时限、重复偏移、旧端丢失保护及明确清除',()=>{
+ const t={...task(),deadline:'2026-11-28T18:00',repeat:'daily'};
+ const s={...base(),tasks:[t]},m=migrateState(s);
+ assert.equal(m.tasks[0].deadline,t.deadline);assert.equal(migrateState({...s,tasks:[task()]}).tasks[0].deadline,undefined);
+ assert.equal(validDeadline('2026-02-30'),false);assert.throws(()=>migrateState({...s,tasks:[{...t,deadline:'2026-11-30T24:00'}]}));
+ assert.equal(deadlineStatus(t,new Date('2026-11-28T17:59')),'today');assert.equal(deadlineStatus(t,new Date('2026-11-28T18:01')),'overdue');
+ assert.equal(deadlineStatus({...t,deadline:'2026-11-28'},new Date('2026-11-28T23:59:59')),'today');
+ assert.equal(repeatDeadline(t,'2026-11-27'),'2026-11-29T18:00');
+ const next=addOccurrence([t],t,'2026-11-27');assert.equal(next[1].deadline,'2026-11-29T18:00');assert.equal(next[0],t);
+ assert.equal(duplicateTask(t,s.lists,[]).deadline,undefined);
+ assert.equal(unsafeHistoryPull(s,{...s,tasks:[task()]}),true);assert.equal(unsafeHistoryPull(s,{...s,tasks:[{...t,deadline:''}]}),false);
+});
+test('智能规划优先截止、去重容量、冻结已有时间块、跳过依赖与容量不足',()=>{
+ const fixed={...task('已有','fixed'),time:'09:00',duration:60},a={...task('截止','a'),deadline:date+'T12:00',priority:0,duration:30},b={...task('高优先','b'),priority:3,duration:60},blocked={...task('依赖','dep'),dependsOn:['b']},huge={...task('超长','huge'),duration:600},backlog={...task('积压','old','2026-11-25'),duration:30};
+ const external=calendarBusy([{id:'e',title:'会议',start:date+'T09:30:00',end:date+'T10:30:00'}]);
+ const tasks=[fixed,b,a,blocked,huge,backlog,...external],plan=executionPlan(tasks,date,{start:'09:00',end:'12:30',includeBacklog:true,sessions:[{taskId:'a',mode:'focus',seconds:600}]});
+ assert.deepEqual(plan.placements.map(p=>[p.id,p.time]),[['a','10:30'],['b','11:00'],['old','12:00']]);assert.equal(plan.placements[0].remaining,1200);assert.equal(plan.budget.remaining,0);
+ assert.match(plan.skipped.find(x=>x.id==='dep').reason,/前置/);assert.match(plan.skipped.find(x=>x.id==='huge').reason,/不足/);assert.equal(fixed.time,'09:00');assert.equal(a.time,'');
+});
+test('队列选择、顺序、真实记录进度、现有计时保护及跳过状态',()=>{
+ const a=task('甲','a'),b=task('乙','b'),s={...base(),tasks:[a,b]};
+ const q=normalizeQueue({date,items:[{id:'a'},{id:'a'},{id:'b',skipped:true}]},date);
+ assert.equal(q.items.length,2);assert.equal(moveQueue(q,'b',-1).items[0].id,'b');
+ const items=queueItems(q,s);assert.equal(items[0].eligible,true);assert.equal(items[1].eligible,false);
+ const running=startFocusTimer(s,{mode:'focus',minutes:25,taskId:'a',now:Date.parse(date+'T09:00:00'),planned:true});
+ assert.equal(startFocusTimer(running,{mode:'focus',minutes:25,taskId:'b',now:Date.now(),planned:true}),running);
+ assert.equal(queueItems(q,running)[0].active,true);
+ const done=settleFocus(running,running.timer.startedAt+running.timer.target*1000);
+ assert.equal(queueItems(q,done)[0].done,true);assert.equal(done.tasks[0].status,'pending');
+ assert.deepEqual(normalizeQueue(q,'2026-11-27').items,[]);
+});
+test('独立周期目标保存与非法值拒绝，回顾截止指标冻结兼容旧数据',()=>{
+ const map=new Map(),storage={getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v)};
+ savePeriodGoal(storage,'2026-11',{completed:20,focusMinutes:300});savePeriodGoal(storage,'2026',{completed:100,focusMinutes:1000});
+ assert.equal(readPeriodGoals(storage)['2026-11'].completed,20);assert.throws(()=>savePeriodGoal(storage,'2026-13',{completed:1,focusMinutes:1}));
+ const done={...task(),deadline:date+'T18:00',completedAt:date+'T17:00:00',status:'completed',stage:'done'};
+ const data={...base(),tasks:[done],habits:[{id:'h',name:'阅读',days:[date],includeInPlan:true}]};assert.equal(migrateState(data).habits[0].includeInPlan,true);
+ const v=reviewInsights(data,{since:date,until:date,completed:[done]});assert.equal(v.deadlineTotal,1);assert.equal(v.deadlineMet,1);assert(validInsights(v));assert.match(insightsMarkdown(v),/截止达成：1\/1/);
+ const {deadlineTotal,deadlineMet,...old}=v;assert(validInsights(old));savePeriodGoal(storage,'2026-11',null);assert.equal(readPeriodGoals(storage)['2026-11'],undefined);
+});
+test('截止智能清单与规则筛选，字段显示偏好不修改任务',()=>{
+ const t={...task(),deadline:date+'T17:00'},f=normalizeFilter({id:'f',name:'截止',date:'due-today'});
+ assert(!validSmartLists([f]));assert(validSmartLists([f],{local:true}));assert.deepEqual(readDeadlineSmartLists({getItem:key=>{assert.equal(key,DEADLINE_SMART_KEY);return JSON.stringify([f])}}),[f]);assert(smartMatches(t,f,date));assert(!smartMatches(task(),f,date));assert(deadlineInRange(t,date,'due-next7'));
+ const d={...base(),tasks:[t]},rule={...newRule(),condition:'due-today',action:'high'};
+ assert.equal(previewRules(d,[rule],date)[0].patch.priority,3);
+ assert.deepEqual(normalizeView({fields:['duration','date','date','bad']}).fields,['date','duration']);assert.deepEqual(normalizeViewFields([]),[]);
+});
+test('CSV与Markdown解析、映射、错误预览、中文引号换行及重复导入保护',()=>{
+ const input='\uFEFF标题,备注,计划日期,预计时长,截止期限\r\n"中文,任务","第一行\n第二行 ""引号""",2026-11-26,45,2026-11-28T18:00\r\n"中文,任务",重复,2026-11-26,45,\r\n非法,备注,2026-02-30,10,';
+ const p=parseCSV(input),m=inferMapping(p.header),s=base(),rows=previewExchange(p,m,'inbox',s);
+ assert.equal(rows[0].fields.notes,'第一行\n第二行 "引号"');assert.equal(rows[0].fields.duration,45);assert(rows[1].duplicate);assert(rows[2].error);
+ const tasks=makeImportTasks(rows),next=appendImportedTasks(s,tasks);assert.equal(next.tasks.length,1);assert.equal(appendImportedTasks(next,tasks),next);
+ const exported=parseCSV(exportTasks(next.tasks,'csv'));assert.equal(previewExchange(exported,inferMapping(exported.header),'inbox',s)[0].fields.notes,rows[0].fields.notes);
+ assert.equal(previewExchange(exported,inferMapping(exported.header),'inbox',next)[0].duplicate,true);
+ assert.match(exportTasks([task('=HYPERLINK("x")')],'csv'),/"'=HYPERLINK/);
+ assert.throws(()=>parseCSV('title\n"unclosed'));assert.throws(()=>parseCSV('title,title\n1,2'));
+ const md=parseMarkdownTasks('- [ ] 阅读\n- [x] 完成\n说明');assert.deepEqual(md.rows,[['阅读']]);assert.equal(md.ignored,2);
+});

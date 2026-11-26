@@ -13,9 +13,10 @@ export function focusCountOnDay(sessions,at){
  const day=dayKey(new Date(at));
  return sessions.filter(s=>s.mode==='focus'&&dayKey(new Date(s.startedAt))===day).length;
 }
+export function focusDue(t,now){return !!t&&t.startedAt!==null&&t.mode!=='stopwatch'&&t.target>0&&timerSeconds(t,now)>=t.target}
 export function settleFocus(state,now=Date.now()){
  const t=state.timer;
- if(!t||t.startedAt===null||t.mode==='stopwatch'||t.target<=0||timerSeconds(t,now)<t.target)return state;
+ if(!focusDue(t,now))return state;
  const end=t.startedAt+Math.max(0,t.target-t.elapsed)*1000;
  const endIso=new Date(end).toISOString();
  const eventId='timer:'+(t.phaseAt??t.createdAt)+':'+t.mode;

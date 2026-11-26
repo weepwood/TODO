@@ -309,3 +309,6 @@
 
 /* External drag gutter reduces available card width on the smallest phones. */
 @media(max-width:359px){.v2 .detail-content[data-inspector=true] .property-grid{grid-template-columns:minmax(0,1fr)}}
+
+/* The lazy inspector uses the same surface spacing while its code loads. */
+.v2 .detail-loading{padding:16px;margin:0;font-size:12px}

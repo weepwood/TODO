@@ -11,7 +11,7 @@ export function WorkflowRules({state,data,today,localOnly,onSave,onRun,onUndo,on
  const [tab,setTab]=useState('rules');
  const [collapsed,setCollapsed]=useState([]),[logFilter,setLogFilter]=useState('all'),[logQuery,setLogQuery]=useState('');
  const rules=useMemo(()=>draft.filter(validRule),[draft]),manualRules=useMemo(()=>rules.filter(r=>[undefined,'daily','manual','time'].includes(r.trigger)),[rules]),rows=useMemo(()=>previewRules(data,manualRules,today),[data,manualRules,today]),valid=rules.length===draft.length&&(snapshot==='none'||/^([01]\d|2[0-3]):[0-5]\d$/.test(snapshotAt));
- const cond=[['overdue','已经过期'],['unscheduled','没有日期'],['today','计划今天'],['any','不限日期'],['high','高优先级'],['unblocked','依赖均已完成'],['doing','进行中'],['todo','待处理']];
+ const cond=[['due-today','今天截止'],['due-overdue','截止日期已过期'],['due-next7','七天内截止'],['overdue','已经过期'],['unscheduled','没有日期'],['today','计划今天'],['any','不限日期'],['high','高优先级'],['unblocked','依赖均已完成'],['doing','进行中'],['todo','待处理']];
  const triggerNames={daily:'每日首次',time:'指定时间',created:'创建任务',changed:'属性变更',completed:'前置任务完成',manual:'仅手动'};
  const actionNames={today:'安排今天',tomorrow:'安排明天',high:'高优先级',low:'低优先级','clear-date':'清除日期',doing:'进行中',todo:'待处理',closeout:'到期任务收尾'};
  const fieldNames={date:'计划日期',priority:'优先级',stage:'任务状态',anchor:'日期锚点'};

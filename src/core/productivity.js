@@ -1,10 +1,29 @@
+import {seriesSafetyKeys} from './series-control.js';
+import {deadlineEnd} from './deadline.js';
+import {taskFocusSeconds} from './pomodoro-planner.js';
 import {nextSlot,blockers} from './advanced.js';
-export function planDay(tasks,date,{start='09:00',end='18:00',max=30}={}){
- let working=[...tasks],placements=[];
- const candidates=tasks.filter(t=>t.status==='pending'&&!t.deletedAt&&(!t.date||t.date===date)&&!t.time&&!blockers(tasks,t).length).sort((a,b)=>b.priority-a.priority||a.createdAt.localeCompare(b.createdAt)).slice(0,max);
- for(const task of candidates){const time=nextSlot(working,date,task.duration,start,end);if(!time)continue;const patch={id:task.id,date,time,anchor:Number(date.slice(-2))};placements.push(patch);working=working.map(t=>t.id===task.id?{...t,...patch}:t)}
- return placements;
+export function executionPlan(tasks,date,{start='09:00',end='18:00',max=30,sessions=[],includeBacklog=false}={}){
+ if(!validWorkHours(start,end))return {placements:[],skipped:[],budget:null};
+ let working=[...tasks],placements=[],skipped=[];const held=seriesSafetyKeys(tasks);
+ const candidates=tasks.filter(t=>!t.external&&t.status==='pending'&&!t.deletedAt&&(!t.date||t.date===date||includeBacklog&&t.date<date)&&!t.time);
+ const endDay=t=>deadlineEnd(t.deadline)??Infinity;
+ candidates.sort((a,b)=>endDay(a)-endDay(b)||b.priority-a.priority||a.createdAt.localeCompare(b.createdAt));
+ for(const task of candidates){
+  const remaining=Math.max(0,task.duration*60-taskFocusSeconds(sessions,task.id));
+  const skip=reason=>skipped.push({id:task.id,title:task.title,reason,remaining});
+  if(held.has(task.seriesId||task.id)||task.seriesHold||blockers(tasks,task).length){skip('等待前置任务或系列暂停');continue}
+  if(task.repeat!=='none'&&task.date!==date||task.seriesId&&task.date!==date){skip('保留重复实例日期');continue}
+  if(placements.length>=max){skip('达到单次安排上限');continue}
+  // duration is both estimate and time-block length: never silently shrink it.
+  const time=nextSlot(working,date,task.duration,start,end);if(!time){skip('连续空闲时间不足');continue}
+  const finish=new Date(date+'T'+time).getTime()+task.duration*60000;
+  const due=deadlineEnd(task.deadline),reason=due!==null&&finish>due?'预计超过截止期限':task.deadline?'按截止期限优先':'按优先级安排';
+  const patch={id:task.id,date,time,anchor:Number(date.slice(-2))};
+  placements.push({...patch,reason,remaining});working=working.map(t=>t.id===task.id?{...t,...patch}:t)
+ }
+ return {placements,skipped,budget:workBudget(daySegments(working,date),start,end)};
 }
+export function planDay(tasks,date,options){return executionPlan(tasks,date,options).placements.map(({reason,remaining,...patch})=>patch)}
 export function safeLink(value){try{const u=new URL(value);return ['https:','http:'].includes(u.protocol)&&!u.username&&!u.password?u.href:null}catch{return null}}
 export function taskActivity(task){const out=[{label:'创建任务',at:task.createdAt}];if(task.completedAt)out.push({label:'完成任务',at:task.completedAt});if(task.deletedAt)out.push({label:'移入回收站',at:task.deletedAt});if(task.previousId)out.push({label:'由上一重复实例生成',at:task.createdAt});return out.filter(e=>e.at).sort((a,b)=>b.at.localeCompare(a.at))}
 

@@ -1,3 +1,4 @@
+import {DeadlineProperty} from './DeadlineProperty.jsx';
 import {DndContext,closestCenter,PointerSensor,useSensor,useSensors} from '@dnd-kit/core';
 import {SortableContext,verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {useDetailDensity} from '../../components/useDetailDensity.js';
@@ -33,7 +34,7 @@ import {ActivityTimeline} from '../../components/ActivityTimeline.jsx';
 import {priorityNames} from "../../design-system/Controls.jsx";
 import {PriorityValue,GroupValue,StatusValue} from "../../design-system/Controls.jsx";
 const verticalOnly=({transform})=>({...transform,x:0,scaleX:1,scaleY:1});
-export function TaskDetail({compactLayout,scope,storage,task,data,now,updateFocus,onAttachmentActivity,openSeries,patch,remove,finish,restore,reopen,saveTemplate,select,addChild,onCreateGroup,onRenameGroup,onClose}){
+export function TaskDetail({compactLayout,scope,storage,task,data,updateFocus,onAttachmentActivity,openSeries,patch,remove,finish,restore,reopen,saveTemplate,select,addChild,onCreateGroup,onRenameGroup,onClose}){
  const [item,setItem]=useState(''),[historyOpen,setHistoryOpen]=useState(false),[activityFilter,setActivityFilter]=useState("all"),[activityCount,setActivityCount]=useState(10);
  const [densities,changeDensity,sectionOrder,reorderSection]=useDetailDensity(storage);
  const sensors=useSensors(useSensor(PointerSensor,{activationConstraint:{distance:5}}));
@@ -50,7 +51,7 @@ export function TaskDetail({compactLayout,scope,storage,task,data,now,updateFocu
  const historyItems=activityTimeline(task),filteredActivity=historyItems.filter(e=>activityMatches(e,activityFilter)),hasSeries=!!(task.seriesId||task.repeat!=='none'||data.tasks.some(t=>t.previousId===task.id));
  const seriesItems=useMemo(()=>hasSeries?seriesTimeline(data.tasks,task):[],[data.tasks,task.id,task.seriesId,hasSeries]);
  const focusSummary=taskFocusSummary(data.sessions,task.id);
- const focusDetails=<InlineFocus task={task} data={data} now={now} update={updateFocus} locked={locked} summary={focusSummary}/>;
+ const focusDetails=<InlineFocus task={task} data={data} update={updateFocus} locked={locked} summary={focusSummary}/>;
  const taskGroup=list?.sections?.find(s=>s.id===task.sectionId);
  const status=task.deletedAt?'trash':task.status==='completed'?'completed':task.status==='skipped'?'skipped':task.stage==='doing'?'doing':'todo';
  const priorityValue=i=><PriorityValue value={i}/>;
@@ -69,6 +70,7 @@ export function TaskDetail({compactLayout,scope,storage,task,data,now,updateFocu
  section("plan","时间、提醒与计划",CalendarDays,<><PropertyGrid>
  {property('计划日期',task.date||'未安排',<DatePicker confirm required={task.repeat!=='none'||!!task.seriesHold} value={task.date} onChange={date=>{const result=scheduleChanges(task,task,{...scheduleSnapshot(task),date},{locked:seriesLocked});if(result.error)return result.error;if(Object.keys(result.fields).length)patch(result.fields)}}/>)}
  {property('计划时间',task.time||'未设置',<TimeControl commitOnBlur label="计划时间" value={task.time} onChange={time=>patch({time})}/>)}
+ {property('截止期限',task.deadline?.replace('T',' ')||'未设置',<DeadlineProperty task={task} patch={patch} locked={locked}/>)}
  {property('预计时长',task.duration+' 分钟',<NumberField label="预计分钟" unit="分钟" min={1} max={1440} value={task.duration} onCommit={duration=>patch({duration})}/>)}
  {property('任务积分',taskPoints(task)+' 分',<NumberField label="任务积分" unit="分" min={-MAX_POINTS} max={MAX_POINTS} value={taskPoints(task)} onCommit={points=>patch({points})}/>)}
 

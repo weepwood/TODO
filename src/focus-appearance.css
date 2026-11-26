@@ -23,3 +23,6 @@
  /* Checked/highlighted menu options already have a selected fill. */
  html[data-focus-mode=quiet][data-input-modality=pointer] .smart-select-option[data-state=checked][data-highlighted]{outline:none}
 }
+
+/* Keep quiet capture chrome, but honor the explicit enhanced focus preference. */
+html[data-focus-mode=enhanced] .v2 .task-capture-toolbar>.quick-add:focus-within{box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 15%,transparent)}

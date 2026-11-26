@@ -83,3 +83,13 @@ test('延迟唤醒不回填下一阶段，显式结束停止普通循环',()=>{
  assert.equal(settleFocus({...a,tasks:a.tasks.map(t=>({...t,status:'completed'}))},now+60000).timer,null);
  assert.equal(settleFocus(a,now+121000).timer,null);
 });
+
+import {focusDue} from '../src/core/focus-engine.js';
+test('后台结算门禁只在运行中的倒计时到期时触发',()=>{
+ const s=base(40),a=startFocusTimer(s,{mode:'focus',minutes:1,taskId:'a',now});
+ assert.equal(focusDue(null,now),false);
+ assert.equal(focusDue(a.timer,now+59999),false);
+ assert.equal(focusDue(a.timer,now+60000),true);
+ assert.equal(focusDue({...a.timer,startedAt:null,elapsed:60},now+120000),false);
+ assert.equal(focusDue({...a.timer,mode:'stopwatch'},now+120000),false);
+});
