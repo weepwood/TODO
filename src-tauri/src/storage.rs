@@ -74,18 +74,19 @@ fn save_with_receipt(c:&mut Connection,scope:&str,body:&str,store:Option<&str>,r
   Some((queue_scope,id.to_owned(),status.to_owned(),raw))
  }else{None};
  let prior:Option<String>=tx.query_row("SELECT body FROM snapshots WHERE scope=?1",[scope],|r|r.get(0)).optional().map_err(|e|e.to_string())?;
+ let mut prior_state=None;
  if let Some((queue,id,status,_))=&op{
   let kind:String=tx.query_row("SELECT kind FROM cli_operation_meta WHERE scope=?1 AND id=?2",params![queue,id],|r|r.get(0)).map_err(|e|e.to_string())?;
   if kind=="history-apply"&&status=="saved"{
    let old=serde_json::from_str(prior.as_deref().ok_or("missing prior snapshot")?).map_err(|e|e.to_string())?;
-   validate_history_commit(&tx,scope,id,&old,&state,&receipt.unwrap()["result"],now)?;
+   validate_history_commit(&tx,scope,id,&old,&state,&receipt.unwrap()["result"],now)?;prior_state=Some(old);
   }
  }
  if prior.as_deref()!=Some(body){
  tx.execute("INSERT OR IGNORE INTO backups SELECT scope,body,?2 FROM snapshots WHERE scope=?1 AND NOT EXISTS(SELECT 1 FROM backups WHERE scope=?1 AND saved_at>?2-3600)",params![scope,now]).map_err(|e|e.to_string())?;
  tx.execute("DELETE FROM backups WHERE scope=?1 AND saved_at NOT IN (SELECT saved_at FROM backups WHERE scope=?1 ORDER BY saved_at DESC LIMIT 24)",[scope]).map_err(|e|e.to_string())?;
  tx.execute("INSERT INTO snapshots VALUES(?1,?2,?3) ON CONFLICT(scope) DO UPDATE SET body=excluded.body,updated_at=excluded.updated_at",params![scope,body,now]).map_err(|e|e.to_string())?;
- let prior_state=prior.as_ref().and_then(|x|serde_json::from_str::<serde_json::Value>(x).ok());
+ let prior_state=prior_state.or_else(||prior.as_ref().and_then(|x|serde_json::from_str::<serde_json::Value>(x).ok()));
  update_index(&tx,scope,prior_state.as_ref(),&state).map_err(|e|e.to_string())?;
  // Identify the actual pending request rather than trust model-supplied source.
  let mut info:Option<(String,String,String)>=None;
@@ -99,14 +100,14 @@ fn save_with_receipt(c:&mut Connection,scope:&str,body:&str,store:Option<&str>,r
   let capture:Option<String>=tx.query_row("SELECT d.id FROM direct_capture_requests d JOIN cli_capture_meta m USING(scope,id) WHERE d.scope='cli:'||?1 AND d.status='pending' AND m.task_count=(SELECT count(DISTINCT json_extract(t.value,'$.id')) FROM json_each(?2,'$.tasks') t WHERE json_extract(t.value,'$.id') IN (SELECT d.id||':'||n FROM (WITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM seq WHERE n<50) SELECT n FROM seq) WHERE n<=m.task_count))",params![scope,body],|r|r.get(0)).optional().map_err(|e|e.to_string())?;
   if let Some(id)=capture{info=Some((id.clone(),"batch-capture".into(),id))}
  }
- operation_history::append_history(&tx,scope,prior_state.as_ref(),&state,now,info.as_ref().map(|(id,k,g)|(id.as_str(),k.as_str(),g.as_str(),receipt.and_then(|r|r["result"].get("userConfirmation")))))?;
+ operation_history::append_history_with_raw(&tx,scope,prior_state.as_ref(),&state,now,info.as_ref().map(|(id,k,g)|(id.as_str(),k.as_str(),g.as_str(),receipt.and_then(|r|r["result"].get("userConfirmation")))),prior.as_deref().map(|p|(p,body)))?;
 
  }
  // Mark receipt atomically with snapshot, never infer success from frontend memory.
  tx.execute("UPDATE direct_capture_requests SET status='saved',text='' WHERE scope=?1 AND status='pending' AND NOT EXISTS(SELECT 1 FROM cli_capture_meta m WHERE m.scope=direct_capture_requests.scope AND m.id=direct_capture_requests.id) AND id IN (SELECT json_extract(value,'$.id') FROM json_each(?2,'$.tasks'))",params![scope,body]).map_err(|e|e.to_string())?;
  // Structured batch receipt is committed only when every deterministic task ID exists.
  tx.execute("UPDATE direct_capture_requests AS d SET status='saved',text='' WHERE d.scope='cli:'||?1 AND d.status='pending' AND EXISTS(SELECT 1 FROM cli_capture_meta m WHERE m.scope=d.scope AND m.id=d.id AND m.task_count=(SELECT count(DISTINCT json_extract(t.value,'$.id')) FROM json_each(?2,'$.tasks') t WHERE json_extract(t.value,'$.id') IN (SELECT d.id||':'||n FROM (WITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM seq WHERE n<50) SELECT n FROM seq) WHERE n<=m.task_count)))",params![scope,body]).map_err(|e|e.to_string())?;
- if let Some(store)=store{tx.execute("INSERT INTO workspace_store VALUES(?1,?2) ON CONFLICT(scope) DO UPDATE SET body=excluded.body",params![scope,store]).map_err(|e|e.to_string())?;}
+ if let Some(store)=store{tx.execute("INSERT INTO workspace_store VALUES(?1,?2) ON CONFLICT(scope) DO UPDATE SET body=excluded.body WHERE workspace_store.body<>excluded.body",params![scope,store]).map_err(|e|e.to_string())?;}
  if let Some((queue_scope,id,status,result))=op{
   if tx.execute("UPDATE direct_capture_requests SET status=?3,text='' WHERE scope=?1 AND id=?2 AND status='pending'",params![&queue_scope,&id,&status]).map_err(|e|e.to_string())?!=1{return Err("operation state changed".into())}
   if tx.execute("UPDATE cli_operation_meta SET result=?3 WHERE scope=?1 AND id=?2",params![&queue_scope,&id,&result]).map_err(|e|e.to_string())?!=1{return Err("operation receipt missing".into())}
@@ -120,9 +121,9 @@ fn save_with_receipt(c:&mut Connection,scope:&str,body:&str,store:Option<&str>,r
  }
  tx.commit().map_err(|e|e.to_string())
 }
-fn index_values(state:&serde_json::Value)->std::collections::BTreeMap<String,(String,String)>{
+fn index_values(state:&serde_json::Value)->std::collections::BTreeMap<&str,(&str,&str)>{
  let mut out=std::collections::BTreeMap::new();
- if let Some(tasks)=state["tasks"].as_array(){for t in tasks{if t["deletedAt"].is_null(){if let Some(id)=t["id"].as_str(){out.insert(id.to_owned(),(t["title"].as_str().unwrap_or("").to_owned(),t["notes"].as_str().unwrap_or("").to_owned()));}}}}
+ if let Some(tasks)=state["tasks"].as_array(){for t in tasks{if t["deletedAt"].is_null(){if let Some(id)=t["id"].as_str(){out.insert(id,(t["title"].as_str().unwrap_or(""),t["notes"].as_str().unwrap_or("")));}}}}
  out
 }
 fn update_index(c:&Connection,scope:&str,prior:Option<&serde_json::Value>,state:&serde_json::Value)->rusqlite::Result<()>{
@@ -158,4 +159,28 @@ pub(super) fn persist_store_receipt(c:&mut Connection,scope:&str,store:&str,rece
  if map.iter().any(|(k,v)|!keys.contains(&k.as_str())||!v.is_string()){return Err("工作空间存储键无效".into())}
  let body=map.get("todo-workbench-v1").and_then(|x|x.as_str()).ok_or("缺少工作空间数据")?;
  save_with_receipt(c,scope,body,Some(store),receipt)
+}
+
+#[cfg(test)]
+mod performance_tests{
+ use super::*;
+ #[test]#[ignore]fn profile_storage_phases(){
+  use std::time::Instant;
+  let dir=std::env::temp_dir().join(format!("todo-phase-{}",uuid::Uuid::new_v4()));std::fs::create_dir(&dir).unwrap();
+  let mut c=Connection::open(dir.join("phase.sqlite3")).unwrap();schema(&c).unwrap();
+  let a=serde_json::json!({"version":2,"tasks":(0..10000).map(|i|serde_json::json!({"id":format!("qa-{i}"),"title":format!("synthetic task {i}"),"notes":"synthetic","priority":0,"activity":(0..5).map(|j|serde_json::json!({"id":format!("qa-{i}-{j}"),"kind":"priority","category":"property","operation":format!("op-{j}"),"changes":[{"field":"priority","before":"0","after":"1"}]})).collect::<Vec<_>>() })).collect::<Vec<_>>()});
+  let raw=a.to_string();save(&mut c,"guest",&raw).unwrap();
+  let mut b=a.clone();b["tasks"][0]["priority"]=serde_json::json!(3);save(&mut c,"guest",&b.to_string()).unwrap();
+  let before=b.to_string();b["tasks"][1]["priority"]=serde_json::json!(3);let after=b.to_string();
+  for _ in 0..5{
+   let t=Instant::now();let a:serde_json::Value=serde_json::from_str(&before).unwrap();let b:serde_json::Value=serde_json::from_str(&after).unwrap();let parse=t.elapsed().as_secs_f64()*1000.;
+   let tx=c.transaction().unwrap();
+   let t=Instant::now();update_index(&tx,"guest",Some(&a),&b).unwrap();let index=t.elapsed().as_secs_f64()*1000.;
+   let t=Instant::now();operation_history::append_history_with_raw(&tx,"guest",Some(&a),&b,Local::now().timestamp(),None,Some((&before,&after))).unwrap();let journal=t.elapsed().as_secs_f64()*1000.;
+   let t=Instant::now();tx.execute("UPDATE snapshots SET body=?1 WHERE scope='guest'",[&after]).unwrap();let snapshot=t.elapsed().as_secs_f64()*1000.;
+   tx.rollback().unwrap();
+   println!("phase parse_two_ms={parse:.3} index_ms={index:.3} journal_with_hash_ms={journal:.3} snapshot_sql_ms={snapshot:.3} (rolled back, excludes commit)");
+  }
+  drop(c);std::fs::remove_dir_all(dir).unwrap();
+ }
 }

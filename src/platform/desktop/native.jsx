@@ -73,7 +73,7 @@ export function useCliOperations({uid,storage,data,blocked,apply,editor,onSaved,
      const {operationGroup,...request}=JSON.parse(req.text);
      if(request.op.startsWith('focus-')&&now.getTime()-req.created_at*1000>30000)throw Error('专注指令已过期，请打开应用后重新提交');
      const {HISTORY_OPS,readConsistentHistory}=await import('../../core/operation-history.js');
-     const readJournal=()=>readConsistentHistory(storage,expected,()=>invoke('native_operation_history',{scope,detail:request.op!=='history-list'}));
+     const readJournal=()=>readConsistentHistory(storage,expected,()=>invoke('native_operation_history',{scope,detail:request.op!=='history-list',...(request.op==='history-show'?{version:request.version}:{})}));
      const journal=HISTORY_OPS.includes(request.op)?await readJournal():undefined;
      const prepared=await prepareCliOperation(expected,request,req.id,now,{reference:req.reference,journal,preferencesStorage:latest.current.preferencesStorage});
      if(prepared.next!==expected){

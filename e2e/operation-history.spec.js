@@ -10,7 +10,7 @@ test('现有历史入口展示版本、选择性恢复与实际应用确认（�
    if(cmd==='native_operation_history'){
     const raw=JSON.parse(localStorage.getItem('qa-history-store'))['todo-workbench-v1'];
     const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(raw))),x=>x.toString(16).padStart(2,'0')).join('');
-    return {...window.__qaJournal,workspaceFingerprint:hash};
+    return {...window.__qaJournal,entries:args.version===undefined?window.__qaJournal.entries:window.__qaJournal.entries.filter(e=>e.version===args.version),workspaceFingerprint:hash};
    }
    if(cmd==='native_cli_next')return window.__qaRequest;
    if(cmd==='native_cli_write_store'){localStorage.setItem('qa-history-store',args.store);window.__qaReceipt=args.receipt;window.__qaRequest=null;return null}

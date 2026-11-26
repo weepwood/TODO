@@ -161,11 +161,11 @@ fn native_cli_next(scope:String,active:tauri::State<ActiveScope>,db:tauri::State
  Ok(req)
 }
 #[tauri::command]
-fn native_operation_history(scope:String,detail:bool,active:tauri::State<ActiveScope>,db:tauri::State<Database>)->Result<serde_json::Value,String>{
+fn native_operation_history(scope:String,detail:bool,version:Option<i64>,active:tauri::State<ActiveScope>,db:tauri::State<Database>)->Result<serde_json::Value,String>{
  let current=active.0.lock().map_err(|e|e.to_string())?;
  if current.as_deref()!=Some(&scope){return Err("工作空间已切换".into())}
  let c=db.0.lock().map_err(|e|e.to_string())?;
- operation_history::history_read(&c,&scope,detail,300)
+ match version{Some(v) if detail=>operation_history::history_read_version(&c,&scope,v),Some(_)=>Err("version requires detail".into()),None=>operation_history::history_read(&c,&scope,detail,300)}
 }
 #[tauri::command]
 fn native_cli_write_store(scope:String,store:String,receipt:serde_json::Value,active:tauri::State<ActiveScope>,db:tauri::State<Database>)->Result<(),String>{

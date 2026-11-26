@@ -35,7 +35,7 @@ function OperationHistory({data,scope,storage,blocked,onRestore}){
  const refresh=async()=>{setPreview(null);setDetail(null);setError('');try{setJournal(await invoke('native_operation_history',{scope,detail:false}))}catch(e){setError(String(e))}};
  useEffect(()=>{setJournal(null);setRequest(null);refresh()},[scope]);
  const inspect=async version=>{setBusy(true);setError('');setDetail(null);try{
-  const j=await invoke('native_operation_history',{scope,detail:true}),e=j.entries.find(x=>x.version===version);
+  const j=await invoke('native_operation_history',{scope,detail:true,version}),e=j.entries.find(x=>x.version===version);
   if(!e?.body)throw Error('此版本详情已超出读取预算或保留期');setDetail(e);
  }catch(e){setError(String(e?.message||e))}finally{setBusy(false)}};
  const prepare=async r=>{setBusy(true);setDetail(null);setError('');setPreview(null);setRequest(r);try{const {buildHistoryPreview,readConsistentHistory}=await import('../core/operation-history.js');const j=await readConsistentHistory(storage,data,()=>invoke('native_operation_history',{scope,detail:true}));const p=await buildHistoryPreview(data,r,j);setPreview({...p,expected:data,generatedAt:Date.now()})}catch(e){setError(String(e?.message||e))}finally{setBusy(false)}};

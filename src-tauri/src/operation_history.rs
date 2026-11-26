@@ -5,7 +5,7 @@ use sha2::{Digest,Sha256};
 use std::collections::{BTreeMap,BTreeSet};
 const SAFE:&[&str]=&["title","priority","listId","sectionId","tags","date","time","anchor","duration","deadline","planMinutes","planSegments","deletedAt"];
 const DAYS:i64=30*86400;
-fn fingerprint(v:&Value)->String{format!("{:x}",Sha256::digest(v.to_string().as_bytes()))}
+pub(super) fn fingerprint(v:&Value)->String{format!("{:x}",Sha256::digest(v.to_string().as_bytes()))}
 fn task_map(v:&Value)->BTreeMap<&str,&Value>{
  v["tasks"].as_array().into_iter().flatten().filter_map(|t|Some((t["id"].as_str()?,t))).collect()
 }
@@ -73,15 +73,27 @@ fn lifecycle_proof(a:&Value,b:&Value,changed:&BTreeSet<&str>)->Option<Value>{
  Some(json!({"afterHash":fingerprint(&business),"fields":keys.iter().map(|k|(k.to_string(),json!({"before":field(a,k),"after":field(b,k)}))).collect::<serde_json::Map<String,Value>>() }))
 }
 pub(super) fn history_schema(c:&Connection)->rusqlite::Result<()>{
- c.execute_batch("CREATE TABLE IF NOT EXISTS operation_history_head(scope TEXT PRIMARY KEY, version INTEGER NOT NULL, fingerprint TEXT NOT NULL); CREATE TABLE IF NOT EXISTS operation_history(scope TEXT NOT NULL, version INTEGER NOT NULL, at INTEGER NOT NULL, source TEXT NOT NULL, kind TEXT NOT NULL, request_id TEXT, group_id TEXT, body TEXT NOT NULL, PRIMARY KEY(scope,version)); CREATE INDEX IF NOT EXISTS operation_history_age ON operation_history(scope,at);")
+ c.execute_batch("CREATE TABLE IF NOT EXISTS operation_history_head(scope TEXT PRIMARY KEY, version INTEGER NOT NULL, fingerprint TEXT NOT NULL); CREATE TABLE IF NOT EXISTS operation_history(scope TEXT NOT NULL, version INTEGER NOT NULL, at INTEGER NOT NULL, source TEXT NOT NULL, kind TEXT NOT NULL, request_id TEXT, group_id TEXT, body TEXT NOT NULL, PRIMARY KEY(scope,version)); CREATE INDEX IF NOT EXISTS operation_history_age ON operation_history(scope,at); CREATE TABLE IF NOT EXISTS operation_history_raw_proof(scope TEXT PRIMARY KEY, version INTEGER NOT NULL, fingerprint TEXT NOT NULL, raw_hash TEXT NOT NULL);")
 }
-pub(super) fn append_history(c:&Connection,scope:&str,prior:Option<&Value>,next:&Value,now:i64,request:Option<(&str,&str,&str,Option<&Value>)>)->Result<(),String>{
+fn raw_fingerprint(raw:&str)->String{format!("{:x}",Sha256::digest(raw.as_bytes()))}
+// A raw proof is a cache, never an independent authority. Bind it to the
+// canonical head AND exact snapshot bytes. Older writers safely miss it.
+fn raw_proof_matches(c:&Connection,scope:&str,head:&(i64,String),raw_hash:&str)->Result<bool,String>{
+ c.query_row("SELECT EXISTS(SELECT 1 FROM operation_history_raw_proof WHERE scope=?1 AND version=?2 AND fingerprint=?3 AND raw_hash=?4)",params![scope,head.0,&head.1,raw_hash],|r|r.get(0)).map_err(|e|e.to_string())
+}
+#[cfg(test)]
+fn append_history(c:&Connection,scope:&str,prior:Option<&Value>,next:&Value,now:i64,request:Option<(&str,&str,&str,Option<&Value>)>)->Result<(),String>{
+ append_history_with_raw(c,scope,prior,next,now,request,None)
+}
+pub(super) fn append_history_with_raw(c:&Connection,scope:&str,prior:Option<&Value>,next:&Value,now:i64,request:Option<(&str,&str,&str,Option<&Value>)>,raw:Option<(&str,&str)>)->Result<(),String>{
  let prior=match prior{Some(v)=>v,None=>return Ok(())};
  if prior==next{return Ok(())}
  let head:Option<(i64,String)>=c.query_row("SELECT version,fingerprint FROM operation_history_head WHERE scope=?1",[scope],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|e|e.to_string())?;
  let mut version=head.as_ref().map(|x|x.0).unwrap_or(0);
- let before_hash=fingerprint(prior);
- let gap=head.as_ref().is_some_and(|x|x.1!=before_hash);
+ let gap=if let Some(h)=&head{
+  let cached=if let Some((before,_))=raw{raw_proof_matches(c,scope,h,&raw_fingerprint(before))?}else{false};
+  !cached&&fingerprint(prior)!=h.1
+ }else{false};
  if gap{
   version+=1;
   c.execute("INSERT INTO operation_history VALUES(?1,?2,?3,'local','gap',NULL,NULL,?4)",params![scope,version,now,json!({"gap":true,"rows":[]}).to_string()]).map_err(|e|e.to_string())?;
@@ -117,30 +129,53 @@ pub(super) fn append_history(c:&Connection,scope:&str,prior:Option<&Value>,next:
   let (source,kind,rid,group)=match request{Some((id,kind,group,_))=>("cli",kind,Some(id),Some(group)),None=>("local","workspace-save",None,None)};
   let mut body=json!({"rows":rows,"protectedWorkspace":other});
   if let Some((_,_,_,Some(approval)))=request{body["confirmation"]=approval.clone();}
-  if body.to_string().len()>262144{body=json!({"gap":true,"rows":[],"reason":"commit exceeds history body limit"})}
-  c.execute("INSERT INTO operation_history VALUES(?1,?2,?3,?4,?5,?6,?7,?8)",params![scope,version,now,source,kind,rid,group,body.to_string()]).map_err(|e|e.to_string())?;
+  let mut encoded=body.to_string();if encoded.len()>262144{encoded=json!({"gap":true,"rows":[],"reason":"commit exceeds history body limit"}).to_string()}
+  c.execute("INSERT INTO operation_history VALUES(?1,?2,?3,?4,?5,?6,?7,?8)",params![scope,version,now,source,kind,rid,group,encoded]).map_err(|e|e.to_string())?;
  }
- c.execute("INSERT INTO operation_history_head VALUES(?1,?2,?3) ON CONFLICT(scope) DO UPDATE SET version=excluded.version,fingerprint=excluded.fingerprint",params![scope,version,fingerprint(next)]).map_err(|e|e.to_string())?;
+ let hash=fingerprint(next);
+ c.execute("INSERT INTO operation_history_head VALUES(?1,?2,?3) ON CONFLICT(scope) DO UPDATE SET version=excluded.version,fingerprint=excluded.fingerprint",params![scope,version,&hash]).map_err(|e|e.to_string())?;
+ if let Some((_,after))=raw{
+  c.execute("INSERT INTO operation_history_raw_proof VALUES(?1,?2,?3,?4) ON CONFLICT(scope) DO UPDATE SET version=excluded.version,fingerprint=excluded.fingerprint,raw_hash=excluded.raw_hash",params![scope,version,&hash,raw_fingerprint(after)]).map_err(|e|e.to_string())?;
+ }
  c.execute("DELETE FROM operation_history WHERE scope=?1 AND (at<?2 OR version<=?3)",params![scope,now-DAYS,version-300]).map_err(|e|e.to_string())?;
  // Also bound aggregate retained values to 16 MiB per scope.
  c.execute("DELETE FROM operation_history WHERE scope=?1 AND version IN (SELECT version FROM (SELECT version,SUM(length(CAST(body AS BLOB))) OVER (ORDER BY version DESC) AS total FROM operation_history WHERE scope=?1) WHERE total>16777216)",[scope]).map_err(|e|e.to_string())?;
  Ok(())
 }
 pub(super) fn history_read(c:&Connection,scope:&str,detail:bool,limit:i64)->Result<Value,String>{
+ history_read_selected(c,scope,detail,limit,None)
+}
+pub(super) fn history_read_version(c:&Connection,scope:&str,version:i64)->Result<Value,String>{
+ if version<=0{return Err("invalid history version".into())}
+ history_read_selected(c,scope,true,1,Some(version))
+}
+fn history_read_selected(c:&Connection,scope:&str,detail:bool,limit:i64,version:Option<i64>)->Result<Value,String>{
+ // Keep head, snapshot and entries in one SQLite read transaction.
+ let tx=c.unchecked_transaction().map_err(|e|e.to_string())?;
+ let result=history_read_snapshot(&tx,scope,detail,limit,version)?;
+ tx.commit().map_err(|e|e.to_string())?;
+ Ok(result)
+}
+fn history_read_snapshot(c:&Connection,scope:&str,detail:bool,limit:i64,version:Option<i64>)->Result<Value,String>{
  let now=Local::now().timestamp();
  let head:Option<(i64,String)>=c.query_row("SELECT version,fingerprint FROM operation_history_head WHERE scope=?1",[scope],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|e|e.to_string())?;
  let current:Option<String>=c.query_row("SELECT body FROM snapshots WHERE scope=?1",[scope],|r|r.get(0)).optional().map_err(|e|e.to_string())?;
- let intact=head.as_ref().is_none_or(|h|current.as_ref().and_then(|s|serde_json::from_str::<Value>(s).ok()).is_some_and(|v|fingerprint(&v)==h.1));
- let mut q=c.prepare("SELECT version,at,source,kind,request_id,group_id,body FROM operation_history WHERE scope=?1 AND at>=?2 ORDER BY version DESC LIMIT ?3").map_err(|e|e.to_string())?;
- let mut rows=q.query(params![scope,now-DAYS,limit.clamp(1,300)]).map_err(|e|e.to_string())?;
+ let raw_hash=current.as_deref().map(raw_fingerprint);
+ let intact=match (&head,&current,&raw_hash){
+  (None,_,_)=>true,
+  (Some(h),Some(raw),Some(hash))=>raw_proof_matches(c,scope,h,hash)?||serde_json::from_str::<Value>(raw).ok().is_some_and(|v|fingerprint(&v)==h.1),
+  _=>false
+ };
+ let mut q=c.prepare("SELECT version,at,source,kind,request_id,group_id,CASE WHEN ?4 THEN body ELSE NULL END,CASE WHEN json_type(body,'$.rows')='array' THEN json_array_length(body,'$.rows') ELSE 0 END,COALESCE(json_type(body,'$.gap')='true',0) FROM operation_history WHERE scope=?1 AND at>=?2 AND (?5 IS NULL OR version=?5) ORDER BY version DESC LIMIT ?3").map_err(|e|e.to_string())?;
+ let mut rows=q.query(params![scope,now-DAYS,limit.clamp(1,300),detail,version]).map_err(|e|e.to_string())?;
  let mut out=vec![];let mut bytes=0;
  while let Some(r)=rows.next().map_err(|e|e.to_string())?{
-  let raw:String=r.get(6).map_err(|e|e.to_string())?;
-  let body:Value=serde_json::from_str(&raw).map_err(|e|e.to_string())?;
-  let row=json!({"version":r.get::<_,i64>(0).map_err(|e|e.to_string())?,"at":r.get::<_,i64>(1).map_err(|e|e.to_string())?,"source":r.get::<_,String>(2).map_err(|e|e.to_string())?,"kind":r.get::<_,String>(3).map_err(|e|e.to_string())?,"requestId":r.get::<_,Option<String>>(4).map_err(|e|e.to_string())?,"groupId":r.get::<_,Option<String>>(5).map_err(|e|e.to_string())?,"count":body["rows"].as_array().map(|a|a.len()).unwrap_or(0),"gap":body["gap"]==true,"body":if detail{body}else{Value::Null}});
+  let raw:Option<String>=r.get(6).map_err(|e|e.to_string())?;
+  let body:Value=match raw{Some(raw)=>serde_json::from_str(&raw).map_err(|e|e.to_string())?,None=>Value::Null};
+  let row=json!({"version":r.get::<_,i64>(0).map_err(|e|e.to_string())?,"at":r.get::<_,i64>(1).map_err(|e|e.to_string())?,"source":r.get::<_,String>(2).map_err(|e|e.to_string())?,"kind":r.get::<_,String>(3).map_err(|e|e.to_string())?,"requestId":r.get::<_,Option<String>>(4).map_err(|e|e.to_string())?,"groupId":r.get::<_,Option<String>>(5).map_err(|e|e.to_string())?,"count":r.get::<_,i64>(7).map_err(|e|e.to_string())?,"gap":r.get::<_,bool>(8).map_err(|e|e.to_string())?,"body":body});
   bytes+=row.to_string().len();if bytes>400000{break}out.push(row);
  }
- Ok(json!({"head":head.map(|h|h.0).unwrap_or(0),"intact":intact,"entries":out,"retentionDays":30,"workspaceFingerprint":current.map(|raw|format!("{:x}",Sha256::digest(raw.as_bytes())))}))
+ Ok(json!({"head":head.map(|h|h.0).unwrap_or(0),"intact":intact,"entries":out,"retentionDays":30,"workspaceFingerprint":raw_hash}))
 }
 
 #[cfg(test)]
@@ -194,6 +229,14 @@ mod tests{
   let size:i64=c.query_row("SELECT SUM(length(CAST(body AS BLOB))) FROM operation_history WHERE scope='guest'",[],|r|r.get(0)).unwrap();assert!(size<=16777216);
   let read=history_read(&c,"guest",true,300).unwrap();assert!(read["entries"].as_array().unwrap().len()<10);
   assert_eq!(read["head"],306);
+  // A single detail read can retrieve an older retained version without
+  // loading newer bodies. Recovery still uses the bounded continuous log.
+  let target:i64=c.query_row("SELECT min(version) FROM operation_history WHERE scope='guest'",[],|r|r.get(0)).unwrap();
+  let one=history_read_version(&c,"guest",target).unwrap();
+  assert_eq!(one["entries"].as_array().unwrap().len(),1);assert_eq!(one["entries"][0]["version"],target);
+  assert!(history_read_version(&c,"00000000-0000-4000-8000-000000000001",target).unwrap()["entries"].as_array().unwrap().is_empty());
+  c.execute("UPDATE operation_history SET at=?1 WHERE version=?2",[now-DAYS-1,target]).unwrap();
+  assert!(history_read_version(&c,"guest",target).unwrap()["entries"].as_array().unwrap().is_empty());
  }
  #[test]#[ignore]fn history_save_benchmark(){
   use std::time::Instant;
@@ -223,6 +266,84 @@ mod tests{
   assert_eq!(h["head"],24);assert_eq!(c.query_row("PRAGMA integrity_check",[],|r|r.get::<_,String>(0)).unwrap(),"ok");
   let db=std::fs::metadata(&path).unwrap().len();let wal=std::fs::metadata(dir.join("bench.sqlite3-wal")).map(|m|m.len()).unwrap_or(0);
   println!("file_benchmark tasks=10000 activity_events=47000 saves=24 initial_snapshot_bytes={bytes} p50_ms={:.3} p95_ms={:.3} max_ms={:.3} read_ms={:.3} db_bytes={db} wal_bytes={wal}",(ms[11]+ms[12])/2.0,ms[22],ms[23],read);
+  drop(c);std::fs::remove_dir_all(dir).unwrap();
+ }
+ #[test]#[ignore]fn history_release_matrix(){
+  use std::time::Instant;
+  fn stat(v:&mut Vec<f64>)->String{v.sort_by(|a,b|a.total_cmp(b));let n=v.len();format!("{:.3}/{:.3}/{:.3}",v[n/2],v[((n as f64*0.95).ceil() as usize)-1],v[n-1])}
+  for count in [1000,5000,10000]{for density in [1,5]{
+   let dir=std::env::temp_dir().join(format!("todo-perf-{}",uuid::Uuid::new_v4()));std::fs::create_dir(&dir).unwrap();let path=dir.join("bench.sqlite3");
+   let mut c=Connection::open(&path).unwrap();super::super::schema(&c).unwrap();
+   let mut a=json!({"version":2,"tasks":(0..count).map(|i|json!({"id":format!("qa-{i}"),"title":format!("synthetic task {i}"),"notes":"synthetic","priority":0,"activity":(0..density).map(|j|json!({"id":format!("qa-{i}-{j}"),"kind":"priority","category":"property","operation":format!("op-{j}"),"changes":[{"field":"priority","before":"0","after":"1"}]})).collect::<Vec<_>>() })).collect::<Vec<_>>()});
+   let raw=a.to_string();let size=raw.len();assert!(size<16_000_000);super::super::save(&mut c,"guest",&raw).unwrap();
+   let mut saves=vec![];let mut parse=vec![];let mut hash=vec![];let mut summary=vec![];let mut detail=vec![];let mut noop=vec![];
+   for i in 0..12{
+    a["tasks"][i]["priority"]=json!(3);
+    let raw=a.to_string();
+    let t=Instant::now();let parsed:Value=serde_json::from_str(&raw).unwrap();parse.push(t.elapsed().as_secs_f64()*1000.);
+    let t=Instant::now();std::hint::black_box(fingerprint(&parsed));hash.push(t.elapsed().as_secs_f64()*1000.);
+    let t=Instant::now();super::super::save(&mut c,"guest",&raw).unwrap();saves.push(t.elapsed().as_secs_f64()*1000.);
+    let t=Instant::now();let h=history_read(&c,"guest",false,300).unwrap();summary.push(t.elapsed().as_secs_f64()*1000.);assert!(h["intact"]==true);
+    let t=Instant::now();let h=history_read(&c,"guest",true,300).unwrap();detail.push(t.elapsed().as_secs_f64()*1000.);assert_eq!(h["head"],i+1);
+    let t=Instant::now();super::super::save(&mut c,"guest",&raw).unwrap();noop.push(t.elapsed().as_secs_f64()*1000.);
+   }
+   assert_eq!(c.query_row("PRAGMA integrity_check",[],|r|r.get::<_,String>(0)).unwrap(),"ok");
+   println!("matrix tasks={count} density={density} samples=12 bytes={size} save={} parse={} canonical_hash={} summary={} detail={} noop={} db={} wal={}",stat(&mut saves),stat(&mut parse),stat(&mut hash),stat(&mut summary),stat(&mut detail),stat(&mut noop),std::fs::metadata(&path).unwrap().len(),std::fs::metadata(dir.join("bench.sqlite3-wal")).map(|m|m.len()).unwrap_or(0));
+   drop(c);std::fs::remove_dir_all(dir).unwrap();
+  }}
+ }
+ #[test]fn raw_proof_falls_back_for_old_writes_and_preserves_gap_detection(){
+  let mut c=Connection::open_in_memory().unwrap();super::super::schema(&c).unwrap();
+  let a=snapshot(0);let b=snapshot(3);
+  super::super::save(&mut c,"guest",&a.to_string()).unwrap();super::super::save(&mut c,"guest",&b.to_string()).unwrap();
+  let head:(i64,String)=c.query_row("SELECT version,fingerprint FROM operation_history_head WHERE scope='guest'",[],|r|Ok((r.get(0)?,r.get(1)?))).unwrap();
+  assert!(raw_proof_matches(&c,"guest",&head,&raw_fingerprint(&b.to_string())).unwrap());
+  let summary=history_read(&c,"guest",false,300).unwrap();let detail=history_read(&c,"guest",true,300).unwrap();
+  assert_eq!(summary["entries"][0]["count"],detail["entries"][0]["count"]);assert_eq!(summary["entries"][0]["gap"],detail["entries"][0]["gap"]);assert!(summary["entries"][0]["body"].is_null());
+  // An old writer may serialize differently while preserving the canonical state.
+  let pretty=serde_json::to_string_pretty(&b).unwrap();
+  c.execute("UPDATE snapshots SET body=?1 WHERE scope='guest'",[&pretty]).unwrap();
+  assert!(history_read(&c,"guest",true,300).unwrap()["intact"]==true);
+  // Changed bytes and business state must not inherit the cached proof.
+  c.execute("UPDATE snapshots SET body=?1 WHERE scope='guest'",[a.to_string()]).unwrap();
+  assert!(history_read(&c,"guest",true,300).unwrap()["intact"]==false);
+  super::super::save(&mut c,"guest",&snapshot(2).to_string()).unwrap();
+  let h=history_read(&c,"guest",true,300).unwrap();assert_eq!(h["head"],3);assert_eq!(h["entries"][1]["gap"],true);assert_eq!(h["intact"],true);
+  // Legacy v4 without cached proof still works.
+  c.execute("DELETE FROM operation_history_raw_proof",[]).unwrap();
+  assert!(history_read(&c,"guest",true,300).unwrap()["intact"]==true);
+ }
+ #[test]fn unchanged_workspace_store_is_not_rewritten(){
+  let mut c=Connection::open_in_memory().unwrap();super::super::schema(&c).unwrap();
+  let body=snapshot(0).to_string();let store=json!({"todo-workbench-v1":body}).to_string();
+  super::super::persist_store(&mut c,"guest",&store).unwrap();
+  c.execute_batch("CREATE TRIGGER qa_no_duplicate_store BEFORE UPDATE ON workspace_store BEGIN SELECT RAISE(ABORT,'unexpected store write'); END;").unwrap();
+  super::super::persist_store(&mut c,"guest",&store).unwrap();
+  let changed=json!({"todo-workbench-v1":body,"todo-cloud-meta":"synthetic"}).to_string();
+  assert!(super::super::persist_store(&mut c,"guest",&changed).is_err());
+  assert_eq!(c.query_row("SELECT body FROM workspace_store WHERE scope='guest'",[],|r|r.get::<_,String>(0)).unwrap(),store);
+ }
+ #[test]#[ignore]fn native_store_write_amplification(){
+  use std::time::Instant;
+  let dir=std::env::temp_dir().join(format!("todo-store-perf-{}",uuid::Uuid::new_v4()));std::fs::create_dir(&dir).unwrap();
+  let path=dir.join("native.sqlite3");let mut c=Connection::open(&path).unwrap();super::super::schema(&c).unwrap();
+  // Isolated measurement only: disable auto-checkpoint to measure WAL frames.
+  c.execute_batch("PRAGMA wal_autocheckpoint=0").unwrap();
+  let mut a=json!({"version":2,"tasks":(0..10000).map(|i|json!({"id":format!("qa-{i}"),"title":format!("synthetic task {i}"),"notes":"synthetic","priority":0,"activity":(0..5).map(|j|json!({"id":format!("qa-{i}-{j}"),"kind":"priority","category":"property","operation":format!("op-{j}"),"changes":[{"field":"priority","before":"0","after":"1"}]})).collect::<Vec<_>>() })).collect::<Vec<_>>()});
+  let mut store=json!({"todo-workbench-v1":a.to_string(),"todo-cloud-meta":"synthetic"}).to_string();
+  super::super::persist_store(&mut c,"guest",&store).unwrap();
+  let wal=||std::fs::metadata(dir.join("native.sqlite3-wal")).map(|m|m.len()).unwrap_or(0);
+  for mode in ["unchanged","metadata-only","task-edit"]{
+   c.execute_batch("PRAGMA wal_checkpoint(TRUNCATE)").unwrap();let mut ms=vec![];
+   for i in 0..8{
+    if mode=="task-edit"{a["tasks"][i]["priority"]=json!(3)}
+    if mode!="unchanged"{store=json!({"todo-workbench-v1":a.to_string(),"todo-cloud-meta":format!("{mode}-{i}")}).to_string()}
+    let t=Instant::now();super::super::persist_store(&mut c,"guest",&store).unwrap();ms.push(t.elapsed().as_secs_f64()*1000.);
+   }
+   ms.sort_by(|a,b|a.total_cmp(b));println!("store mode={mode} samples=8 store_bytes={} p50_ms={:.3} max_ms={:.3} wal_bytes={}",store.len(),(ms[3]+ms[4])/2.,ms[7],wal());
+  }
+  assert_eq!(history_read(&c,"guest",true,300).unwrap()["head"],8);
+  assert_eq!(c.query_row("PRAGMA integrity_check",[],|r|r.get::<_,String>(0)).unwrap(),"ok");
   drop(c);std::fs::remove_dir_all(dir).unwrap();
  }
  #[test]fn journal_is_atomic_private_scoped_and_monotonic(){
