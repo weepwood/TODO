@@ -78,7 +78,7 @@ fn direct_status(c:&Connection,scope:&str,id:&str)->rusqlite::Result<Option<Stri
  c.query_row("SELECT status FROM direct_capture_requests WHERE scope=?1 AND id=?2",params![scope,id],|r|r.get(0)).optional()
 }
 fn enqueue_direct(c:&Connection,d:&DirectCapture)->Result<(),String>{
- if direct_status(c,&format!("cli:{}",d.scope),&d.id).map_err(|e|e.to_string())?.is_some(){return Err("录入请求标识冲突".into())}
+ if direct_status(c,&format!("cli:{}",d.scope),&d.id).map_err(|e|e.to_string())?.is_some()||direct_status(c,&format!("cli-op:{}",d.scope),&d.id).map_err(|e|e.to_string())?.is_some(){return Err("录入请求标识冲突".into())}
  let existing:Option<(i64,String,String)>=c.query_row("SELECT generation,text,status FROM direct_capture_requests WHERE scope=?1 AND id=?2",params![d.scope,d.id],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional().map_err(|e|e.to_string())?;
  if let Some((g,text,status))=existing{return if g==d.generation as i64&&(status!="pending"||text==d.text){Ok(())}else{Err("录入请求标识冲突".into())}}
  if direct_task_exists(c,&d.scope,&d.id).map_err(|e|e.to_string())?{return Err("任务标识已存在".into())}
@@ -128,11 +128,31 @@ fn native_cli_binding(scope:String,action:String,active:tauri::State<ActiveScope
  let c=db.0.lock().map_err(|e|e.to_string())?;
  match action.as_str(){
   "bind"=>cli::bind(&c,&scope)?,
-  "unbind"=>{c.execute("DELETE FROM cli_binding WHERE slot=1 AND scope=?1",[&scope]).map_err(|e|e.to_string())?;},
+  "unbind"=>cli::unbind(&c,Some(&scope))?,
+  "advanced-on"=>return cli::set_advanced(&c,&scope,true),
+  "advanced-off"=>return cli::set_advanced(&c,&scope,false),
+  "read-advanced"=>return cli::advanced_scope(&c,&scope),
   "read"=>{},
   _=>return Err("无效操作".into())
  }
  Ok(cli::bound_scope(&c)?.as_deref()==Some(&scope))
+}
+#[tauri::command]
+fn native_cli_next(scope:String,active:tauri::State<ActiveScope>,db:tauri::State<Database>)->Result<Option<serde_json::Value>,String>{
+ let current=active.0.lock().map_err(|e|e.to_string())?;
+ if current.as_deref()!=Some(&scope){return Ok(None)}
+ let c=db.0.lock().map_err(|e|e.to_string())?;
+ // Existing text and simple batch requests take priority. Do not process
+ // two independent queue entries at the same time.
+ if pending_direct(&c,&scope).map_err(|e|e.to_string())?.is_some(){return Ok(None)}
+ c.query_row("SELECT d.id,d.text,d.created_at FROM direct_capture_requests d JOIN cli_operation_meta m ON d.scope=m.scope AND d.id=m.id WHERE d.scope='cli-op:'||?1 AND d.status='pending' ORDER BY d.created_at,d.id LIMIT 1",[scope],|r|Ok(serde_json::json!({"id":r.get::<_,String>(0)?,"text":r.get::<_,String>(1)?,"created_at":r.get::<_,i64>(2)?}))).optional().map_err(|e|e.to_string())
+}
+#[tauri::command]
+fn native_cli_write_store(scope:String,store:String,receipt:serde_json::Value,active:tauri::State<ActiveScope>,db:tauri::State<Database>)->Result<(),String>{
+ let current=active.0.lock().map_err(|e|e.to_string())?;
+ if current.as_deref()!=Some(&scope){return Err("工作空间已切换".into())}
+ let mut c=db.0.lock().map_err(|e|e.to_string())?;
+ persist_store_receipt(&mut c,&scope,&store,Some(&receipt))
 }
 #[tauri::command]
 fn native_direct_cancel_pending(scope:String,id:String,active:tauri::State<ActiveScope>,db:tauri::State<Database>)->Result<bool,String>{
@@ -267,7 +287,7 @@ pub fn run(){
  #[cfg(desktop)] let builder=if option_env!("TODO_SIGNED_RELEASE")==Some("1"){builder.plugin(tauri_plugin_updater::Builder::new().build()).plugin(tauri_plugin_process::init())}else{builder};
  #[cfg(target_os="android")] let builder=builder.plugin(tauri_plugin_todo_mobile::init());
  builder.plugin(tauri_plugin_notification::init())
- .invoke_handler(tauri::generate_handler![native_load,native_save,native_load_store,native_write_store,native_activate,native_search,native_list_backups,native_read_backup,native_create_backup,native_notify,native_exit,native_test_notification,native_take_quick_capture,native_shortcut_status,native_open_capture,native_capture_generation,native_capture_handoff,native_capture_cancel,native_capture_submit_direct,native_capture_direct_status,native_direct_pending,native_direct_ack,native_direct_cancel_pending,native_cli_binding])
+ .invoke_handler(tauri::generate_handler![native_load,native_save,native_load_store,native_write_store,native_activate,native_search,native_list_backups,native_read_backup,native_create_backup,native_notify,native_exit,native_test_notification,native_take_quick_capture,native_shortcut_status,native_open_capture,native_capture_generation,native_capture_handoff,native_capture_cancel,native_capture_submit_direct,native_capture_direct_status,native_direct_pending,native_direct_ack,native_direct_cancel_pending,native_cli_binding,native_cli_next,native_cli_write_store])
  .setup(|app|{
   let path=app.path().app_data_dir()?;std::fs::create_dir_all(&path)?;let c=Connection::open(path.join("todo.sqlite3"))?;c.busy_timeout(std::time::Duration::from_secs(5))?;schema(&c)?;
   app.manage(Database(Mutex::new(c)));app.manage(ActiveScope(Mutex::new(None)));app.manage(QuickCapture(Mutex::new(CaptureState::default())));app.manage(ShortcutStatus(Mutex::new("not-registered".into())));

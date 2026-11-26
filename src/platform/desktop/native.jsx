@@ -48,3 +48,42 @@ export function useDirectCapture({uid,storage,data,blocked,edit,onSaved}){
  }catch{}finally{inFlight.current=false}};
  const timer=setInterval(poll,1000);poll();return()=>{disposed=true;clearInterval(timer)}},[uid,storage]);
 }
+
+// Operation queue is separate from legacy text/batch capture. A request is
+// terminal only when SQLite commits the exact workspace and local-only receipt.
+export function useCliOperations({uid,storage,data,blocked,apply,editor,onSaved}){
+ const latest=useRef(null);latest.current={data,blocked,apply,editor,onSaved};
+ const inFlight=useRef(false);
+ useEffect(()=>{if(!desktopNative||!storage?.stageCliWorkspace)return;let disposed=false,attempt=null;
+  const scope=uid||'guest';
+  const poll=async()=>{if(disposed||inFlight.current)return;inFlight.current=true;
+   try{
+    if(latest.current.blocked)return;
+    const req=await invoke('native_cli_next',{scope});if(disposed)return;
+    if(!req){if(attempt){attempt=null;latest.current.onSaved?.()}return}
+    if(attempt===req.id)return;
+    if(!await storage.flush()||disposed||latest.current.blocked)return;
+    const expected=latest.current.data,now=new Date(),context=latest.current.editor;
+    let next=expected,result;
+    try{
+     const {prepareCliOperation}=await import('../../core/cli-operations.js');
+     const {applyWorkspaceEdit}=await import('../../components/useWorkspaceMutations.js');
+     const request=JSON.parse(req.text);
+     if(request.op.startsWith('focus-')&&now.getTime()-req.created_at*1000>30000)throw Error('专注指令已过期，请打开应用后重新提交');
+     const prepared=await prepareCliOperation(expected,request,req.id,now);
+     if(prepared.next!==expected){
+      next=applyWorkspaceEdit(expected,()=>prepared.next,{id:req.id,at:now.toISOString(),source:'device',session:context.session,trigger:'event'},context);
+      // An automation may change other fields; actual saved result is the
+      // editor output, not an independently constructed snapshot.
+     }
+     result={id:req.id,status:'saved',result:prepared.result};
+    }catch(e){next=expected;result={id:req.id,status:'cancelled',result:{error:String(e?.message||'操作失败').slice(0,500)}}}
+    if(disposed||latest.current.blocked)return;
+    // Bounded result storage; cancellation must not apply a mutation.
+    if(new TextEncoder().encode(JSON.stringify(result)).length>524288){next=expected;result={id:req.id,status:'cancelled',result:{error:'回执过大，请缩小查询范围'}}}
+    attempt=req.id;latest.current.apply(expected,next,result);
+   }catch{}finally{inFlight.current=false}
+  };
+  const timer=setInterval(poll,800);poll();return()=>{disposed=true;clearInterval(timer)};
+ },[uid,storage]);
+}

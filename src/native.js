@@ -5,10 +5,10 @@ import {initialState,migrateState,STORAGE_KEY} from './core/domain.js';
 import {scopedStorage} from './services/cloud-core.js';
 import {createNativeActivationCoordinator} from './services/native-activation.js';
 import {STORE_KEYS,migrationStore,createNativeStore,attachNativeLifecycle} from './services/native-store.js';
-import {native,mobileNative} from './platform/runtime.js';
+import {native,mobileNative,desktopNative} from './platform/runtime.js';
 import {requireMobileNotificationPermission} from './platform/android/notifications.js';
 export {native,desktopNative,mobileNative} from './platform/runtime.js';
-export {useNativeShortcut,useNativeShortcutStatus,useNativeQuit,nativeOpenCapture,useDirectCapture} from './platform/desktop/native.jsx';
+export {useNativeShortcut,useNativeShortcutStatus,useNativeQuit,nativeOpenCapture,useDirectCapture,useCliOperations} from './platform/desktop/native.jsx';
 const nativeActivation=createNativeActivationCoordinator(invoke);
 export function useNativeHydration(uid){
  const [result,setResult]=useState({ready:!native,storage:null,error:'',pending:false,saveError:''});
@@ -26,7 +26,7 @@ export function useNativeHydration(uid){
    // Commit the initial migration before rendering the workspace.
    if(!raw)await invoke('native_write_store',{scope,store:JSON.stringify(values)});
    if(cancelled)return;
-   const storage=createNativeStore(values,s=>invoke('native_write_store',{scope,store:JSON.stringify(s)}),status=>{if(!cancelled)setResult(old=>({...old,pending:status.pending,saveError:status.error}))});
+   const storage=createNativeStore(values,s=>invoke('native_write_store',{scope,store:JSON.stringify(s)}),status=>{if(!cancelled)setResult(old=>({...old,pending:status.pending,saveError:status.error}))},desktopNative?(s,receipt)=>invoke('native_cli_write_store',{scope,store:JSON.stringify(s),receipt}):null);
    const activated=await lease.activate();
    if(!cancelled&&activated)setResult({ready:true,storage,error:'',pending:false,saveError:''});
   }catch(e){if(!cancelled)setResult({ready:true,storage:null,error:String(e),pending:false,saveError:''})}

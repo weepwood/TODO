@@ -1,5 +1,9 @@
 # TODO 外部 AI 接入（第二批，本地候选）
 
+## CLI 业务完整化（2026-11-26，本分支最新）
+原生 CLI v2 20项结构化操作：丰富录入、重复/多提醒/多段、查询/日历、生命周期、分类、习惯/专注/回顾；统一领域层、版本令牌、事务回执、原历史及同步路径。旧录入保持兼容，绑定默认仅录入，高级权限由用户在原设置明确启用。不得擅自绑定/读取正式数据/授权；CLI 不直接写工作空间，不开放删除、任意撤销、账户或自动排程。见 docs/ai-integration/cli-business.md 与 cli-schema.json。隔离原生验收通过，CLI/共享Skill已升级，正式桌面应用未替换。并行规划专项保留在原工作树；本批从2a9c41e独立 feat/cli-business，不合并。
+
+
 ## macOS 本地安装收口（2026-11-26，最新）
 基于37a254d的独立git archive构建候选1.2.0-alpha.1（arm64，正式identifier com.weepwood.todo，普通正式云配置、外部云接入UI关闭、无签名发布更新能力）。新版已复制到 `~/Applications/TODO.app`，本地ad-hoc签名完整性核验通过（非Developer ID公证发布），未启动。旧版0.4.0位于 `/Volumes/data/Project/TODO/src-tauri/target/debug/bundle/macos/TODO.app`，未运行、未覆盖，已完整备份并逐文件SHA256校验。macOS已知正式Application Support、WebKit、Containers、Preferences路径检查时均无对应数据，正式SQLite未发现，因而没有真实数据库可备份；不读取浏览器个人数据，网页端/云端数据是否存在不作推断。若用户已有Web任务，请先在原界面使用既有导出功能备份；切勿把QA数据目录复制到正式目录。
 安装证据：`/Volumes/data/AI-Development/artifacts/TODO/local-cli-install-37a254d/` 下 old-TODO.app、old-app-backup.json、TODO.app、install-report.json、bundle.log。正式应用候选与用户Applications安装副本4文件哈希一致；本次不启用或修改真实账号、不做正式迁移/同步。已安装todo命令与Skill保持原样；候选可执行文件的--cli help及对明确隔离QA数据目录的doctor、历史saved回执读取通过。此前真实QA原生设置绑定与保存验收继续有效；正式doctor在未首次启动/绑定前返回数据库不存在。

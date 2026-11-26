@@ -1,4 +1,4 @@
-import {STORAGE_KEY,BACKUP_KEY,migrateState} from '../core/domain.js';
+import {STORAGE_KEY,BACKUP_KEY,migrateState,saveState} from '../core/domain.js';
 import {canonical} from './cloud-core.js';
 export const STORE_KEYS=[STORAGE_KEY,BACKUP_KEY,BACKUP_KEY+'-at',BACKUP_KEY+'-corrupt','todo-cloud-meta','todo-cloud-base','todo-conflict-backup','todo-field-merge-backup','todo-native-migration-backup'];
 export function migrationStore(saved,mirror,legacy){
@@ -17,18 +17,24 @@ export function migrationStore(saved,mirror,legacy){
  }
  return output
 }
-export function createNativeStore(initial,write,onStatus=()=>{}){
- let values={...initial},committed={...initial},running=false,error='',scheduled=false;let waiters=[];
+export function createNativeStore(initial,write,onStatus=()=>{},writeCli=null){
+ let values={...initial},committed={...initial},running=false,error='',scheduled=false;let waiters=[],barriers=[],lastCli=null;
  const same=(a,b)=>Object.keys(a).length===Object.keys(b).length&&Object.keys(a).every(k=>a[k]===b[k]);
- const status=()=>onStatus({pending:running||scheduled||!same(values,committed),error});
+ const status=()=>onStatus({pending:running||scheduled||barriers.length>0||!same(values,committed),error});
  async function drain(){
   if(running)return;scheduled=false;running=true;error='';status();
-  try{while(!same(values,committed)){const snapshot={...values};await write(snapshot);committed=snapshot}}
+  try{while(barriers.length||!same(values,committed)){const barrier=barriers[0],snapshot=barrier?barrier.snapshot:{...values};if(barrier){await writeCli(snapshot,barrier.receipt);barriers.shift()}else await write(snapshot);committed=snapshot}}
   catch(e){error=String(e)}
-  finally{running=false;const done=!error&&same(values,committed);for(const resolve of waiters.splice(0))resolve(done);status()}
+  finally{running=false;const done=!error&&!barriers.length&&same(values,committed);for(const resolve of waiters.splice(0))resolve(done);status()}
  }
  function schedule(){if(running||scheduled)return;scheduled=true;status();queueMicrotask(drain)}
- return {getItem:key=>values[key]??null,setItem(key,value){if(!STORE_KEYS.includes(key))throw Error('unsupported workspace storage key');const v=String(value);if(values[key]===v)return;values[key]=v;schedule()},removeItem(key){if(Object.hasOwn(values,key)){delete values[key];schedule()}},flush(){if(!running&&!scheduled&&same(values,committed))return Promise.resolve(true);return new Promise(resolve=>{waiters.push(resolve);schedule()})},retry:schedule,getStatus:()=>({pending:running||scheduled||!same(values,committed),error})}
+ const api={getItem:key=>values[key]??null,setItem(key,value){if(!STORE_KEYS.includes(key))throw Error('unsupported workspace storage key');const v=String(value);if(values[key]===v)return;values[key]=v;schedule()},removeItem(key){if(Object.hasOwn(values,key)){delete values[key];schedule()}},flush(){if(!running&&!scheduled&&!barriers.length&&same(values,committed))return Promise.resolve(true);return new Promise(resolve=>{waiters.push(resolve);schedule()})},retry:schedule,getStatus:()=>({pending:running||scheduled||barriers.length>0||!same(values,committed),error})};
+ if(writeCli)api.stageCliWorkspace=(data,receipt)=>{
+  if(lastCli===receipt.id)return;
+  // saveState updates values synchronously; microtask drain cannot interleave.
+  saveState(api,data);barriers.push({snapshot:{...values},receipt});lastCli=receipt.id;schedule();
+ };
+ return api;
 }
 
 // Native background events are best-effort flushes, not a guarantee of OS shutdown time.

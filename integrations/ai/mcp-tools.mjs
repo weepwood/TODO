@@ -13,12 +13,16 @@ export function makeApiRequest({base,token,publishableKey}){
 }
 }
 // The resource server supplies a request bound to the verified connection; stdio uses its dedicated token.
-export function createTodoMcp(request,{scopes=null,metadataUrl}={}){
+export function createTodoMcp(request,{scopes=null,metadataUrl,local=false}={}){
  const server=new McpServer({name:'todo-intake',version:'0.2.0'});
  const scheme=scope=>{if(!metadataUrl)return {};const securitySchemes=[{type:'oauth2',scopes:[scope]}];return {_meta:{securitySchemes}}};
  const scoped=(scope,...args)=>scopes&&!scopes.has(scope)?{isError:true,content:[{type:'text',text:'Insufficient scope'}],_meta:{'mcp/www_authenticate':['Bearer resource_metadata="'+metadataUrl+'", error="insufficient_scope", scope="'+scope+'"']}}:request(...args);
 server.registerTool('create_task',{...scheme('tasks:create'),annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:true},description:'Submit one TODO task. received means pending, not saved. Use absolute YYYY-MM-DD and HH:mm; never invent dates.',inputSchema:{request_key:key,task}},({request_key,task})=>scoped('tasks:create','/v1/tasks',task,request_key));
 server.registerTool('create_tasks',{...scheme('tasks:create'),annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:true},description:'Submit 1–50 TODO tasks atomically. received means pending, not saved.',inputSchema:{request_key:key,tasks:z.array(task).min(1).max(50)}},({request_key,tasks})=>scoped('tasks:create','/v1/tasks/batch',tasks,request_key));
 server.registerTool('get_request_status',{...scheme('receipts:read'),description:'Check receipt; only saved confirms the selected backend commit, not cross-device sync.',inputSchema:{id:z.string().uuid()},annotations:{readOnlyHint:true}},({id})=>scoped('receipts:read','/v1/requests/'+id));
+ if(local){
+  server.registerTool('describe_operations',{description:'Local CLI v2 operation contract and examples. Check this before advanced use.',inputSchema:{},annotations:{readOnlyHint:true}},()=>request('/local/schema'));
+  server.registerTool('run_operation',{description:'Local only: submit a structured TODO operation. Read describe_operations first. Existing task mutations require exact version returned by show/query; series edits require explicit scope. Never treat received as saved. No delete, account or workspace management.',inputSchema:{request_key:key,operation:z.record(z.string(),z.unknown())},annotations:{readOnlyHint:false,destructiveHint:true,idempotentHint:true,openWorldHint:false}},({request_key,operation})=>request('/local/operation',operation,request_key));
+ }
  return server;
 }

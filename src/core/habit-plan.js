@@ -21,3 +21,13 @@ export function changeHabitPlan(h,fields,today){
  const versions=[...rows.filter(r=>r.from!==today),version];if(!validHabitVersions(versions))return h;
  return {...next,planVersions:versions};
 }
+
+export function appendHabit(data,{id,name,weeklyGoal}){
+ if(typeof name!=='string'||!name.trim()||!Number.isInteger(weeklyGoal)||weeklyGoal<1||weeklyGoal>7||data.habits.some(h=>h.id===id))return data;
+ return {...data,habits:[...data.habits,{id,name:name.trim(),days:[],weeklyGoal}]};
+}
+export function setHabitChecked(data,id,date,checked){
+ if(!validDate(date)||typeof checked!=='boolean')return data;
+ const habit=data.habits.find(h=>h.id===id);if(!habit||habit.days.includes(date)===checked)return data;
+ return {...data,habits:data.habits.map(h=>h===habit?{...h,days:checked?[...h.days,date]:h.days.filter(x=>x!==date)}:h)};
+}

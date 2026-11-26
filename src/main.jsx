@@ -1,3 +1,4 @@
+import {saveOrganizationEntity} from './core/organization.js';
 import {readModes} from './core/workspace-modes.js';
 import {blockPatch,editPlanSegments,changePlanBlock} from './core/plan-block.js';
 import {recordTaskChanges,recordAttachment} from './core/task-activity.js';
@@ -63,7 +64,7 @@ import {SectionGroup,VirtualTaskList} from './task-list.jsx';
 import {useHistory} from './history.js';
 import {useWorkspaceEdit,useWorkspacePersistence} from './components/useWorkspaceMutations.js';
 import {useEditingFlag,useCaptureHandlers,useWorkspaceClock,useWorkspaceKeyboard} from './components/useWorkspaceLifetime.js';
-import {native,mobileNative,useNativeHydration,useNativeLifecycle,useNativeShortcut,nativeGuestState,useNativeQuit,nativeRecoveryPayload,useNativeShortcutStatus,useDirectCapture} from "./native.js";
+import {native,mobileNative,useNativeHydration,useNativeLifecycle,useNativeShortcut,nativeGuestState,useNativeQuit,nativeRecoveryPayload,useNativeShortcutStatus,useDirectCapture,useCliOperations} from "./native.js";
 import {useNativeSearch} from './native-tools.jsx';
 import {useCalendarFeeds} from './calendar-feeds.js';
 import {readSmartLists,matchingTask,readDeadlineSmartLists,isDeadlineFilter,DEADLINE_SMART_KEY} from './core/smart-lists.js';
@@ -192,8 +193,9 @@ function App({session,hydration}){
  const [workflow,setWorkflow]=useState(()=>{try{return {state:readRules(browserStorage),error:''}}catch(e){return {state:{rules:[],auto:false,lastRun:''},error:e.message}}});
  const saveWorkflow=(rules,auto,snapshot,snapshotAt)=>{try{const current=readRules(browserStorage);const state=writeRules(browserStorage,{...current,rules,auto,snapshot,snapshotAt});setWorkflow({state,error:''});return true}catch(e){setWorkflow(old=>({...old,error:e.message}));return false}};
  const nativeError=hydration.saveError;
- const setData=useWorkspaceEdit(rawEdit,{session:historyState.session,allowAutomation:!uid&&!blocked&&!storageError&&!nativeError&&!hydration.pending&&!workflow.error&&workflow.state.auto,rules:workflow.state.rules});
- const persistWorkspace=useWorkspacePersistence({storage,data,blocked,storageError,pilot:hydration.pilot,native,reportError:setStorageError});
+ const editorContext={session:historyState.session,allowAutomation:!uid&&!blocked&&!storageError&&!nativeError&&!hydration.pending&&!workflow.error&&workflow.state.auto,rules:workflow.state.rules};
+ const setData=useWorkspaceEdit(rawEdit,editorContext);
+ const persistWorkspace=useWorkspacePersistence({storage,data,blocked,storageError,pilot:hydration.pilot,native,reportError:setStorageError,cliReceipt:historyState.cliReceipt,clearCliReceipt:historyState.clearCliReceipt});
  const alarms=useMobileAlarms({enabled:androidNative,scope:uid||"guest",tasks:data.tasks,storage:hydration.storage,blocked:blocked||!!storageError||!!nativeError});const calendarFeeds=useCalendarFeeds(browserStorage,setSystemData,blocked||!!storageError||!!nativeError);const sync=useWorkspaceSync({uid,storage,data,setData:setSystemData,blocked:blocked||!!storageError||hydration.pending||!!nativeError,logStorage:browserStorage});
  const workflowLatest=useRef(data);workflowLatest.current=data;
  useEffect(()=>{if(uid||blocked||storageError||nativeError||hydration.pending||workflow.error||!workflow.state.auto)return;
@@ -210,7 +212,7 @@ function App({session,hydration}){
  useAutoUpdate(setToast);
  const backgroundCheck=useAndroidBackgroundCheck({enabled:androidNative,uid,storage:hydration.storage||storage,data,blocked:blocked||!!storageError||!!nativeError||hydration.pending,lastSync:sync.lastSync});
  const {quickAdd,incomingCapture,setIncomingCapture,quickDraftRef,receiveCapture}=useCaptureHandlers(quickDraft,setQuickDraft,setDialog);
- useNativeShortcut(uid,receiveCapture);useDirectCapture({uid,storage:hydration.storage,data,blocked:blocked||!!storageError||!!nativeError||hydration.pending,edit:setData,onSaved:()=>setToast("独立录入已保存到本机")});const shortcutStatus=useNativeShortcutStatus();
+ useNativeShortcut(uid,receiveCapture);useDirectCapture({uid,storage:hydration.storage,data,blocked:blocked||!!storageError||!!nativeError||hydration.pending,edit:setData,onSaved:()=>setToast("独立录入已保存到本机")});useCliOperations({uid,storage:hydration.storage,data,blocked:blocked||!!storageError||!!nativeError||hydration.pending||!!sync.conflict,apply:historyState.cliApply,editor:editorContext,onSaved:()=>{}});const shortcutStatus=useNativeShortcutStatus();
  useEffect(()=>{document.documentElement.dataset.theme=data.theme},[data.theme]);
  useWorkspaceClock(data,setSystemData,setToday,uid,setToast);
  useWorkspaceKeyboard({shortcuts,dialog,quickAdd,undo:historyState.undo,redo:historyState.redo,setQuery,setChecked,setSelectionMode,selectionAnchor,setDialog});
@@ -253,7 +255,7 @@ function App({session,hydration}){
 
  const nav=(key,label,Icon,color,iconList,items,actionLabel)=><SidebarRow key={key} viewKey={key} label={label} icon={Icon} color={color} iconList={iconList} count={count(key)} active={module==='tasks'&&view===key&&!query} onClick={()=>changeView(key)} items={items} actionLabel={actionLabel}/>;
  const editEntity=(kind,existing=null,parent=null)=>setDialog({kind,existing,parent});
- function saveEntity(kind,existing,name,parent,color,icon,assignTaskId){name=name.trim();if(!name)return;const entity={id:existing?.id||id(),name,color};setData(d=>{if(kind==='section'){if(!d.lists.some(l=>l.id===parent))return d;return {...d,lists:d.lists.map(l=>l.id===parent?{...l,sections:existing?l.sections.map(s=>s.id===entity.id?entity:s):[...l.sections,entity]}:l),tasks:!existing&&assignTaskId?d.tasks.map(t=>t.id===assignTaskId&&t.listId===parent&&t.status==='pending'&&!t.deletedAt?{...t,sectionId:entity.id}:t):d.tasks}};const key={list:'lists',folder:'folders',tag:'tags'}[kind];const item=kind==='list'?{...existing,...entity,folderId:parent||null,sections:existing?.sections||[],icon:validListIcon(icon)?icon:existing?.icon||''}:entity;return {...d,[key]:existing?d[key].map(x=>x.id===item.id?item:x):[...d[key],item]}});setDialog(null);if(kind==='list')changeView(entity.id)}
+ function saveEntity(kind,existing,name,parent,color,icon,assignTaskId){name=name.trim();if(!name)return;const entity={id:existing?.id||id(),name,color};setData(d=>saveOrganizationEntity(d,{kind,existing,entity,parent,icon,assignTaskId}));setDialog(null);if(kind==='list')changeView(entity.id)}
  function deleteEntity(kind,entity,parent){if(!confirm('删除分类？关联任务将保留。'))return;setData(d=>{if(kind==='folder')return {...d,folders:d.folders.filter(f=>f.id!==entity.id),lists:d.lists.map(l=>l.folderId===entity.id?{...l,folderId:null}:l)};if(kind==='tag')return {...d,tags:d.tags.filter(t=>t.id!==entity.id),tasks:d.tasks.map(t=>({...t,tags:t.tags.filter(x=>x!==entity.id)}))};if(kind==='section')return {...d,lists:d.lists.map(l=>l.id===parent?{...l,sections:l.sections.filter(s=>s.id!==entity.id)}:l),tasks:d.tasks.map(t=>t.listId===parent&&t.sectionId===entity.id?{...t,sectionId:null}:t)};return {...d,lists:d.lists.filter(l=>l.id!==entity.id),tasks:d.tasks.map(t=>t.listId===entity.id?{...t,listId:'inbox',sectionId:null}:t)}});changeView('all')}
  const listRow=l=>nav(l.id,l.name,Layers,l.color,l,[{label:viewPrefs.favoriteLists.includes(l.id)?'取消收藏':'收藏清单',run:()=>viewPrefs.toggleFavoriteList(l.id),disabled:viewPrefs.archivedLists.includes(l.id)},{label:viewPrefs.archivedLists.includes(l.id)?'恢复清单导航':'本机归档清单',run:()=>{const archived=viewPrefs.archivedLists.includes(l.id);viewPrefs.setListArchived(l.id,!archived);if(!archived&&view===l.id)changeView('today')}},{label:'编辑清单',run:()=>editEntity('list',l,l.folderId)},{label:'删除清单',danger:true,run:()=>deleteEntity('list',l)}]);
  const [sortingTasks,setSortingTasks]=useState(false);

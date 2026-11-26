@@ -1,0 +1,292 @@
+{
+  "version": 2,
+  "command": "todo run --file - --request-id UUID --wait 10",
+  "status": "received means queued; saved means local SQLite commit (or query result); cancelled means rejected; not_checked means cloud sync unknown",
+  "operations": {
+    "create": {
+      "required": [
+        "tasks"
+      ],
+      "optional": [
+        "allowConflict"
+      ],
+      "taskFields": [
+        "title",
+        "notes",
+        "listId",
+        "sectionId",
+        "tags",
+        "date",
+        "time",
+        "duration",
+        "deadline",
+        "priority",
+        "reminderAt",
+        "reminders",
+        "reminderOffsets",
+        "repeat",
+        "interval",
+        "weekdays",
+        "repeatUntil",
+        "repeatCount",
+        "miss",
+        "reset",
+        "blocks",
+        "planMinutes",
+        "planLocked",
+        "checklist",
+        "parentId",
+        "dependsOn",
+        "children"
+      ]
+    },
+    "query": {
+      "optional": [
+        "view",
+        "q",
+        "listId",
+        "tagId",
+        "offset",
+        "limit"
+      ],
+      "views": [
+        "today",
+        "upcoming",
+        "overdue",
+        "all",
+        "someday",
+        "recurring",
+        "completed",
+        "skipped",
+        "trash"
+      ]
+    },
+    "show": {
+      "required": [
+        "id"
+      ],
+      "optional": [
+        "includeDeleted"
+      ]
+    },
+    "catalog": {},
+    "calendar": {
+      "optional": [
+        "from",
+        "to"
+      ]
+    },
+    "stats": {
+      "optional": [
+        "date",
+        "period"
+      ]
+    },
+    "update": {
+      "required": [
+        "id",
+        "version",
+        "fields"
+      ],
+      "optional": [
+        "scope",
+        "allowConflict"
+      ]
+    },
+    "complete": {
+      "required": [
+        "id",
+        "version"
+      ]
+    },
+    "reopen": {
+      "required": [
+        "id",
+        "version"
+      ],
+      "optional": [
+        "confirmSeries"
+      ]
+    },
+    "restore": {
+      "required": [
+        "id",
+        "version"
+      ]
+    },
+    "move": {
+      "required": [
+        "id",
+        "version",
+        "listId"
+      ],
+      "optional": [
+        "sectionId"
+      ]
+    },
+    "postpone": {
+      "required": [
+        "id",
+        "version",
+        "days"
+      ],
+      "optional": [
+        "allowConflict"
+      ]
+    },
+    "series": {
+      "required": [
+        "id",
+        "version",
+        "scope",
+        "action"
+      ],
+      "actions": [
+        "pause",
+        "resume",
+        "end"
+      ]
+    },
+    "undo-completion": {
+      "required": [
+        "id",
+        "version",
+        "completedAt",
+        "stage"
+      ]
+    },
+    "entity-create": {
+      "required": [
+        "kind",
+        "name"
+      ],
+      "optional": [
+        "parentId",
+        "color"
+      ]
+    },
+    "entity-rename": {
+      "required": [
+        "kind",
+        "id",
+        "version",
+        "name"
+      ],
+      "optional": [
+        "parentId",
+        "color"
+      ]
+    },
+    "habit-check": {
+      "required": [
+        "id",
+        "version",
+        "checked"
+      ],
+      "optional": [
+        "date"
+      ]
+    },
+    "focus-start": {
+      "required": [
+        "version"
+      ],
+      "optional": [
+        "mode",
+        "minutes",
+        "taskId",
+        "planned"
+      ]
+    },
+    "focus-change": {
+      "required": [
+        "version",
+        "action"
+      ],
+      "actions": [
+        "pause",
+        "resume",
+        "save"
+      ]
+    },
+    "habit-create": {
+      "required": [
+        "name"
+      ],
+      "optional": [
+        "weeklyGoal"
+      ]
+    }
+  },
+  "repeat": [
+    "none",
+    "daily",
+    "weekly",
+    "monthly",
+    "workdays",
+    "weekdays",
+    "completion"
+  ],
+  "weekdays": "0=Sunday, 6=Saturday; repeat=weekdays requires nonempty weekdays",
+  "block": {
+    "date": "YYYY-MM-DD",
+    "start": "HH:mm",
+    "end": "HH:mm",
+    "endDate": "optional explicit date for overnight"
+  },
+  "limits": {
+    "tasksIncludingChildren": 50,
+    "supplementalBlocks": 30,
+    "reminders": 21,
+    "queryLimit": 50,
+    "calendarDays": 31,
+    "payloadBytes": 262144,
+    "receiptBytes": 524288
+  },
+  "examples": [
+    {
+      "op": "create",
+      "tasks": [
+        {
+          "title": "学习数学",
+          "blocks": [
+            {
+              "date": "2026-12-02",
+              "start": "19:00",
+              "end": "20:00"
+            }
+          ],
+          "repeat": "weekdays",
+          "weekdays": [
+            1,
+            3,
+            5
+          ],
+          "repeatUntil": "2027-03-02",
+          "reminderOffsets": [
+            15,
+            5
+          ],
+          "checklist": [
+            "阅读",
+            "练习"
+          ]
+        }
+      ]
+    },
+    {
+      "op": "query",
+      "view": "today",
+      "limit": 20
+    },
+    {
+      "op": "catalog"
+    },
+    {
+      "op": "calendar",
+      "from": "2026-12-02",
+      "to": "2026-12-03"
+    }
+  ],
+  "authorization": "create uses explicit workspace binding; all other operations require advanced permission enabled in native settings; reads are scoped to the bound workspace"
+}

@@ -12,6 +12,8 @@ fn main() {
     "native_direct_ack",
     "native_direct_cancel_pending",
     "native_cli_binding",
+    "native_cli_next",
+    "native_cli_write_store",
     "native_list_backups",
     "native_read_backup",
     "native_create_backup",
