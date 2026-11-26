@@ -9,6 +9,9 @@
 - 本机资源包装器仅监测，不设置资源准入或并发门禁；仍保护真实用户数据、独立端口及可变构建目录，不擅自推送、合并、发布或执行真实数据迁移。
 - 沿用当前开发分支及4197预览；关联功能集中开发，优先复用成熟组件和现有领域逻辑，中文本地提交。旧 RC 冻结检查点仅作为可追溯历史基线，不再阻止当前产品开发。
 
+## AI 复用路由（当前生效）
+每批需求先读 docs/FEATURES.md 与 docs/OPEN-SOURCE.md，检查现有实现，再按需读取 .agents/skills/todo-development、todo-domain-rules、todo-ui-integration 的 SKILL.md。全局通用技能与复用索引见 /Volumes/data/AI-Development/reuse/README.md，UI-Vault 优先作为公共 UI 资产参考。无必要不复制通用 Skill、不安装新依赖、不创建重复框架。Claude Code 使用 CLAUDE.md 与 .claude/skills 相对链接；不能自动发现时显式读取原文。先功能闭环，再必要验证，更新覆盖矩阵。
+
 ## 产品与开发约定
 
 参考滴答清单与 Things 3 的个人任务管理工作台。早期快速迭代，普通改动允许直接提交 main，不强制 PR、Release 或 CI/CD，不绕过分支保护。关联功能集中完成，中文 Git commit，保留必要本地测试与构建。优先复用成熟组件。

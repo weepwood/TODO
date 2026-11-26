@@ -132,3 +132,12 @@
 .v2 .heading h1{letter-spacing:-.035em}.v2 .nav-row,.v2 .task-body,.agenda-title{font-variant-numeric:tabular-nums}.v2 .task-row:focus-within{outline:1px solid var(--line);outline-offset:-1px}.v2 .detail-extra h3{font-weight:600}.v2 .task-content{min-width:0}
 
 /* V1.1 workbench refinement: shared controls and container-aware calendar. */
+
+/* Advanced search uses the existing smart-list editor and result semantics. */
+.dialog.advanced-task-search{width:min(560px,calc(100vw - 24px))}
+.advanced-search-results{display:grid;gap:5px;margin-top:10px;max-height:220px;overflow:auto}
+.advanced-search-result.secondary{display:flex;align-items:center;justify-content:space-between;text-align:left;gap:12px;min-width:0}
+.advanced-search-result span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.advanced-search-result small{flex-shrink:0;color:var(--muted);font-size:11px}
+.advanced-search-pages{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px}
+@media(max-width:520px){.advanced-search-result.secondary{align-items:flex-start;flex-direction:column;gap:3px}.advanced-search-result span{max-width:100%}}

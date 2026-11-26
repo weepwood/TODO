@@ -3,14 +3,18 @@ import React,{useState,useMemo} from 'react';
 import {Modal,Field} from './ui.jsx';
 import {emptyFilter,normalizeFilter,smartMatches,isDeadlineFilter} from './core/smart-lists.js';
 import {id} from './core/domain.js';
-export function SmartDialog({filter,data,today,onClose,onSave}){
+export function SmartDialog({filter,data,today,onClose,onSave,onOpenTask}){
  const [draft,setDraft]=useState(()=>({...emptyFilter,...filter}));
- const set=(k,v)=>setDraft(f=>({...f,[k]:v}));
- const count=useMemo(()=>data.tasks.filter(t=>smartMatches(t,normalizeFilter(draft),today)).length,[data.tasks,draft,today]);
+ const set=(k,v)=>{setDraft(f=>({...f,[k]:v}));setPage(0)};
+ const temporary=!!onOpenTask;
+ const matches=useMemo(()=>data.tasks.filter(t=>smartMatches(t,normalizeFilter(draft),today)),[data.tasks,draft,today]);
+ const count=matches.length;
+ const [page,setPage]=useState(0),pageSize=20;
+ const lastPage=Math.max(0,Math.ceil(count/pageSize)-1),currentPage=Math.min(page,lastPage);
  const select=(k,label,options)=><Field label={label}><SmartSelect aria-label={label} value={draft[k]} onValueChange={value=>set(k,value)}>{options.map(([v,n])=><SelectOption key={v} value={v}>{n}</SelectOption>)}</SmartSelect></Field>;
- return <Modal open onClose={onClose} title={filter?.id?'编辑智能清单':'新建智能清单'}><form className="smart-form" onSubmit={e=>{e.preventDefault();if(draft.name.trim())onSave(normalizeFilter({...draft,id:draft.id||id()}))}}>
- <Field label="清单名称"><input aria-label="智能清单名称" autoFocus required maxLength={80} value={draft.name} onChange={e=>set('name',e.target.value)}/></Field>
- <Field label="关键词"><input aria-label="筛选关键词" maxLength={200} value={draft.text} onChange={e=>set('text',e.target.value)} placeholder="标题或备注"/></Field>
+ return <Modal open onClose={onClose} title={temporary?'高级任务筛选':filter?.id?'编辑智能清单':'新建智能清单'} description={temporary?'临时组合筛选；仅在主动保存时创建智能清单。':undefined} className={temporary?'advanced-task-search':''}><form className="smart-form" onSubmit={e=>{e.preventDefault();if(draft.name.trim())onSave(normalizeFilter({...draft,id:draft.id||id()}))}}>
+ <Field label={temporary?"保存名称（可选）":"清单名称"}><input aria-label="智能清单名称" autoFocus={!temporary} required={!temporary} maxLength={80} value={draft.name} onChange={e=>set('name',e.target.value)}/></Field>
+ <Field label="关键词"><input aria-label="筛选关键词" autoFocus={temporary} maxLength={200} value={draft.text} onChange={e=>set('text',e.target.value)} placeholder="标题或备注"/></Field>
  {select('mode','匹配方式',[['all','同时满足全部条件（AND）'],['any','满足任一条件（OR）']])}
  {select('status','任务状态',[['pending','待处理'],['completed','已完成'],['all','待处理和已完成']])}
  {select('date','日期条件',[['any','不限'],['today','今天'],['overdue','已过期'],['next7','未来七天（含今天）'],['none','未安排'],['due-today','截止今天'],['due-overdue','截止已过期'],['due-next7','七天内截止'],['due-none','无截止日期']])}
@@ -19,5 +23,5 @@ export function SmartDialog({filter,data,today,onClose,onSave}){
  {select('tagId','标签条件',[['','全部'],...data.tags.map(t=>[t.id,t.name])])}
  {select('repeat','重复条件',[['any','不限'],['yes','重复任务'],['no','非重复任务']])}
  {select('timed','时间安排',[['any','不限'],['yes','已安排时间'],['no','未安排时间']])}
- <p className="smart-preview" role="status">匹配 {count} 项任务 · {draft.mode==='any'?'任一启用条件匹配':'全部启用条件匹配'} · 状态始终生效 · {isDeadlineFilter(draft)?'截止筛选仅保存在本机（不向旧客户端同步）':'保存至工作空间'}</p><div className="dialog-actions"><button type="button" className="secondary" onClick={onClose}>取消</button><button className="primary" disabled={!draft.name.trim()}>保存智能清单</button></div></form></Modal>
+ <p className="smart-preview" role="status">匹配 {count} 项任务 · {draft.mode==='any'?'任一启用条件匹配':'全部启用条件匹配'} · 状态始终生效 · {temporary?'临时筛选，未保存 · ':''}{isDeadlineFilter(draft)?'保存后仅在本机':'保存后进入工作空间'}</p>{temporary&&<section aria-label="筛选结果" className="advanced-search-results">{count?matches.slice(currentPage*pageSize,(currentPage+1)*pageSize).map(t=><button type="button" className="secondary advanced-search-result" key={t.id} onClick={()=>onOpenTask(t)}><span>{t.title||'未命名任务'}</span><small>{data.lists.find(l=>l.id===t.listId)?.name||'清单'} · {t.status==='completed'?'已完成':'待处理'}</small></button>):<p className="muted">没有匹配任务</p>}{lastPage>0&&<div className="advanced-search-pages"><button type="button" className="secondary" disabled={currentPage===0} onClick={()=>setPage(currentPage-1)}>上一页</button><span>{currentPage+1} / {lastPage+1}</span><button type="button" className="secondary" disabled={currentPage===lastPage} onClick={()=>setPage(currentPage+1)}>下一页</button></div>}</section>}<div className="dialog-actions"><button type="button" className="secondary" onClick={onClose}>取消</button><button className="primary" disabled={!draft.name.trim()}>保存智能清单</button></div></form></Modal>
 }
