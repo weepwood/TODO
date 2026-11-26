@@ -1,3 +1,5 @@
+import {goalProgressAt} from './review-insights.js';
+import {shiftDay} from './domain.js';
 import {validDate} from './domain.js';
 export const PERIOD_GOAL_KEY='todo-period-goals-v1';
 export function validPeriod(key){return typeof key==='string'&&(/^\d{4}$/.test(key)&&validDate(key+'-01-01')||/^\d{4}-\d{2}$/.test(key)&&validDate(key+'-01'))}
@@ -15,4 +17,12 @@ export function savePeriodGoal(storage,key,goal){
  const next={...current};if(goal===null)delete next[key];else next[key]={completed:goal.completed,focusMinutes:goal.focusMinutes};
  if(Object.keys(next).length>366)throw Error('周期目标已达366份上限');
  storage.setItem(PERIOD_GOAL_KEY,JSON.stringify(next));return next;
+}
+
+export function periodComparison(data,rows,key,until){
+ return Object.keys(rows).filter(k=>k.length===key.length&&k<=key).sort().slice(-12).map(period=>{
+  const next=period.length===4?(Number(period)+1)+'-01-01':period.endsWith('-12')?(Number(period.slice(0,4))+1)+'-01-01':period.slice(0,5)+String(Number(period.slice(5))+1).padStart(2,'0')+'-01';
+  const end=period===key?until:shiftDay(next,-1),p=goalProgressAt(data,end),target=rows[period];
+  return {period,end,target,actual:{completed:period.length===4?p.yearlyCompleted:p.monthlyCompleted,focusMinutes:period.length===4?p.yearlyFocus:p.monthlyFocus}};
+ });
 }

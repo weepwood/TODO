@@ -1,4 +1,5 @@
-import {pomodoroPlan,planningConfig,taskFocusSeconds,plannedBreakSeconds} from './pomodoro-planner.js';
+import {validQueueRun,queueRunProgress} from './focus-queue.js';
+import {pomodoroPlan,planningConfig,taskFocusSeconds,plannedBreakSeconds,splitPomodoro} from './pomodoro-planner.js';
 import {dayKey,timerSeconds} from './domain.js';
 export function shouldSaveFocus(config,mode,seconds){return (mode==='focus'||mode==='stopwatch')&&Number.isFinite(seconds)&&seconds>0&&(config?.ignoreShortSessions===false||seconds>=60)}
 // The same logical timer must produce the same record on every device,
@@ -32,7 +33,13 @@ export function settleFocus(state,now=Date.now()){
   // Do not charge time before a phase was actually started by this tick.
   const nextStart=Math.max(end,now),nextIso=new Date(nextStart).toISOString();
   const mode=t.mode==='focus'?'break':'focus';
-  if(t.planned){
+  if(t.queueRun){
+   const progress=queueRunProgress(t.queueRun,{...state,sessions});
+   if(progress.next){
+    const next=progress.next;
+    timer={mode,target:mode==='focus'?queueTarget(next.remaining,c):plannedBreakSeconds(c,count),elapsed:0,startedAt:nextStart,createdAt:nextIso,phaseAt:endIso,taskId:next.id,queueRun:t.queueRun};
+   }
+  }else if(t.planned){
    const plan=task&&pomodoroPlan(task,sessions,c,{baseline:t.planBaseline});
    if(planningConfig(c).planAutoContinue&&plan?.enabled&&plan.segments.length){
     timer={mode,target:mode==='focus'?plan.segments[0]:plannedBreakSeconds(c,count),elapsed:0,startedAt:nextStart,createdAt:nextIso,phaseAt:endIso,taskId:t.taskId,planned:true,planBaseline:t.planBaseline??0};
@@ -75,4 +82,14 @@ export function focusDisplaySeconds(timer,now){const seconds=timerSeconds(timer,
 export function formatFocusClock(seconds){
  const n=Math.max(0,Math.floor(seconds)),h=Math.floor(n/3600),m=Math.floor(n/60)%60,s=n%60;
  return (h?String(h).padStart(2,'0')+':':'')+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+
+// Start only from an explicit user action. Natural completion advances; manual
+// stop/discard and delayed wake never advance the queue.
+function queueTarget(remaining,config){return splitPomodoro(remaining,config.focus*60,planningConfig(config).planStrategy,60)[0]||60}
+export function startQueueRun(state,run,now){
+ if(state.timer||!validQueueRun(run)||!Number.isFinite(now))return state;
+ const next=queueRunProgress(run,state).next;if(!next)return state;
+ const target=queueTarget(next.remaining,state.focusConfig);
+ return {...state,timer:{mode:'focus',target,elapsed:0,startedAt:now,createdAt:new Date(now).toISOString(),taskId:next.id,queueRun:run}};
 }

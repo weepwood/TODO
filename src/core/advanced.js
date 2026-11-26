@@ -1,3 +1,4 @@
+import {blockMinutes} from './plan-block.js';
 import {validPoints} from './points.js';
 import {dayKey,shiftDay,validDate,id} from './domain.js';
 export function nextWeekday(date,days,interval=1,origin=date){
@@ -14,11 +15,11 @@ export function canLink(tasks,source,target,field='dependsOn'){
  return true
 }
 export function descendants(tasks,tid){const result=[],seen=new Set([tid]),queue=[tid];while(queue.length){const parent=queue.pop();for(const t of tasks)if(t.parentId===parent&&!seen.has(t.id)){seen.add(t.id);result.push(t);queue.push(t.id)}}return result}
-export function taskConflicts(tasks){const ranges=tasks.filter(t=>!t.deletedAt&&t.status==='pending'&&t.date&&t.time).map(t=>({id:t.id,start:new Date(t.date+'T'+t.time).getTime(),end:new Date(t.date+'T'+t.time).getTime()+t.duration*60000})).sort((a,b)=>a.start-b.start);const conflicts=new Set();let max=null;for(const r of ranges){if(max&&r.start<max.end){conflicts.add(r.id);conflicts.add(max.id)}if(!max||r.end>max.end)max=r}return conflicts}
+export function taskConflicts(tasks){const ranges=tasks.filter(t=>!t.deletedAt&&t.status==='pending'&&t.date&&t.time).map(t=>({id:t.id,start:new Date(t.date+'T'+t.time).getTime(),end:new Date(t.date+'T'+t.time).getTime()+blockMinutes(t)*60000})).sort((a,b)=>a.start-b.start);const conflicts=new Set();let max=null;for(const r of ranges){if(max&&r.start<max.end){conflicts.add(r.id);conflicts.add(max.id)}if(!max||r.end>max.end)max=r}return conflicts}
 export function habitStreak(days,today=dayKey()){const set=new Set(days);let d=set.has(today)?today:shiftDay(today,-1),n=0;while(set.has(d)){n++;d=shiftDay(d,-1)}return n}
 export function nextSlot(tasks,date,duration=30,start='09:00',end='18:00'){
  const a=new Date(date+'T'+start).getTime(),b=new Date(date+'T'+end).getTime(),len=duration*60000;let cursor=a;
- const ranges=tasks.filter(t=>!t.deletedAt&&t.status==='pending'&&t.date&&t.time).map(t=>{const s=new Date(t.date+'T'+t.time).getTime();return [s,s+t.duration*60000]}).filter(([s,e])=>s<b&&e>a).sort((x,y)=>x[0]-y[0]);
+ const ranges=tasks.filter(t=>!t.deletedAt&&t.status==='pending'&&t.date&&t.time).map(t=>{const s=new Date(t.date+'T'+t.time).getTime();return [s,s+blockMinutes(t)*60000]}).filter(([s,e])=>s<b&&e>a).sort((x,y)=>x[0]-y[0]);
  for(const [s,e] of ranges){if(cursor+len<=s)break;cursor=Math.max(cursor,e)}return cursor+len<=b?new Date(cursor).toTimeString().slice(0,5):null
 }
 export function quickParse(raw,today=dayKey()){

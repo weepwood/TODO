@@ -1,7 +1,10 @@
+import {nextSlot} from './advanced.js';
+import {calendarBusy} from './productivity.js';
+import {blockMinutes} from './plan-block.js';
 import {deadlineInRange} from './deadline.js';
 import {id,validDate,validTime,shiftDay,dayKey} from './domain.js';
 export const RULE_KEY='todo-workflow-rules-v1';
-const conditions=['due-today','due-overdue','due-next7','overdue','unscheduled','today','any','high','unblocked','doing','todo'];
+const conditions=['capacity-tight','due-today','due-overdue','due-next7','overdue','unscheduled','today','any','high','unblocked','doing','todo'];
 const actions=['today','tomorrow','high','low','clear-date','doing','todo','closeout'];
 const triggers=['daily','created','completed','changed','time','manual'];
 export function validRule(r){return !!r&&typeof r.id==='string'&&typeof r.name==='string'&&r.name.trim().length>0&&r.name.length<=80&&typeof r.list==='string'&&conditions.includes(r.condition)&&actions.includes(r.action)&&typeof r.enabled==='boolean'&&(r.extra===undefined||conditions.includes(r.extra))&&(r.match===undefined||['all','any'].includes(r.match))&&(r.trigger===undefined||triggers.includes(r.trigger))&&(r.trigger!=='time'||validTime(r.at))&&(r.tag===undefined||typeof r.tag==='string')}
@@ -12,17 +15,20 @@ export function writeRules(storage,state){
 }
 export const newRule=()=>({id:id(),name:'新规则',list:'all',condition:'overdue',action:'tomorrow',enabled:true,trigger:'daily'});
 const ordinary=t=>!t.deletedAt&&t.status==='pending'&&t.repeat==='none'&&!t.seriesId&&!t.previousId&&!t.seriesHold;
-function condition(c,t,today,byId){switch(c){case 'due-today':case 'due-overdue':case 'due-next7':return deadlineInRange(t,today,c);case 'overdue':return validDate(t.date)&&t.date<today;case 'unscheduled':return !t.date;case 'today':return t.date===today;case 'high':return t.priority===3;case 'doing':return t.stage==='doing';case 'todo':return t.stage==='todo';case 'unblocked':return !!t.dependsOn?.length&&t.dependsOn.every(i=>byId.get(i)?.status==='completed'&&!byId.get(i)?.deletedAt);default:return true}}
-export function previewRules(data,rules,today,ids=null){
+function condition(c,t,today,byId,busy){switch(c){case 'capacity-tight':return (!t.date||t.date<=today)&&!t.time&&!nextSlot(busy.filter(x=>x.id!==t.id),today,blockMinutes(t),'09:00','18:00');case 'due-today':case 'due-overdue':case 'due-next7':return deadlineInRange(t,today,c);case 'overdue':return validDate(t.date)&&t.date<today;case 'unscheduled':return !t.date;case 'today':return t.date===today;case 'high':return t.priority===3;case 'doing':return t.stage==='doing';case 'todo':return t.stage==='todo';case 'unblocked':return !!t.dependsOn?.length&&t.dependsOn.every(i=>byId.get(i)?.status==='completed'&&!byId.get(i)?.deletedAt);default:return true}}
+export function previewRules(data,rules,today,ids=null,diagnostics=null){
  if(!validDate(today))return [];
  const lists=new Set(data.lists.map(l=>l.id)),byId=new Map(data.tasks.map(t=>[t.id,t])),active=rules.filter(r=>validRule(r)&&r.enabled&&(r.list==='all'||lists.has(r.list)));
- const rows=[];
+ const rows=[],busy=[...data.tasks,...calendarBusy(data.calendarEvents)];
  for(const t of data.tasks){
   if(!ordinary(t)||ids&&!ids.has(t.id))continue;
-  const matches=active.filter(r=>(r.list==='all'||r.list===t.listId)&&(!r.tag||t.tags.includes(r.tag))&&(()=>{const a=condition(r.condition,t,today,byId);return !r.extra?a:r.match==='any'?a||condition(r.extra,t,today,byId):a&&condition(r.extra,t,today,byId)})());
-  const patch={},used=[];
+  const matches=active.filter(r=>(r.list==='all'||r.list===t.listId)&&(!r.tag||t.tags.includes(r.tag))&&(()=>{const a=condition(r.condition,t,today,byId,busy);return !r.extra?a:r.match==='any'?a||condition(r.extra,t,today,byId,busy):a&&condition(r.extra,t,today,byId,busy)})());
+  const patch={},used=[],claimed={};
   for(const r of matches){let next={};if(r.action==='high'||r.action==='low')next={priority:r.action==='high'?3:1};else if(r.action==='doing'||r.action==='todo')next={stage:r.action};else if(r.action==='clear-date')next={date:'',anchor:null};else if(r.action!=='closeout'||validDate(t.date)&&t.date<=today){const date=r.action==='today'?today:shiftDay(today,1);if(validDate(date))next={date,anchor:Number(date.slice(-2))}}
-   const field=Object.keys(next)[0];if(field&&!Object.hasOwn(patch,field)&&t[field]!==next[field]){Object.assign(patch,next);used.push(r.name)}}
+   const field=Object.keys(next)[0];if(!field)continue;
+   if(field==='date'&&t.planLocked){diagnostics?.push({id:r.id,taskId:t.id,title:t.title,reason:'时间块已锁定'});continue}
+   if(Object.hasOwn(claimed,field)){if(claimed[field].value!==next[field])diagnostics?.push({id:r.id,taskId:t.id,title:t.title,reason:'与优先规则 '+claimed[field].name+' 冲突'});continue}
+   claimed[field]={value:next[field],name:r.name};if(t[field]!==next[field]){Object.assign(patch,next);used.push(r.name)}}
   if(used.length)rows.push({id:t.id,title:t.title,date:t.date,priority:t.priority,listId:t.listId,patch,rules:used});
  }
  return rows;
@@ -74,4 +80,8 @@ export function eventRules(before,after,rules,today,meta){
 export function dueScheduledRules(rules,now,receipts={}){
  const day=dayKey(now),time=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
  return rules.filter(r=>validRule(r)&&r.enabled&&((r.trigger||'daily')==='daily'||r.trigger==='time'&&time>=r.at)&&receipts[r.id]!==day);
+}
+
+export function ruleConflicts(data,rules,today){
+ const issues=[];previewRules(data,rules,today,null,issues);return issues.slice(0,100);
 }

@@ -1,8 +1,9 @@
+import {blockMinutes} from './plan-block.js';
 import {seriesSafetyKeys} from './series-control.js';
 import {deadlineEnd} from './deadline.js';
 import {taskFocusSeconds} from './pomodoro-planner.js';
 import {nextSlot,blockers} from './advanced.js';
-export function executionPlan(tasks,date,{start='09:00',end='18:00',max=30,sessions=[],includeBacklog=false}={}){
+export function executionPlan(tasks,date,{start='09:00',end='18:00',max=30,sessions=[],includeBacklog=false,remainingBlocks=false}={}){
  if(!validWorkHours(start,end))return {placements:[],skipped:[],budget:null};
  let working=[...tasks],placements=[],skipped=[];const held=seriesSafetyKeys(tasks);
  const candidates=tasks.filter(t=>!t.external&&t.status==='pending'&&!t.deletedAt&&(!t.date||t.date===date||includeBacklog&&t.date<date)&&!t.time);
@@ -11,14 +12,16 @@ export function executionPlan(tasks,date,{start='09:00',end='18:00',max=30,sessi
  for(const task of candidates){
   const remaining=Math.max(0,task.duration*60-taskFocusSeconds(sessions,task.id));
   const skip=reason=>skipped.push({id:task.id,title:task.title,reason,remaining});
+  if(task.planLocked){skip('时间块已锁定');continue}
   if(held.has(task.seriesId||task.id)||task.seriesHold||blockers(tasks,task).length){skip('等待前置任务或系列暂停');continue}
   if(task.repeat!=='none'&&task.date!==date||task.seriesId&&task.date!==date){skip('保留重复实例日期');continue}
   if(placements.length>=max){skip('达到单次安排上限');continue}
   // duration is both estimate and time-block length: never silently shrink it.
-  const time=nextSlot(working,date,task.duration,start,end);if(!time){skip('连续空闲时间不足');continue}
-  const finish=new Date(date+'T'+time).getTime()+task.duration*60000;
+  const length=remainingBlocks?Math.ceil(remaining/60):task.duration;if(length<=0){skip('专注预算已达，等待任务确认');continue}
+  const time=nextSlot(working,date,length,start,end);if(!time){skip('连续空闲时间不足');continue}
+  const finish=new Date(date+'T'+time).getTime()+length*60000;
   const due=deadlineEnd(task.deadline),reason=due!==null&&finish>due?'预计超过截止期限':task.deadline?'按截止期限优先':'按优先级安排';
-  const patch={id:task.id,date,time,anchor:Number(date.slice(-2))};
+  const patch={id:task.id,date,time,anchor:Number(date.slice(-2)),...(remainingBlocks?{planMinutes:length}:{})};
   placements.push({...patch,reason,remaining});working=working.map(t=>t.id===task.id?{...t,...patch}:t)
  }
  return {placements,skipped,budget:workBudget(daySegments(working,date),start,end)};
@@ -36,11 +39,11 @@ export function calendarBusy(events=[]){
 function localDay(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 export function daySegments(tasks,date){
  const start=new Date(date+'T00:00:00'),end=new Date(start);end.setDate(end.getDate()+1);
- return tasks.filter(t=>t.status==='pending'&&!t.deletedAt&&t.date&&t.time&&Number.isFinite(t.duration)&&t.duration>0).flatMap(t=>{
-  const a=new Date(t.date+'T'+t.time).getTime(),b=a+t.duration*60000;
+ return tasks.filter(t=>t.status==='pending'&&!t.deletedAt&&t.date&&t.time&&Number.isFinite(blockMinutes(t))&&blockMinutes(t)>0).flatMap(t=>{
+  const a=new Date(t.date+'T'+t.time).getTime(),b=a+blockMinutes(t)*60000;
   if(!Number.isFinite(a)||b<=+start||a>=+end)return [];
   const left=Math.max(a,+start),right=Math.min(b,+end);
-  return [{...t,time:new Date(left).toTimeString().slice(0,5),endTime:right===+end?'24:00':new Date(right).toTimeString().slice(0,5),segmentMinutes:Math.round((right-left)/60000),carryIn:a<+start,carryOut:b>+end}];
+  return [{...t,duration:blockMinutes(t),time:new Date(left).toTimeString().slice(0,5),endTime:right===+end?'24:00':new Date(right).toTimeString().slice(0,5),segmentMinutes:Math.round((right-left)/60000),carryIn:a<+start,carryOut:b>+end}];
  }).sort((a,b)=>a.time.localeCompare(b.time));
 }
 export function validWorkHours(start,end){return /^([01]\d|2[0-3]):[0-5]\d$/.test(start)&&/^([01]\d|2[0-3]):[0-5]\d$/.test(end)&&start<end}

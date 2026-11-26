@@ -1,3 +1,4 @@
+import {blockMinutes} from '../../core/plan-block.js';
 import {DeadlineProperty} from './DeadlineProperty.jsx';
 import {DndContext,closestCenter,PointerSensor,useSensor,useSensors} from '@dnd-kit/core';
 import {SortableContext,verticalListSortingStrategy} from '@dnd-kit/sortable';
@@ -68,10 +69,12 @@ export function TaskDetail({compactLayout,scope,storage,task,data,updateFocus,on
 
  const sectionCards=[
  section("plan","时间、提醒与计划",CalendarDays,<><PropertyGrid>
- {property('计划日期',task.date||'未安排',<DatePicker confirm required={task.repeat!=='none'||!!task.seriesHold} value={task.date} onChange={date=>{const result=scheduleChanges(task,task,{...scheduleSnapshot(task),date},{locked:seriesLocked});if(result.error)return result.error;if(Object.keys(result.fields).length)patch(result.fields)}}/>)}
- {property('计划时间',task.time||'未设置',<TimeControl commitOnBlur label="计划时间" value={task.time} onChange={time=>patch({time})}/>)}
+ {property('计划日期',task.date||'未安排',task.planLocked?<span>{task.date||'未安排'} · 已锁定</span>:<DatePicker confirm required={task.repeat!=='none'||!!task.seriesHold} value={task.date} onChange={date=>{const result=scheduleChanges(task,task,{...scheduleSnapshot(task),date},{locked:seriesLocked});if(result.error)return result.error;if(Object.keys(result.fields).length)patch(result.fields)}}/>)}
+ {property('计划时间',task.time||'未设置',task.planLocked?<span>{task.time||'未设置'} · 已锁定</span>:<TimeControl commitOnBlur label="计划时间" value={task.time} onChange={time=>patch({time})}/>)}
  {property('截止期限',task.deadline?.replace('T',' ')||'未设置',<DeadlineProperty task={task} patch={patch} locked={locked}/>)}
  {property('预计时长',task.duration+' 分钟',<NumberField label="预计分钟" unit="分钟" min={1} max={1440} value={task.duration} onCommit={duration=>patch({duration})}/>)}
+ {property('规划占位',blockMinutes(task)+' 分钟',task.planLocked?<span>{blockMinutes(task)} 分钟 · 已锁定</span>:<NumberField label="规划占位分钟" unit="分钟" min={1} max={1440} value={blockMinutes(task)} onCommit={planMinutes=>patch({planMinutes})}/>)}
+ {property('时间块锁定',task.planLocked?'已锁定':'未锁定',<button type="button" className="secondary compact" aria-pressed={!!task.planLocked} onClick={()=>patch({planLocked:!task.planLocked})}>{task.planLocked?'解除锁定':'锁定时间块'}</button>)}
  {property('任务积分',taskPoints(task)+' 分',<NumberField label="任务积分" unit="分" min={-MAX_POINTS} max={MAX_POINTS} value={taskPoints(task)} onCommit={points=>patch({points})}/>)}
 
  {property('提醒',reminderDates.length?reminderDates.length+' 项':'未设置',<ScheduleProperty kind="reminder" task={task} patch={patch} seriesLocked={seriesLocked} value={reminderDates.length?reminderDates.length+' 项':'未设置'}/>)}

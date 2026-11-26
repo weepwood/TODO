@@ -1,8 +1,10 @@
+import {validPoints} from './points.js';
+import {canonical} from '../services/cloud-core.js';
 import {validDate,validTime,newTask,migrateState} from './domain.js';
 import {validDeadline} from './deadline.js';
-export const EXCHANGE_FIELDS=['title','notes','date','time','deadline','duration','priority'];
+export const EXCHANGE_FIELDS=['title','notes','date','time','deadline','duration','priority','points','planMinutes'];
 export const EXCHANGE_LIMIT=1000,EXCHANGE_BYTES=1024*1024;
-const names={title:['title','任务','标题','任务名称'],notes:['notes','备注'],date:['date','planned_date','计划日期'],time:['time','计划时间'],deadline:['deadline','截止日期','截止期限'],duration:['duration','预计时长'],priority:['priority','优先级']};
+const names={title:['title','任务','标题','任务名称'],notes:['notes','备注'],date:['date','planned_date','计划日期'],time:['time','计划时间'],deadline:['deadline','截止日期','截止期限'],duration:['duration','预计时长'],priority:['priority','优先级'],points:['points','积分','任务积分'],planMinutes:['planminutes','plan_minutes','规划占位']};
 export function parseCSV(raw){
  if(typeof raw!=='string'||new TextEncoder().encode(raw).length>EXCHANGE_BYTES)throw Error('文件超过1 MiB');
  const s=raw.replace(/^\uFEFF/,''),rows=[];let row=[],cell='',quoted=false,closed=false;
@@ -25,14 +27,23 @@ export function parseCSV(raw){
 export function inferMapping(header){return Object.fromEntries(EXCHANGE_FIELDS.map(k=>[k,header.findIndex(v=>names[k].includes(v.toLowerCase()))]))}
 export function parseMarkdownTasks(raw){
  if(typeof raw!=='string'||new TextEncoder().encode(raw).length>EXCHANGE_BYTES)throw Error('文件超过1 MiB');
- const rows=[];let ignored=0;
+ const rows=[];let ignored=0,previous=null,extended=false;
  for(const line of raw.replace(/^\uFEFF/,'').split(/\r?\n/)){
+  const meta=line.match(/^\s*<!-- todo-meta ([A-Za-z0-9+/=]+) -->\s*$/);
+  if(meta&&previous){
+   try{const decoded=new TextDecoder('utf-8',{fatal:true}).decode(Uint8Array.from(atob(meta[1]),c=>c.charCodeAt(0))),value=JSON.parse(decoded);
+    if(!value||typeof value!=='object'||Array.isArray(value))throw Error();
+    for(const k of EXCHANGE_FIELDS.slice(1)){const v=value[k];if(v!==undefined&&v!==null&&typeof v!=='string'&&typeof v!=='number')throw Error();previous[EXCHANGE_FIELDS.indexOf(k)]=String(v??'')}
+    extended=true;
+   }catch{throw Error('Markdown 属性记录无效')}
+   previous=null;continue;
+  }
   const match=line.match(/^\s*[-*+]\s+\[([ xX])\]\s+(.*)$/);
-  if(!match){if(line.trim())ignored++;continue}
-  if(match[1].toLowerCase()==='x'){ignored++;continue}
-  rows.push([match[2].replace(/\\([\\\[\]<>*_`#])/g,'$1')]);if(rows.length>EXCHANGE_LIMIT)throw Error('每批最多1000项');
+  previous=null;if(!match||match[1].toLowerCase()==='x'){if(line.trim())ignored++;continue}
+  previous=[match[2].replace(/\\([\\\[\]<>*_\x60#])/g,'$1'),...EXCHANGE_FIELDS.slice(1).map(()=>'')];rows.push(previous);
+  if(rows.length>EXCHANGE_LIMIT)throw Error('每批最多1000项');
  }
- return {header:['title'],rows,ignored};
+ return extended?{header:EXCHANGE_FIELDS,rows,ignored}:{header:['title'],rows:rows.map(r=>[r[0]]),ignored};
 }
 const key=t=>JSON.stringify([t.listId,t.title.normalize('NFKC').trim().toLocaleLowerCase(),t.date||'',t.time||'']);
 export function previewExchange(parsed,mapping,listId,data){
@@ -42,24 +53,47 @@ export function previewExchange(parsed,mapping,listId,data){
  for(let i=0;i<parsed.rows.length;i++){
   const row=parsed.rows[i],get=k=>Number.isInteger(mapping[k])&&mapping[k]>=0?row[mapping[k]]??'':'';
   const title=get('title').trim(),notes=get('notes'),date=get('date').trim(),time=get('time').trim(),deadline=get('deadline').trim(),duration=get('duration').trim()?Number(get('duration')):30,priority=get('priority').trim()?Number(get('priority')):0;
-  const fields={title,notes,listId,date,time,deadline,duration,priority};
-  let error=row.length!==parsed.header.length?'列数不匹配':!title||title.length>500?'任务名称为空或超过500字符':notes.length>50000?'备注超长':date&&!validDate(date)||time&&(!date||!validTime(time))||!validDeadline(deadline)?'日期或时间无效':!Number.isInteger(duration)||duration<1||duration>1440||![0,1,2,3].includes(priority)?'时长或优先级无效':'';
+  const points=get('points').trim()?Number(get('points')):undefined,planMinutes=get('planMinutes').trim()?Number(get('planMinutes')):undefined;
+  const fields={title,notes,listId,date,time,deadline,duration,priority,...(points!==undefined?{points}:{}),...(planMinutes!==undefined?{planMinutes}:{})};
+  let error=row.length!==parsed.header.length?'列数不匹配':!title||title.length>500?'任务名称为空或超过500字符':notes.length>50000?'备注超长':date&&!validDate(date)||time&&(!date||!validTime(time))||!validDeadline(deadline)?'日期或时间无效':!Number.isInteger(duration)||duration<1||duration>1440||![0,1,2,3].includes(priority)||points!==undefined&&!validPoints(points)||planMinutes!==undefined&&(!Number.isInteger(planMinutes)||planMinutes<1||planMinutes>1440)?'时长、积分或优先级无效':'';
   const signature=key(fields),duplicate=!error&&seen.has(signature);
   if(!error)seen.add(signature);rows.push({index:i+1,fields,error,duplicate});
  }
  return rows;
 }
 export function makeImportTasks(rows){return rows.filter(r=>!r.error&&!r.duplicate).map(r=>({...newTask(r.fields.title,r.fields.listId,r.fields.date),...r.fields}))}
-export function appendImportedTasks(data,tasks){
+export function appendImportedTasks(data,tasks,receipt){
  if(!tasks.length||tasks.length>EXCHANGE_LIMIT||data.tasks.length+tasks.length>100000)return data;
  const ids=new Set(data.tasks.map(t=>t.id)),keys=new Set(data.tasks.map(key));
  for(const t of tasks){const k=key(t);if(ids.has(t.id)||keys.has(k)||!data.lists.some(l=>l.id===t.listId))return data;ids.add(t.id);keys.add(k)}
  const next={...data,tasks:[...data.tasks,...tasks]};
+ if(receipt){const run={...receipt,entries:tasks.map(t=>({id:t.id,signature:importSignature(t)}))};const runs=[run,...(data.importRuns||[])].slice(0,10);while(runs.length>1&&!validImportRuns(runs))runs.pop();if(!validImportRuns(runs))return data;next.importRuns=runs}
  try{migrateState(next);return next}catch{return data}
 }
-const csvCell=value=>{let s=String(value??'');if(/^[\s]*[=+\-@]|^[\t\r\n]/.test(s))s="'"+s;return '"'+s.replaceAll('"','""')+'"'};
+const csvCell=value=>{let s=String(value??'');if(typeof value!=='number'&&/^[\s]*[=+\-@]|^[\t\r\n]/.test(s))s="'"+s;return '"'+s.replaceAll('"','""')+'"'};
 export function exportTasks(tasks,format){
  const active=tasks.filter(t=>t.status==='pending'&&!t.deletedAt);
- if(format==='markdown')return active.map(t=>'- [ ] '+t.title.replace(/[\r\n]+/g,' ').replace(/[\\\[\]<>*_`#]/g,'\\$&')).join('\n')+'\n';
+ if(format==='markdown')return active.map(t=>{
+  const title=t.title.replace(/[\r\n]+/g,' ').replace(/[\\\[\]<>*_\x60#]/g,'\\$&');
+  const metadata=JSON.stringify(Object.fromEntries(EXCHANGE_FIELDS.slice(1).filter(k=>t[k]!==undefined).map(k=>[k,t[k]])));
+  const encoded=btoa(Array.from(new TextEncoder().encode(metadata),n=>String.fromCharCode(n)).join(''));
+  return '- [ ] '+title+'\n  <!-- todo-meta '+encoded+' -->';
+ }).join('\n')+'\n';
  return '\uFEFF'+[EXCHANGE_FIELDS.join(','),...active.map(t=>EXCHANGE_FIELDS.map(k=>csvCell(t[k])).join(','))].join('\r\n');
+}
+
+function importSignature(task){const {activity,...fields}=task;return canonical(fields)}
+export function validImportRuns(runs){
+ return Array.isArray(runs)&&runs.length<=10&&new TextEncoder().encode(JSON.stringify(runs)).length<=2*1024*1024&&new Set(runs.map(r=>r?.id)).size===runs.length&&runs.every(r=>r&&typeof r.id==='string'&&r.id.length<=100&&Number.isFinite(Date.parse(r.at))&&(r.undone===undefined||r.undone===true)&&Array.isArray(r.entries)&&r.entries.length>0&&r.entries.length<=EXCHANGE_LIMIT&&new Set(r.entries.map(e=>e?.id)).size===r.entries.length&&r.entries.every(e=>e&&typeof e.id==='string'&&typeof e.signature==='string'));
+}
+export function canUndoImport(data,id){
+ const run=data.importRuns?.find(r=>r.id===id);if(!run||run.undone||!validImportRuns([run]))return false;
+ const ids=new Set(run.entries.map(e=>e.id)),byId=new Map(data.tasks.map(t=>[t.id,t]));
+ if(data.timer&&ids.has(data.timer.taskId)||data.sessions.some(s=>ids.has(s.taskId))||data.tasks.some(t=>!t.deletedAt&&(ids.has(t.parentId)||t.dependsOn?.some(x=>ids.has(x))||ids.has(t.previousId))))return false;
+ return run.entries.every(e=>{const t=byId.get(e.id);return t&&!t.deletedAt&&t.status==='pending'&&importSignature(t)===e.signature&&(t.activity||[]).every(a=>a.kind==='created')});
+}
+export function undoImport(data,id,at){
+ if(!Number.isFinite(Date.parse(at))||!canUndoImport(data,id))return data;
+ const run=data.importRuns.find(r=>r.id===id),ids=new Set(run.entries.map(e=>e.id));
+ return {...data,tasks:data.tasks.map(t=>ids.has(t.id)?{...t,deletedAt:at}:t),importRuns:data.importRuns.map(r=>r.id===id?{...r,undone:true}:r)};
 }

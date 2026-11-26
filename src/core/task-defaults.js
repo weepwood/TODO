@@ -1,3 +1,4 @@
+import {blockMinutes} from './plan-block.js';
 import {newTask,shiftDay,validDate,validTime} from './domain.js';
 import {taskConflicts} from './advanced.js';
 import {validPoints} from './points.js';
@@ -16,9 +17,9 @@ export function taskFromCapture(args){const props=captureProperties(args);return
 export function previewPostpone(tasks,ids,days){
  const selected=new Set(ids),rows=[];
  if(![1,3,7].includes(days))return {rows,skipped:selected.size,conflicts:0};
- for(const t of tasks){if(!selected.has(t.id)||t.deletedAt||t.status!=='pending'||t.repeat!=='none'||t.seriesId||t.previousId||!validDate(t.date))continue;
+ for(const t of tasks){if(!selected.has(t.id)||t.planLocked||t.deletedAt||t.status!=='pending'||t.repeat!=='none'||t.seriesId||t.previousId||!validDate(t.date))continue;
  const date=shiftDay(t.date,days);if(!validDate(date))continue;
- rows.push({id:t.id,title:t.title,from:t.date,to:date,time:t.time,duration:t.duration});}
+ rows.push({id:t.id,title:t.title,from:t.date,to:date,time:t.time,duration:blockMinutes(t)});}
  const changes=new Map(rows.map(r=>[r.id,r.to]));
  const next=tasks.map(t=>changes.has(t.id)?{...t,date:changes.get(t.id),anchor:Number(changes.get(t.id).slice(-2))}:t);
  const conflicts=taskConflicts(next);
