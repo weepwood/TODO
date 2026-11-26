@@ -171,7 +171,7 @@ fn history_read_snapshot(c:&Connection,scope:&str,detail:bool,limit:i64,version:
  let current:Option<String>=c.query_row("SELECT body FROM snapshots WHERE scope=?1",[scope],|r|r.get(0)).optional().map_err(|e|e.to_string())?;
  read_history_body(c,scope,detail,limit,version,now,head,current)
 }
-#[cfg(test)]
+#[cfg(any(test,feature="research-r4"))]
 pub(super) fn read_row_history(c:&Connection,scope:&str,body:String)->Result<Value,String>{
  let head=c.query_row("SELECT version,fingerprint FROM operation_history_head WHERE scope=?1",[scope],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|e|e.to_string())?;
  read_history_body(c,scope,true,300,None,Local::now().timestamp(),head,Some(body))

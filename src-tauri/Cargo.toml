@@ -32,3 +32,11 @@ tauri-plugin-process = "2"
 
 [target.'cfg(target_os = "android")'.dependencies]
 tauri-plugin-todo-mobile = { path = "plugins/todo-mobile" }
+
+[features]
+research-r4 = []
+
+[[bin]]
+name = "todo-r4-lab"
+path = "src/bin/r4.rs"
+required-features = ["research-r4"]

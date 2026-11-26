@@ -49,6 +49,6 @@ export function replay(before,p){
 // replay check prevents missed updates. Oversized changes go to full path.
 export function plan(before,after,limit=900000){
  try{const patch=changes(before,after);if(!eq(replay(before,patch),after))throw Error('replay mismatch');
- return Buffer.byteLength(JSON.stringify(patch))<=limit?{kind:'delta',patch}:{kind:'snapshot',reason:'budget'};}
+ return new TextEncoder().encode(JSON.stringify(patch)).length<=limit?{kind:'delta',patch}:{kind:'snapshot',reason:'budget'};}
  catch(e){return {kind:'reject',reason:String(e.message)}}
 }

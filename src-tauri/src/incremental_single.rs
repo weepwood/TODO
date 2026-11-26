@@ -28,7 +28,7 @@ fn validate_keys(v:&Value)->R<()>{
  if v.as_object().ok_or("keys")?.iter().any(|(k,v)|!KEYS.contains(&k.as_str())||!v.is_string()){return Err("invalid store keys".into())}Ok(())
 }
 pub(super) fn wrap(v:&Value,k:&Value)->Value{let mut out=k.clone();out[KEY]=json!(v.to_string());out}
-fn schema(c:&Connection)->R<()>{
+pub(super) fn schema(c:&Connection)->R<()>{
  super::storage::schema(c).map_err(err)?;
  c.execute_batch("CREATE TABLE r3_head(scope TEXT PRIMARY KEY,rev INTEGER NOT NULL,body_hash TEXT NOT NULL,kv_hash TEXT NOT NULL,layout_hash TEXT NOT NULL);
  CREATE TABLE r3_task(scope TEXT NOT NULL,id TEXT NOT NULL,pos INTEGER NOT NULL,body TEXT NOT NULL,hash TEXT NOT NULL,PRIMARY KEY(scope,id)) WITHOUT ROWID;
@@ -164,7 +164,7 @@ fn replay(cur:&Current,p:&Value)->R<(Value,Value,BTreeSet<String>)>{
  validate_keys(&k)?;Ok((m,k,touched))
 }
 pub(super) fn delta(a:&Value,b:&Value,old_keys:&Value,new_keys:&Value)->Value{
- let mut p=super::incremental_shadow::patch(a,b);let mut keys=vec![];
+ let mut p=super::incremental_patch::patch(a,b);let mut keys=vec![];
  for k in old_keys.as_object().unwrap().keys().chain(new_keys.as_object().unwrap().keys()).collect::<BTreeSet<_>>(){
   if old_keys.get(k)!=new_keys.get(k){keys.push(json!({"key":k,"before":old_keys[k],"after":new_keys[k]}))}
  }p["keys"]=json!(keys);p

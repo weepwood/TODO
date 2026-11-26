@@ -1,5 +1,5 @@
 fn main() {
-  tauri_build::try_build(tauri_build::Attributes::new().app_manifest(tauri_build::AppManifest::new().commands(&[
+  let commands:&'static [&'static str]=&[
     "native_take_quick_capture",
     "native_shortcut_status",
     "native_open_capture",
@@ -27,5 +27,14 @@ fn main() {
     "native_notify",
     "native_exit",
     "native_test_notification",
-  ]))).expect("application build");
+    #[cfg(feature="research-r4")] "r4_load",
+    #[cfg(feature="research-r4")] "r4_seed",
+    #[cfg(feature="research-r4")] "r4_commit",
+    #[cfg(feature="research-r4")] "r4_journal",
+    #[cfg(feature="research-r4")] "r4_enqueue",
+    #[cfg(feature="research-r4")] "r4_receipt",
+    #[cfg(feature="research-r4")] "r4_checkpoint",
+    #[cfg(feature="research-r4")] "r4_report",
+  ];
+  tauri_build::try_build(tauri_build::Attributes::new().app_manifest(tauri_build::AppManifest::new().commands(commands))).expect("application build");
 }

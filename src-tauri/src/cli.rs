@@ -95,7 +95,7 @@ fn op_receipt(c:&Connection,scope:&str,id:&str)->Res<Option<Value>>{
   Ok(json!({"request_id":id,"status":status,"result":result,"sync_status":"not_checked"}))
  }).transpose()
 }
-fn receipt(c:&Connection,scope:&str,id:&str)->Res<Value>{
+pub(super) fn receipt(c:&Connection,scope:&str,id:&str)->Res<Value>{
  if let Some(r)=op_receipt(c,scope,id)?{return Ok(r)}
 
  let row:Option<(String,usize)>=c.query_row("SELECT d.status,m.task_count FROM direct_capture_requests d JOIN cli_capture_meta m ON d.scope=m.scope AND d.id=m.id WHERE d.scope=?1 AND d.id=?2",params![format!("cli:{scope}"),id],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|e|e.to_string())?;
@@ -129,7 +129,7 @@ fn history_ready(c:&Connection)->Res<bool>{c.query_row("SELECT EXISTS(SELECT 1 F
 pub(super) const MANAGEMENT:&[&str]=&["context","plan-preview","plan-explain","reflow-preview","changes-preview","split-preview","preview-apply","changes-undo","audit","review"];
 fn management_ready(c:&Connection)->Res<bool>{c.query_row("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='cli_management_v3')",[],|r|r.get(0)).map_err(|e|e.to_string())}
 const OPERATIONS:&[&str]=&["create","query","show","catalog","calendar","stats","update","complete","reopen","restore","move","postpone","series","undo-completion","entity-create","entity-rename","habit-create","habit-check","focus-start","focus-change"];
-fn enqueue_operation(c:&mut Connection,scope:&str,id:&str,payload:Value)->Res<Value>{
+pub(super) fn enqueue_operation(c:&mut Connection,scope:&str,id:&str,payload:Value)->Res<Value>{
  if !operation_ready(c)?{return Err("operation API requires updated native application".into())}
  if !payload.is_object()||!payload["op"].as_str().is_some_and(|x|OPERATIONS.contains(&x)||MANAGEMENT.contains(&x)||HISTORY.contains(&x)){return Err("unsupported operation; use todo schema".into())}
  let kind=payload["op"].as_str().unwrap();
