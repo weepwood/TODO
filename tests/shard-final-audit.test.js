@@ -45,3 +45,10 @@ test('在途提交后的编辑和元数据变化不可被旧快照确认',async(
  assert.throws(()=>{a.tasks[0].title='illegal'},TypeError);
  release();assert.equal(await first,true);assert.equal(await second,true);assert.equal(writes.length,2);assert.equal(writes[1].keys['todo-cloud-meta'],'later');assert.deepEqual(writes[1].state,b);
 });
+
+test('私有初始及字符串导入延迟冻结，但写入回调只接收深冻结快照',async()=>{
+ const a=fixture(2),b={...a,theme:'dark'},seen=[];
+ const store=createStateQueue({[STORAGE_KEY]:JSON.stringify(a)},async(state,keys)=>{assert.equal(Object.isFrozen(state),true);assert.equal(Object.isFrozen(state.tasks[0].checklist),true);seen.push(state.theme)});
+ store.setItem('todo-cloud-meta','metadata-only');assert.equal(await store.flush(),true);
+ store.setItem(STORAGE_KEY,JSON.stringify(b));assert.equal(await store.flush(),true);assert.deepEqual(seen,[a.theme,'dark']);
+});

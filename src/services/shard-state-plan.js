@@ -48,7 +48,10 @@ export function planStateParts(state,keys,bucket,previous=null){
  return {parts,groups,ids,reused,serialized};
 }
 export function createStateQueue(initial,write,onStatus=()=>{},now=Date.now){
- let state=sealWorkspace(JSON.parse(initial[STORAGE_KEY])),keys={...initial},raw=initial[STORAGE_KEY],committedState=state,committedKeys;
+ // Initial parsed graph is private; it is never returned or reused as a
+ // reference-based plan until the write boundary seals it. Avoid a second
+ // full deep freeze before the separately hydrated UI graph is staged.
+ let state=JSON.parse(initial[STORAGE_KEY]),keys={...initial},raw=initial[STORAGE_KEY],committedState=state,committedKeys;
  delete keys[STORAGE_KEY];committedKeys=keys;
  let scheduled=false,running=false,error='',waiters=[],fullSerializations=0;
  const pending=()=>running||scheduled||state!==committedState||keys!==committedKeys;
@@ -58,7 +61,7 @@ export function createStateQueue(initial,write,onStatus=()=>{},now=Date.now){
  async function drain(){
   if(running)return;scheduled=false;running=true;error='';notify();
   try{while(state!==committedState||keys!==committedKeys){
-   const snapshot=state,metadata=keys;
+   const snapshot=sealWorkspace(state),metadata=keys;
    await write(snapshot,metadata);committedState=snapshot;committedKeys=metadata;
   }}catch(e){error=String(e)}
   finally{running=false;const done=!error&&!pending();for(const resolve of waiters.splice(0))resolve(done);notify()}
@@ -79,7 +82,7 @@ export function createStateQueue(initial,write,onStatus=()=>{},now=Date.now){
  }
  return {stageWorkspace,getItem:key=>key===STORAGE_KEY?stringify():keys[key]??null,
   setItem(key,value){if(!STORE_KEYS.includes(key))throw Error('unsupported workspace storage key');const v=String(value);
-   if(key===STORAGE_KEY){if(raw===v)return;const next=JSON.parse(v);migrateState(next);state=sealWorkspace(next);raw=v;schedule();return}
+   if(key===STORAGE_KEY){if(raw===v)return;const next=JSON.parse(v);migrateState(next);state=next;raw=v;schedule();return}
    if(keys[key]!==v){keys={...keys,[key]:v};schedule()}
   },
   removeItem(key){if(key===STORAGE_KEY)throw Error('不能移除主工作空间');if(Object.hasOwn(keys,key)){const next={...keys};delete next[key];keys=next;schedule()}},

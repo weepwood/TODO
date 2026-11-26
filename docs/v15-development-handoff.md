@@ -374,3 +374,15 @@
 **累计与原生**：基线e058716..c144271共151文件，逐文件清单：UI47、数据与业务36、测试35、CSS17、文档6、原生6、工具4；122 JS/JSX/mjs、17 CSS、2 JSON解析通过，10项文档/原生仅登记；定向审查存储、恢复、附件/导入导出、计划块、系列和原生窗口权限。不是完整语义审查或独立QA。macOS当前有CLT/Rust、历史QA包而无本候选隔离包，adb不在PATH，未构建/启动正式或历史应用，真实通知、实体原生、真实测试账号及跨平台未验收；旧模拟测试证据保留、不重复冒充真机。
 
 **本轮实际验收**：三引擎随机事务、万级增量、恢复UI各3/3，共9项；实际旧协议SW最终3/3；真实Chromium队列堆图1/1；变更后万级UI会话1/1；271单测、普通构建、累计diff检查。证据外置artifacts/TODO/v15-motion-polish/v16-rc-final-audit/（cumulative-inventory.json、unit.log、chromium.log、cross.log、pwa-retainer-recheck.log、browser-retainer.json、lifecycle.log、shard-lifecycle.json、build.log及entry.json等）。剩余正式迁移部署、真实原生/账号、小时级、完整UI保留路径、性能回归归因、完整累计语义、独立QA/正式CI仍阻塞RC。保持4197、正式main a012057及冻结e058716，不推送、不合并、不发布。
+
+## 三十四、V1.6 发布阻塞专项验收（2026-11-26）
+
+基线cf5ee33，读取第三十三节及docs/v16-rc-release-gates.md，冻结功能范围。保持真实数据、正式main a012057、V1.5冻结e058716及4197，遵守5GiB磁盘、Swap与并发门禁，内存压力仅监测。
+
+**性能归因**：新增benchmark-shard-contract.mjs，三个版本同一10000任务夹具，轮换顺序3轮、每轮12次修改（热样本排除前2次）、GC前后记录，独立完整分片oracle。unsealed c144271/deep-freeze cf5ee33/current：首次分片31.13/67.44/65.49ms、热编辑17.93/20.44/20.41ms、map中位0.055/0.063/0.059ms、队列构造7.20/38.22/7.29ms、初始化至首次提交46.64/110.91/80.86ms、GC堆增量22.25/22.68/22.67MB。消除私有初始解析对象重复冻结，字符串导入及元数据提交在write回调前仍深冻结；UI对象递归不可变、领域验证和127/128分片复用不变。首次提交较深冻结基线下降27.09%，非浏览器端到端结论，不能完整解释上一轮97秒会话回归。新增小时级外置证据目录、原子进度文件、每2轮资源复核、取消连续整小时堆分配采样（保留GC采样）；必须达到真实3600秒且最终持久化及页面异常断言通过才有最终结果，启动/进度不等于通过。按隔离冻结副本执行，避免活动代码修改。
+
+**兼容迁移**：新增仅显式4178合成环境启用的合作旧写入器及真实工作台入口，所有允许业务键写入/删除检查租约和切换标志，不允许写围栏本身；共享guest锁、禁用真实账号操作、普通生产不包含兼容入口或试验模块。三引擎真实联合演练各1/1：旧应用正常编辑及持久化、新标签锁拒绝、模拟既有旧标签观察到preparing后写入拒绝、导出草稿、关闭旧页、真实旧SW拒绝、注销并关闭受控页、新版显式迁移/无损回退、回退后旧写入器继续拒绝。不是已经部署正式兼容客户端或真实旧版本全量隔离；不真实迁移，非合作历史客户端仍是门禁。
+
+**原生**：独立外置源码副本与构建目标TODO.noindex/rc-native-cf5ee33，独立identifier com.weepwood.todo.qa.v16cf5ee33、假云地址127.0.0.1:9及隔离CSP；无全局Rust默认工具链，显式stable后锁定离线解析通过，首次构建45.17s/50.74MiB。临时Rust eval探针仅在QA副本运行真实macOS WebView：实际UI新增、SQLite搜索、备份、两个合成UUID作用域隔离、旧作用域通知拒绝、系统通知API返回成功、SQLite integrity_check=ok、退出码0；guest及另一合成作用域各1任务，证据作用域0任务。未人工确认通知可见/点击导航、未连接真实云账户。恢复QA副本原生源码并移除探针，11/11 Rust单测，干净调试包重建18.78s/50.74MiB，留外置路径及SHA-256；不安装正式应用，不触及正式SQLite。Windows/Android真机、真实账号生命周期及独立人工QA仍待。
+
+**最终回归**：273/273 JS单测，新增真实旧客户端+PWA三引擎最终各1/1；普通构建2.64s/main493.61kB/gzip159.39kB，入口JS1106640/gzip339562/CSS269858字节，不含试验入口/数据库/围栏标志。累计差异检查；审查本批存储队列、旧兼容写入器、原生隔离权限/作用域，不宣称完整独立语义QA。证据artifacts/TODO/v15-motion-polish/v16-rc-blockers/：contract-before/final.json、compatible-pwa-final.log、unit-final.log、build.log、entry.json、native-preflight-stable.log、native-build.log、native-run-result.json、native-final.log、native-clean-package.json等。正式部署、小时级最终结果及完整UI堆路径、真实账号/通知可见与导航、Windows/Android、独立QA/正式CI仍是RC门禁，不发布，不推送、不合并。
