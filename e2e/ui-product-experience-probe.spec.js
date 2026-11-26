@@ -12,6 +12,14 @@ test('实际工作台页面检查',async({page})=>{
  for(const [label,selector] of modules.slice(1)){await page.locator('.rail').getByRole('button',{name:label,exact:true}).click();await expect(page.locator(selector).first()).toBeVisible();await inspect('desktop-'+label)}
  await page.locator('.rail').getByRole('button',{name:'设置',exact:true}).click();await expect(page.getByRole('navigation',{name:'设置分类'})).toBeVisible();if(out)await page.screenshot({path:out+'/desktop-settings.png',animations:'disabled'});await page.keyboard.press('Escape');
  await page.setViewportSize({width:390,height:844});
- for(const [label,selector] of modules){const b=page.locator('.rail').getByRole('button',{name:label,exact:true});if(await b.isVisible())await b.click();else{await page.getByRole('button',{name:'更多',exact:true}).click();await page.getByRole('dialog',{name:'工作空间'}).getByRole('button',{name:label,exact:true}).click()}await expect(page.locator(selector).first()).toBeVisible();await inspect('mobile-'+label)}
+ const nav=page.getByRole('navigation',{name:'移动端主导航'}),more=page.getByRole('dialog',{name:'工作空间'});
+ const primary=new Set(['任务','日历','每日规划','统计']);
+ await expect(nav).toBeVisible();
+ for(const [label,selector] of modules){
+  // Do not infer primary membership from transient visibility during the sheet exit.
+  if(primary.has(label)){const button=nav.getByRole('button',{name:label,exact:true});await expect(button).toBeVisible();await button.click();await expect(button).toHaveAttribute('aria-pressed','true')}
+  else{await nav.getByRole('button',{name:'更多',exact:true}).click();await expect(more).toBeVisible();await more.getByRole('button',{name:label,exact:true}).click();await expect(more).toHaveCount(0)}
+  await expect(page.locator(selector).first()).toBeVisible();await inspect('mobile-'+label)
+ }
  if(out)writeFileSync(out+'/pages.json',JSON.stringify({rows,errors},null,2));console.log(JSON.stringify({rows,errors}));expect(errors).toEqual([]);expect(rows.every(r=>r.bodyWidth<=r.viewport+1)).toBe(true);
 });
