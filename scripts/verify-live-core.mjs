@@ -1,10 +1,11 @@
 // Manual release gate. No credentials, tokens or workspace contents are logged.
 import assert from 'node:assert/strict';
+import {randomBytes,createHash} from 'node:crypto';
 import {initialState,newTask} from '../src/domain.js';
 import {canonical} from '../src/cloud-core.js';
 // Injectable adapter enables offline tests of the acceptance procedure itself.
 // Only the CLI below this module can select the actual production endpoint.
-export async function verifyLive({url,key,createClient,fetch:fetchImpl=globalThis.fetch,live=false,write=false,env={},logLine=console.log,errorLine=console.error,timeout=15000}){
+export async function verifyLive({url,key,createClient,fetch:fetchImpl=globalThis.fetch,live=false,write=false,oauth=false,env={},logLine=console.log,errorLine=console.error,timeout=15000}){
 const table='todo_workspaces',empty=initialState(),clients=[];
 let stage='public preflight',a,b,channel,uid,expected=null,fixture=null,cleanupFailed=false,failed=false;
 const check=(res)=>{if(res.error)throw Object.assign(Error('API request rejected'),{code:res.error.code||res.error.status});return res.data};
@@ -17,7 +18,19 @@ const patch=async(c,revision,state)=>check(await c.from(table).update({state,rev
 async function preflight(){
  const headers={apikey:key};
  const auth=await fetchImpl(url+'/auth/v1/settings',{headers,signal:signal()});assert.equal(auth.status,200);
- const settings=await auth.json();assert.equal(settings.external?.email,true);assert.equal(settings.disable_signup,false);assert.equal(settings.mailer_autoconfirm,false);log('email signup enabled; confirmation required');
+ const settings=await auth.json();assert.equal(settings.external?.email,true);assert.equal(settings.disable_signup,false);assert.equal(settings.mailer_autoconfirm,false);log('email provider enabled; confirmation required; global signup enabled');
+ if(oauth){
+  assert.equal(settings.external?.github,true);assert.equal(settings.external?.google,true);assert.equal(settings.external?.azure,false);
+  for(const [provider,origin,path] of [['github','https://github.com','/login/oauth/authorize'],['google','https://accounts.google.com','/o/oauth2/v2/auth']]){
+   const endpoint=new URL(url+'/auth/v1/authorize');
+   endpoint.search=new URLSearchParams({provider,redirect_to:'https://weepwood.github.io/TODO/',code_challenge:createHash('sha256').update(randomBytes(32)).digest('base64url'),code_challenge_method:'s256'});
+   const response=await fetchImpl(endpoint.href,{redirect:'manual',signal:signal()});
+   assert([302,303,307,308].includes(response.status));
+   const target=new URL(response.headers.get('location'));
+   assert.equal(target.origin,origin);assert.equal(target.pathname,path);assert.equal(target.searchParams.get('redirect_uri'),url+'/auth/v1/callback');
+   log(provider+' authorization entry and provider callback verified; no session created');
+  }
+ }
  const anon=await fetchImpl(url+'/rest/v1/todo_workspaces?select=revision&limit=1',{headers,signal:signal()});assert([401,403].includes(anon.status));log('anonymous workspace read denied');
  for(const [name,body] of [['todo_read_task_deltas',{p_revision:1}],['todo_apply_task_delta',{p_revision:1,p_tasks:[]}]]){
   const r=await fetchImpl(url+'/rest/v1/rpc/'+name,{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify(body),signal:signal()});

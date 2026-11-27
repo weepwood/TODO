@@ -78,3 +78,22 @@ test('并发改动时禁止恢复覆盖其他修改',async()=>{
 test('退出失败不能报告验收成功',async()=>{
  const f=fixture({signoutFail:true});assert.equal(await f.run({write:false}),false);assert(!f.log.includes('AUTH_READONLY_COMPLETE'));
 });
+
+test('OAuth public gate checks two official hosts and callback without following redirects',async()=>{
+ const f=fixture(),providers=[];
+ const fetch=async (raw,opts)=>{
+  const u=new URL(raw);
+  if(u.pathname==='/auth/v1/settings')return new Response(JSON.stringify({external:{email:true,github:true,google:true,azure:false},disable_signup:false,mailer_autoconfirm:false}),{status:200});
+  if(u.pathname==='/auth/v1/authorize'){
+   assert.equal(opts.redirect,'manual');assert.equal(u.searchParams.get('code_challenge_method'),'s256');assert.match(u.searchParams.get('code_challenge'),/^[A-Za-z0-9_-]{43}$/);
+   const provider=u.searchParams.get('provider');providers.push(provider);
+   const target=new URL(provider==='github'?'https://github.com/login/oauth/authorize':'https://accounts.google.com/o/oauth2/v2/auth');target.searchParams.set('redirect_uri','https://example.invalid/auth/v1/callback');
+   return new Response(null,{status:302,headers:{location:target.href}});
+  }
+  return new Response('',{status:401});
+ };
+ assert(await f.run({live:false,write:false,oauth:true,fetch}));assert.deepEqual(providers,['github','google']);assert.equal(f.state().logins,0);
+ const bad=fixture();
+ assert.equal(await bad.run({live:false,write:false,oauth:true,fetch:async(raw,opts)=>new URL(raw).pathname==='/auth/v1/authorize'?new Response(null,{status:302,headers:{location:'https://example.invalid/bad'}}):fetch(raw,opts)}),false);
+ assert.equal(bad.state().logins,0);
+});

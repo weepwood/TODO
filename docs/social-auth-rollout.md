@@ -66,3 +66,9 @@
 - 实际公开 settings HTTP 200：github=true/google=true/azure=false/email=true/disable_signup=false/mailer_autoconfirm=false。实际 Web /auth/v1/authorize 两次请求均 HTTP 302，分别指向 github.com/login/oauth/authorize 与 accounts.google.com/o/oauth2/v2/auth，且 redirect_uri 等于 Supabase 固定回调。未跟随授权页面、未提交账号凭据、未建立真实用户会话。Google 测试名单及 URL 白名单依据上节控制台交接，未通过管理 API 独立读回。
 - 本地全量单测295/295、隔离构建成功、浏览器模拟认证5/5（桌面/Android GitHub IPC、Web GitHub/Google、已有邮箱）。即使模拟服务宣告 Azure 启用，界面无 Microsoft 登录按钮、授权函数也在 SDK 调用前拒绝 Azure。独立 PostgreSQL 对更新后的 Hook 10 类 provider（含伪造 user_metadata）及 ACL/SECURITY INVOKER 检查通过。生产 Hook 仍未部署。
 - 下一步仅真实 GitHub/Google OAuth 登录、独立账号隔离、旧邮箱登录和跨平台回调验证，确认 Google 对外发布范围后再部署注册 Hook 和候选版本。未推送、未发布、未修改生产数据库。保留此前控制台交接和历史验收证据，不读取或复制任何密钥。
+
+## Alpha.2 候选收口（2026-11-27）
+- 用户确认邮箱等配置已验证，直接进入后续任务；不再重复要求邮箱注册验证。生产只读聚合确认一个已确认邮箱账号、一个 email identity、一个工作空间、0 个异常形状；GitHub/Google 身份记录尚未观察到，注册 Hook 不存在。未读取个人邮箱或任务正文。
+- 版本统一为 1.2.0-alpha.2，Android versionCode 102002；不修改已发布 Alpha.1、更新清单或正式 main。现有发布预检增加 --oauth，仅核对生产公开 settings、双官方授权入口及精确 provider callback，不跟随重定向、不创建会话、不读写任务。拒绝未启用 provider 与错误授权目标；邮箱全局 signup 开启的状态不等于 Hook 已启用或邮箱独立注册已禁用。
+- 实际运行 node scripts/release-config.mjs、node scripts/verify-live.mjs --oauth 成功；全量 JS 单测296/296，隔离 Web 构建2.44s，认证与更新 E2E 6/6（模拟服务）。日志 /Volumes/data/AI-Development/artifacts/TODO/alpha2-{unit,build,e2e}.log。实际 OAuth 登录、原生系统浏览器回调及同步恢复不在这些证据范围内。
+- 注册白名单函数继续待部署，保留真实 OAuth 新用户验收后启用的前置条件。无备份恢复验收或额外授权，不部署生产数据约束。没有修改生产配置/数据库，不推送或发布。停止功能扩张，下一阶段为真机与受审发布。

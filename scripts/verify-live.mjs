@@ -8,4 +8,4 @@ const url=source.match(/CLOUD_URL\s*=.*?\|\|\s*'([^']+)'/)?.[1];
 const key=source.match(/CLOUD_KEY\s*=.*?\|\|\s*'(sb_publishable_[^']+)'/)?.[1];
 assert(url==='https://xepkhnatnpvopnlqnrrz.supabase.co'&&key,'Unexpected public project configuration');
 const live=process.argv.includes('--live'),write=process.argv.includes('--write');
-if(!await verifyLive({url,key,createClient,live,write,env:process.env}))process.exitCode=1;
+if(!await verifyLive({url,key,createClient,live,write,oauth:process.argv.includes('--oauth'),env:process.env}))process.exitCode=1;
