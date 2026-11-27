@@ -6,7 +6,7 @@ permissions:
   actions: read
 jobs:
   windows-upgrade:
-    if: github.ref == 'refs/heads/research/signed-upgrade-20261127'
+    if: false # previous successful evidence 45991971602; not repeated
     runs-on: windows-latest
     timeout-minutes: 15
     steps:
@@ -57,5 +57,41 @@ jobs:
         with:
           name: signed-windows-upgrade-evidence
           path: signed-upgrade-evidence/
+          retention-days: 7
+          if-no-files-found: warn
+
+  mac-upgrade:
+    if: github.ref == 'refs/heads/research/signed-upgrade-20261127'
+    runs-on: macos-15
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 45867313963
+          name: signed-mac
+          path: ${{ runner.temp }}/todo-mac-alpha.1
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 45938395961
+          name: signed-mac
+          path: ${{ runner.temp }}/todo-mac-alpha.2
+      - name: Verify original Mac signing artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TODO_VERIFY_PUBLIC_KEY: ${{ vars.TODO_UPDATER_PUBLIC_KEY }}
+        run: node scripts/verify-signed-upgrade-assets.mjs mac
+      - name: Real DMG installation and native queue overlay
+        run: python3 scripts/verify-signed-mac-upgrade.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: signed-mac-upgrade-evidence
+          path: mac-upgrade-evidence/
           retention-days: 7
           if-no-files-found: warn

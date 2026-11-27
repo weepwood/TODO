@@ -1,0 +1,22 @@
+[
+  {
+    "version": "1.2.0-alpha.1",
+    "runId": 45867313963,
+    "artifactId": 15141303191,
+    "sha": "980df78089e6b2628d4f2903373f41d35579ca4e",
+    "files": {
+      "TODO_1.2.0-alpha.1_arm64.apk": "0af43c8eb40b742b2aa5fcb20fc10d91112bfd468aa2765e4bc2f56f0b7440a9",
+      "TODO_1.2.0-alpha.1_arm64.apk.idsig": "245d9382d9ba8fab321a58dbe2bd909316f8e8bb9518e81eb4ff3ae268339837"
+    }
+  },
+  {
+    "version": "1.2.0-alpha.2",
+    "runId": 45938395961,
+    "artifactId": 15172061530,
+    "sha": "18450487a437c37a836d0ba1a84d642c38daca93",
+    "files": {
+      "TODO_1.2.0-alpha.2_arm64.apk": "63cf6357549f72cc4de96ba70aaeb8acc3fc59243633c7f57a78d0c4800ece50",
+      "TODO_1.2.0-alpha.2_arm64.apk.idsig": "8869c397dd362fa39a90f8e7aabdfd251dbf23473d3d8e834439fe3c77c9d989"
+    }
+  }
+]

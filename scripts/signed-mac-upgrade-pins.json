@@ -1,0 +1,24 @@
+[
+  {
+    "version": "1.2.0-alpha.1",
+    "runId": 45867313963,
+    "artifactId": 15141950412,
+    "sha": "980df78089e6b2628d4f2903373f41d35579ca4e",
+    "files": {
+      "TODO_1.2.0-alpha.1_aarch64.app.tar.gz": "1c1f2c1c0b12b5f1d8fa5216da2b58a4b5c73d4234be9d295fb0fbbfda0c2c4c",
+      "TODO_1.2.0-alpha.1_aarch64.app.tar.gz.sig": "b39a7671388b774abe2f8c71ffeab552f3e9f2980ab6bf4771dc0c1c7208c487",
+      "TODO_1.2.0-alpha.1_aarch64.dmg": "8d469e3bf89c8a42aa0e952958418ca8826d1fe261c9f1cbac3311fc01b1c507"
+    }
+  },
+  {
+    "version": "1.2.0-alpha.2",
+    "runId": 45938395961,
+    "artifactId": 15172066627,
+    "sha": "18450487a437c37a836d0ba1a84d642c38daca93",
+    "files": {
+      "TODO_1.2.0-alpha.2_aarch64.app.tar.gz": "b471e6b4de307d7e2efd6a3b89f61499a56bae304ec6794b1bff258a866abb3a",
+      "TODO_1.2.0-alpha.2_aarch64.app.tar.gz.sig": "937ab58853d5f393b6321a7e54870445afc5bf1301dcc915584fb536ed04f721",
+      "TODO_1.2.0-alpha.2_aarch64.dmg": "33c28693a54bd9337d0f5c6cf437ba510d11e7470764456d338f27ecf8105686"
+    }
+  }
+]
