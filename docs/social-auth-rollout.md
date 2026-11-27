@@ -44,3 +44,12 @@
 - 参考 https://v2.tauri.app/plugin/deep-linking/ 、https://v2.tauri.app/plugin/opener/ 、https://supabase.com/docs/guides/auth/native-mobile-deep-linking 。真实 Provider 配置尚未完成，禁止将候选称为已上线。
 
 - macOS ARM64 Rust 锁定依赖编译检查（cargo check --locked --jobs 2）通过，耗时 1m01s，证据 native-auth-rust-check.log。不是正式安装包，也未验证真实 OS 回调。
+
+## 生产只读审查与配置交接（2026-11-27）
+- 实际 Supabase MCP 连接 TODO（xepkhnatnpvopnlqnrrz），ACTIVE_HEALTHY。迁移历史精确匹配三份业务迁移。只读聚合：1 个账号、1 个工作空间、0 个不符合必要字段的行；新 shape 约束和 signup Hook 均未部署。未读取邮箱、任务正文或密码；未变更生产数据。
+- RLS 开启，SELECT/INSERT/UPDATE 均为 authenticated 且 auth.uid()=user_id（INSERT 同时 revision=1，UPDATE 有 USING 与 WITH CHECK）；anon 无表权限，authenticated 无 DELETE。四个业务函数 SECURITY INVOKER、空 search_path；anon 无 EXECUTE，authenticated 仅可调用读/写差量 RPC。Realtime publication 仅 user_id/revision/updated_at。实际 node scripts/verify-live.mjs 匿名拒绝检查通过（读工作空间、读差量、空写差量请求均 401/403）；未执行 --live 或 --write。
+- Security Advisor 当前仅一项 WARN auth_leaked_password_protection；官方 https://supabase.com/docs/guides/auth/password-security 说明该功能需 Pro 及以上，不升级、不绕过。保留邮箱确认和既有会话保护，后续以 OAuth 为新账号入口。
+- 实际公开 Auth settings：HTTP 200，github=false/google=false/azure=false，email=true，disable_signup=false，mailer_autoconfirm=false。可用 Supabase MCP 无 Provider/Redirect/Hook 配置写接口；不搜索或读取本机认证密钥，不借用其他项目凭据。
+- 控制台配置顺序：先 GitHub OAuth App（https://github.com/settings/developers），再 Google Web application（https://console.cloud.google.com/auth/clients），再 Microsoft Entra App registration（https://entra.microsoft.com/）。全部 provider HTTPS callback 为 https://xepkhnatnpvopnlqnrrz.supabase.co/auth/v1/callback 。Google 设置外部受众、必要 scope 和实际发布状态；Microsoft 支持个人和组织账号、common tenant，依官方 https://supabase.com/docs/guides/auth/social-sign-in/auth-azure 配置 xms_edov/email 可选声明，禁止允许未验证邮箱域。凭据仅由管理员直接填入 Supabase Auth Providers；不写聊天/仓库。
+- URL Configuration：Site URL https://weepwood.github.io/TODO/ ，精确允许 Web URL 与 com.weepwood.todo://auth/callback。保持 Email Provider 开启、Confirm email 开启、全局 signup 开启，先完成独立测试账号三种 OAuth 的真实登录和账号隔离，再启用 Before User Created Hook 并复验直接邮箱注册拒绝。新 shape 约束实际生产零坏行，但尚无备份恢复授权和正式受审迁移，不直接应用。
+- 原生当前只支持活动设置窗口的回调。真实 macOS/Windows/Android OS 回调及生产同步恢复未验收。未推送、未合并、未发布，不启动其他研发专项。
