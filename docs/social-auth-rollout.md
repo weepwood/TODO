@@ -34,3 +34,13 @@
 - 本批实际运行：现有三份迁移及待部署 Hook，在独立临时 PostgreSQL 集群、仅 Unix socket、合成 auth.users 与 auth.uid fixture。真实 pg_dump/pg_restore（同集群两个数据库，角色预置），源与恢复各17项 RLS、CAS、差量、发布列、Hook 检查通过；账号及工作空间合成行精确一致。未验证真实 GoTrue/Realtime 服务、不同集群角色迁移、真实 OAuth、真实生产备份、真实服务器迁移。证据 /Volumes/data/AI-Development/artifacts/TODO/supabase-portability-1575ab4/{verify.py,verify.log,verify-final.log}。
 - 真实缺陷：旧 CHECK 遇到缺失 version/tasks 时可返回 NULL，允许本账号写入无效对象（非跨账号越权）。待部署修复 supabase/rollout/workspace-required-shape.sql 使用 IS TRUE；旧数据异常时事务回滚、不得重写。隔离验收：七种非法插入、一种非法更新拒绝、正常插入成功、原 revision 保留；含旧坏行时修复失败且原数据不变；修复后17项权限及同步 SQL 检查再次通过。生产应用前需只读统计异常行、备份、确认锁影响，通过正式 reviewed migration 处理；当前无 Supabase CLI/Docker，未生成迁移或运行云端 advisors，未执行任何生产 SQL。
 - 用户批准保持简单；暂不进一步新增通用迁移自动化或加密协议。下一步仅真实 OAuth/原生回调及实际安全验收，服务端凭据由用户在控制台输入。当前不推送、不发布、不切换数据库。
+
+## 原生 OAuth 候选实现
+仅采用两项必要的 Tauri 官方插件（JS/Rust 同版本锁定 Deep Link 2.6.3、Opener 2.7.3），复用现有 single-instance 与 Supabase SDK 2.119.2。不安装程序，不增加服务或自建登录协议。
+- 原生回调白名单增加 `com.weepwood.todo://auth/callback`（Supabase Redirect URLs 精确添加，不替换 provider 的 HTTPS 回调地址；Web 继续原地址）。系统浏览器打开经校验的 Supabase /auth/v1/authorize；Opener 仅 main 窗口固定项目地址及授权查询参数，关闭通用链接注入；迁移服务器时同步调整 CSP 与 opener scope。Capture 不获得打开链接权限。
+- 当前仅处理设置窗口活动时的授权。使用固定路径、PKCE S256、SDK flowId、一次活动尝试、5 分钟超时、取消/重复/错误/未知回调拒绝；回调前重新检查本地持久化。关闭设置或进程退出后重新开始，不持久化额外授权状态，不接受 token fragment。不保证自定义 scheme 的独占注册；PKCE 减轻授权码截获风险，实际 OS 仍需验收。
+- Android 原生 Vault 保留固定键 ACL 和 Keystore；锁定 SDK 新增 per-flow verifier slot/index，新增短期键只在内存中处理，固定会话/旧 verifier 仍走原 Vault。原有清理、后台检查及账号 UUID 语义不变。
+- 验收证据：native-auth-unit.log 294/294，native-auth-web-build.log 构建成功，native-auth-final-e2e.log 6/6（桌面和 Android 的模拟 IPC 浏览器授权、取消/重复及访客保留，Web 三种 OAuth 与已有邮箱登录）；首轮失败证据 native-auth-e2e-first.log、native-auth-unit-first.log、native-auth-android-e2e.log 保留。Android 初轮详情覆盖导航测试失败，调整关闭详情定位；第二轮发现真实 SDK 临时键与固定 Vault 约束不兼容，修复后通过。ACL 测试兼容带 scope 的对象并新增精确 opener 断言，未放宽业务断言。模拟 IPC 不等于实际系统浏览器、Android Keystore 或生产 OAuth 成功。
+- 参考 https://v2.tauri.app/plugin/deep-linking/ 、https://v2.tauri.app/plugin/opener/ 、https://supabase.com/docs/guides/auth/native-mobile-deep-linking 。真实 Provider 配置尚未完成，禁止将候选称为已上线。
+
+- macOS ARM64 Rust 锁定依赖编译检查（cargo check --locked --jobs 2）通过，耗时 1m01s，证据 native-auth-rust-check.log。不是正式安装包，也未验证真实 OS 回调。

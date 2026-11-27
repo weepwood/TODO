@@ -14,7 +14,7 @@ import {appendSyncLog,readSyncLog,SYNC_LOG_KEY} from './services/sync-diagnostic
 import {scopedStorage,canonical,digest,readMeta,META_KEY,decideSync,readRemote,preserveConflict} from './services/cloud-core.js';
 // Android credentials live only in the native encrypted vault. Other platforms
 // retain their existing session behavior; unsupported native mobile is memory-only.
-export const cloud=createClient(CLOUD_URL,CLOUD_KEY,{auth:{...(!isTauri()?{flowType:'pkce'}:{}),persistSession:!mobileNative||androidNative,autoRefreshToken:true,detectSessionInUrl:!mobileNative,...(androidNative?{storageKey:ANDROID_SESSION_KEY,storage:createAndroidSessionStorage(invoke)}:{})}});
+export const cloud=createClient(CLOUD_URL,CLOUD_KEY,{auth:{flowType:'pkce',persistSession:!mobileNative||androidNative,autoRefreshToken:true,detectSessionInUrl:!isTauri(),...(androidNative?{storageKey:ANDROID_SESSION_KEY,storage:createAndroidSessionStorage(invoke)}:{})}});
 const TABLE='todo_workspaces';
 export function useAccount(){
  const [session,setSession]=useState(null),[ready,setReady]=useState(false),[error,setError]=useState('');

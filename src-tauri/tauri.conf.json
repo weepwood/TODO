@@ -50,5 +50,26 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "com.weepwood.todo"
+        ]
+      },
+      "mobile": [
+        {
+          "scheme": [
+            "com.weepwood.todo"
+          ],
+          "host": "auth",
+          "pathPrefix": [
+            "/callback"
+          ],
+          "appLink": false
+        }
+      ]
+    }
   }
 }

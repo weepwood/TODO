@@ -266,7 +266,7 @@ pub fn run(){
  #[cfg(desktop)] let builder=desktop::configure(builder);
  #[cfg(desktop)] let builder=if option_env!("TODO_SIGNED_RELEASE")==Some("1"){builder.plugin(tauri_plugin_updater::Builder::new().build()).plugin(tauri_plugin_process::init())}else{builder};
  #[cfg(target_os="android")] let builder=builder.plugin(tauri_plugin_todo_mobile::init());
- builder.plugin(tauri_plugin_notification::init())
+ builder.plugin(tauri_plugin_deep_link::init()).plugin(tauri_plugin_opener::Builder::new().open_js_links_on_click(false).build()).plugin(tauri_plugin_notification::init())
  .invoke_handler(tauri::generate_handler![native_load,native_save,native_load_store,native_write_store,native_activate,native_search,native_list_backups,native_read_backup,native_create_backup,native_notify,native_exit,native_test_notification,native_take_quick_capture,native_shortcut_status,native_open_capture,native_capture_generation,native_capture_handoff,native_capture_cancel,native_capture_submit_direct,native_capture_direct_status,native_direct_pending,native_direct_ack,native_direct_cancel_pending,native_cli_binding])
  .setup(|app|{
   let path=app.path().app_data_dir()?;std::fs::create_dir_all(&path)?;let c=Connection::open(path.join("todo.sqlite3"))?;c.busy_timeout(std::time::Duration::from_secs(5))?;schema(&c)?;

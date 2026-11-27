@@ -17,7 +17,7 @@ test('OAuth uses PKCE and refuses mismatched server or insecure redirects',async
  for(const provider of ['github','google','azure']){
   const good=new URL(cloudUrl+'/auth/v1/authorize');good.search=new URLSearchParams({provider,redirect_to:site,code_challenge:'fake-test-challenge',code_challenge_method:'s256'});
   const auth={signInWithOAuth:async opts=>{assert.deepEqual(opts,{provider,options:{redirectTo:site,skipBrowserRedirect:true,...(provider==='azure'?{scopes:'email'}:{})}});return {data:{url:good.href}}}};
-  assert.equal(await socialAuthorize({auth,provider,redirectTo:site,cloudUrl}),good.href);
+  assert.deepEqual(await socialAuthorize({auth,provider,redirectTo:site,cloudUrl}),{url:good.href,flowId:null});
   for(const change of [u=>u.hostname='bad.invalid',u=>u.searchParams.delete('code_challenge'),u=>u.searchParams.set('redirect_to','https://bad.invalid/'),u=>u.searchParams.set('provider','other')]){
    const bad=new URL(good);change(bad);
    await assert.rejects(socialAuthorize({auth:{signInWithOAuth:async()=>({data:{url:bad.href}})},provider,redirectTo:site,cloudUrl}),/校验失败/);

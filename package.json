@@ -32,6 +32,8 @@
     "@supabase/supabase-js": "2.119.2",
     "@tanstack/react-virtual": "3.14.28",
     "@tauri-apps/api": "2.12.5",
+    "@tauri-apps/plugin-deep-link": "2.6.3",
+    "@tauri-apps/plugin-opener": "2.7.3",
     "@tauri-apps/plugin-process": "2.4.0",
     "@tauri-apps/plugin-updater": "2.14.1",
     "@tiptap/extension-table": "3.35.0",

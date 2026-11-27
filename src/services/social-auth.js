@@ -22,5 +22,5 @@ export async function socialAuthorize({auth,provider,redirectTo,cloudUrl}){
  const url=new URL(data?.url||'');
  const expected=new URL('auth/v1/authorize',cloudUrl.replace(/\/+$/,'')+'/');
  if(url.origin!==expected.origin||url.pathname!==expected.pathname||url.searchParams.get('provider')!==provider||url.searchParams.get('redirect_to')!==redirectTo||url.searchParams.get('code_challenge_method')?.toLowerCase()!=='s256'||!url.searchParams.get('code_challenge'))throw Error('第三方授权地址校验失败。');
- return url.href;
+ return {url:url.href,flowId:data.flowId??null};
 }
