@@ -11,9 +11,9 @@ stable
 security invoker
 set search_path = ''
 as $$
- select case when event->'user'->'app_metadata'->>'provider' in ('github','google','azure')
+ select case when event->'user'->'app_metadata'->>'provider' in ('github','google')
    then '{}'::jsonb
-   else jsonb_build_object('error',jsonb_build_object('http_code',403,'message','New accounts require GitHub, Google or Microsoft sign-in.'))
+   else jsonb_build_object('error',jsonb_build_object('http_code',403,'message','New accounts require GitHub or Google sign-in.'))
  end;
 $$;
 revoke all on function todo_auth_private.allow_oauth_signup(jsonb) from public, anon, authenticated;

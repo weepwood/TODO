@@ -47,6 +47,7 @@ for(const android of [false,true])test('Native '+(android?'Android':'desktop')+'
   await expect.poll(()=>page.evaluate(()=>JSON.parse(JSON.parse(localStorage.getItem('qa-native-guest'))['todo-workbench-v1']).tasks.length)).toBe(1);
   if(android){await page.getByRole('button',{name:'关闭详情'}).click();await expect(page.getByRole('complementary',{name:'任务详情'})).toHaveCount(0);await page.locator('.rail').getByRole('button',{name:'更多',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'设置',exact:true}).click()}
   else await page.locator('.rail').getByRole('button',{name:'设置',exact:true}).click();
+  await expect(page.getByRole('button',{name:'使用 Microsoft 登录'})).toHaveCount(0);
   const btn=page.getByRole('button',{name:'使用 GitHub 登录'});await expect(btn).toBeEnabled();
   await btn.click();await expect(page.getByRole('button',{name:'取消授权'})).toBeVisible();await expect.poll(()=>page.evaluate(()=>window.__opened.length)).toBe(1);
   await page.getByRole('button',{name:'取消授权'}).click();

@@ -53,3 +53,16 @@
 - 控制台配置顺序：先 GitHub OAuth App（https://github.com/settings/developers），再 Google Web application（https://console.cloud.google.com/auth/clients），再 Microsoft Entra App registration（https://entra.microsoft.com/）。全部 provider HTTPS callback 为 https://xepkhnatnpvopnlqnrrz.supabase.co/auth/v1/callback 。Google 设置外部受众、必要 scope 和实际发布状态；Microsoft 支持个人和组织账号、common tenant，依官方 https://supabase.com/docs/guides/auth/social-sign-in/auth-azure 配置 xms_edov/email 可选声明，禁止允许未验证邮箱域。凭据仅由管理员直接填入 Supabase Auth Providers；不写聊天/仓库。
 - URL Configuration：Site URL https://weepwood.github.io/TODO/ ，精确允许 Web URL 与 com.weepwood.todo://auth/callback。保持 Email Provider 开启、Confirm email 开启、全局 signup 开启，先完成独立测试账号三种 OAuth 的真实登录和账号隔离，再启用 Before User Created Hook 并复验直接邮箱注册拒绝。新 shape 约束实际生产零坏行，但尚无备份恢复授权和正式受审迁移，不直接应用。
 - 原生当前只支持活动设置窗口的回调。真实 macOS/Windows/Android OS 回调及生产同步恢复未验收。未推送、未合并、未发布，不启动其他研发专项。
+
+## 2026-11-27 认证服务配置进展
+
+- 生产 Supabase 已启用 GitHub、Google Provider；Email 仍启用，Confirm email 开启，全局 signup 开启，Azure 未启用。公开 settings 接口已验证上述状态。
+- Site URL 为 Pages 生产地址；Redirect URLs 精确包含 Pages 和原生协议回调。GitHub 使用精确 Supabase 回调，未启用通配符或设备流程。Google Cloud 独立 TODO 项目为测试模式，当前 Google 账号已列为测试用户；仅配置 Web 客户端及 Supabase 回调，未申请额外 API 权限。
+- 生成时出现在工具记录中的 GitHub 旧密钥已删除，Google 旧密钥已停用；后续使用各自新密钥。Google 显示停用可能需要一段时间生效。密钥未写入仓库。
+- 按用户要求暂不配置 Microsoft。真实 OAuth、跨账号隔离及现有邮箱登录尚未验收，生产注册 Hook 未部署；须使用独立测试账号和隔离环境，不能使用正式个人数据或将模拟验收当作真实验收。候选代码未发布。
+
+## 最终认证范围：GitHub + Google（2026-11-27）
+- 用户确认已完成 GitHub、Google 配置并取消 Microsoft。客户端 provider 列表、授权入口和待部署 Hook 仅保留 github/google；邮箱仅登录、访客、PKCE、原生安全回调和 Supabase 基础安全保持不变。Apple、微信及 Microsoft 不再纳入当前发布范围。
+- 实际公开 settings HTTP 200：github=true/google=true/azure=false/email=true/disable_signup=false/mailer_autoconfirm=false。实际 Web /auth/v1/authorize 两次请求均 HTTP 302，分别指向 github.com/login/oauth/authorize 与 accounts.google.com/o/oauth2/v2/auth，且 redirect_uri 等于 Supabase 固定回调。未跟随授权页面、未提交账号凭据、未建立真实用户会话。Google 测试名单及 URL 白名单依据上节控制台交接，未通过管理 API 独立读回。
+- 本地全量单测295/295、隔离构建成功、浏览器模拟认证5/5（桌面/Android GitHub IPC、Web GitHub/Google、已有邮箱）。即使模拟服务宣告 Azure 启用，界面无 Microsoft 登录按钮、授权函数也在 SDK 调用前拒绝 Azure。独立 PostgreSQL 对更新后的 Hook 10 类 provider（含伪造 user_metadata）及 ACL/SECURITY INVOKER 检查通过。生产 Hook 仍未部署。
+- 下一步仅真实 GitHub/Google OAuth 登录、独立账号隔离、旧邮箱登录和跨平台回调验证，确认 Google 对外发布范围后再部署注册 Hook 和候选版本。未推送、未发布、未修改生产数据库。保留此前控制台交接和历史验收证据，不读取或复制任何密钥。
