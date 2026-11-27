@@ -2,7 +2,7 @@ import {assertCloudCapacity,requireCommittedStorage,prepareSyncSnapshot} from '.
 import {unsafeSeriesPull} from './core/series-control.js';
 import {subscribeSyncWake} from './platform/web/sync-wake.js';
 import {mobileNative,androidNative} from './platform/runtime.js';
-import {invoke} from '@tauri-apps/api/core';
+import {invoke,isTauri} from '@tauri-apps/api/core';
 import {ANDROID_SESSION_KEY,createAndroidSessionStorage} from './platform/android/session-storage.js';
 import React,{useEffect,useRef,useState,useCallback} from 'react';
 import {createClient} from '@supabase/supabase-js';
@@ -14,7 +14,7 @@ import {appendSyncLog,readSyncLog,SYNC_LOG_KEY} from './services/sync-diagnostic
 import {scopedStorage,canonical,digest,readMeta,META_KEY,decideSync,readRemote,preserveConflict} from './services/cloud-core.js';
 // Android credentials live only in the native encrypted vault. Other platforms
 // retain their existing session behavior; unsupported native mobile is memory-only.
-export const cloud=createClient(CLOUD_URL,CLOUD_KEY,{auth:{persistSession:!mobileNative||androidNative,autoRefreshToken:true,detectSessionInUrl:!mobileNative,...(androidNative?{storageKey:ANDROID_SESSION_KEY,storage:createAndroidSessionStorage(invoke)}:{})}});
+export const cloud=createClient(CLOUD_URL,CLOUD_KEY,{auth:{flowType:'pkce',persistSession:!mobileNative||androidNative,autoRefreshToken:true,detectSessionInUrl:!isTauri(),...(androidNative?{storageKey:ANDROID_SESSION_KEY,storage:createAndroidSessionStorage(invoke)}:{})}});
 const TABLE='todo_workspaces';
 export function useAccount(){
  const [session,setSession]=useState(null),[ready,setReady]=useState(false),[error,setError]=useState('');

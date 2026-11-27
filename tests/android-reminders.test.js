@@ -46,3 +46,13 @@ test('后台版本检查只在已持久化状态生成，不含任务正文或�
  assert.equal((await revisionIntent({uid:'test-scope',storage,data:{...data,tasks:[]},url:'https://example.supabase.co',key:'test'})).dirty,true);
  await assert.rejects(revisionIntent({uid:'test-scope',storage:{...storage,flush:async()=>false},data}),/保存失败/);
 });
+
+test('PKCE transient flow slots remain in memory without expanding native vault ACL',async()=>{
+ const calls=[],adapter=createAndroidSessionStorage(async(cmd,args)=>{calls.push([cmd,args.key]);return {value:null}});
+ const slot=ANDROID_SESSION_KEY+'-flow-fixture_123-code-verifier',index=ANDROID_SESSION_KEY+'-flows-code-verifier';
+ await adapter.setItem(slot,'synthetic-verifier');await adapter.setItem(index,'["fixture_123"]');
+ assert.equal(await adapter.getItem(slot),'synthetic-verifier');assert.equal(await adapter.getItem(index),'["fixture_123"]');assert.equal(calls.length,0);
+ await adapter.removeItem(slot);await adapter.removeItem(index);assert.equal(await adapter.getItem(slot),null);
+ await assert.rejects(adapter.setItem(ANDROID_SESSION_KEY+'-flow-../bad-code-verifier','x'),/无效/);
+ await adapter.getItem(ANDROID_SESSION_KEY);assert.deepEqual(calls,[['plugin:todo-mobile|session_read',ANDROID_SESSION_KEY]]);
+});

@@ -17,6 +17,14 @@
     "allow-native-activate",
     "allow-native-search",
     "allow-native-notify",
-    "allow-native-test-notification"
+    "allow-native-test-notification",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        {
+          "url": "https://xepkhnatnpvopnlqnrrz.supabase.co/auth/v1/authorize[?]*"
+        }
+      ]
+    }
   ]
 }

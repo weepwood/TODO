@@ -43,6 +43,7 @@ jobs:
           # A draft may not have a remote tag until published. Its target must be the build commit.
           target="$(gh release view "$TAG" --json targetCommitish --jq .targetCommitish)"
           test "$target" = "$commit"
+          node scripts/require-full-ui.mjs "$commit"
           gh api "repos/$GITHUB_REPOSITORY/actions/workflows/android-runtime.yml/runs?head_sha=$commit&status=success&per_page=20" --jq '.workflow_runs | length' | grep -Ex '[1-9][0-9]*'
           node scripts/promote-release.mjs release-assets "$TAG" --write
           # Publish all assets before exposing either feed; a failed feed push leaves old clients safe.

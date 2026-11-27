@@ -132,8 +132,12 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
   await expect(a.page.locator('.sync-footer')).toContainText('已同步',{timeout:15000});
   await a.page.keyboard.press('Escape');
   row={...row,revision:row.revision+1,state:{...row.state,tasks:row.state.tasks.map(t=>{if(t.title!=='同步重复系列')return t;const legacy={...t};delete legacy.seriesHold;return legacy})},updated_at:new Date().toISOString()};patches=[];
-  await a.page.getByRole('button',{name:'设置',exact:true}).click();await a.page.getByRole('button',{name:'立即同步'}).click();
+  await a.page.getByRole('button',{name:'设置',exact:true}).click();
+  // A wake/poll may already have detected the conflict; a disabled manual
+  // sync button is the required safety state, not something to click through.
+  await a.page.evaluate(()=>window.dispatchEvent(new Event('focus')));
   await expect(a.page.locator('.sync-footer')).toContainText('存在同步冲突',{timeout:15000});
+  await expect(a.page.getByRole('button',{name:'立即同步'})).toBeDisabled();
   expect(await a.page.evaluate(uid=>JSON.parse(localStorage.getItem('todo-account:'+uid+':todo-workbench-v1')).tasks.find(t=>t.title==='同步重复系列').seriesHold.count,uid)).toBe(0);
   a.page.once('dialog',d=>d.accept());await a.page.getByRole('button',{name:'保留本地并上传'}).click();
   await expect.poll(()=>row.state.tasks.find(t=>t.title==='同步重复系列')?.seriesHold?.count).toBe(0);
@@ -155,8 +159,11 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
   const beforeProfile=row.state.preferenceProfile;
   const legacyState={...row.state};delete legacyState.preferenceProfile;
   row={...row,state:legacyState,revision:row.revision+1,updated_at:new Date().toISOString()};patches=[];
-  await a.page.getByRole('button',{name:'立即同步'}).click();
+  // A wake/poll may already have detected the conflict; a disabled manual
+  // sync button is the required safety state, not something to click through.
+  await a.page.evaluate(()=>window.dispatchEvent(new Event('focus')));
   await expect(a.page.locator('.sync-footer')).toContainText('存在同步冲突',{timeout:15000});
+  await expect(a.page.getByRole('button',{name:'立即同步'})).toBeDisabled();
   a.page.once('dialog',d=>d.accept());await a.page.getByRole('button',{name:'保留本地并上传'}).click();
   await expect.poll(()=>row.state.preferenceProfile,{timeout:15000}).toEqual(beforeProfile);
   // A remote append-only focus record and a local independent task edit
@@ -181,8 +188,11 @@ test('账号隔离、双设备拉取、离线修改与冲突保护（模拟 API�
   expect(retained.length).toBeGreaterThan(0);
   row={...row,revision:row.revision+1,state:{...row.state,tasks:row.state.tasks.map(t=>{if(t.id!==ordinary.id)return t;const old={...t};delete old.activity;return old})},updated_at:new Date().toISOString()};patches=[];
   await a.page.getByRole('button',{name:'设置',exact:true}).click();
-  await a.page.getByRole('button',{name:'立即同步'}).click();
+  // A wake/poll may already have detected the conflict; a disabled manual
+  // sync button is the required safety state, not something to click through.
+  await a.page.evaluate(()=>window.dispatchEvent(new Event('focus')));
   await expect(a.page.locator('.sync-footer')).toContainText('存在同步冲突',{timeout:15000});
+  await expect(a.page.getByRole('button',{name:'立即同步'})).toBeDisabled();
   const local=await a.page.evaluate(uid=>JSON.parse(localStorage.getItem('todo-account:'+uid+':todo-workbench-v1')),uid);
   expect(local.tasks.find(t=>t.id===ordinary.id).activity).toEqual(retained);
   a.page.once('dialog',d=>d.accept());await a.page.getByRole('button',{name:'保留本地并上传'}).click();

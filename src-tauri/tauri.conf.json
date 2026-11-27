@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "TODO",
-  "version": "1.2.0-alpha.1",
+  "version": "1.2.0-alpha.2",
   "identifier": "com.weepwood.todo",
   "build": {
     "frontendDist": "../dist",
@@ -50,5 +50,26 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "com.weepwood.todo"
+        ]
+      },
+      "mobile": [
+        {
+          "scheme": [
+            "com.weepwood.todo"
+          ],
+          "host": "auth",
+          "pathPrefix": [
+            "/callback"
+          ],
+          "appLink": false
+        }
+      ]
+    }
   }
 }

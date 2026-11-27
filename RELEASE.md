@@ -117,3 +117,7 @@ macOS 27 的 Playwright Firefox 直接启动可能因应用数据保护报 `Coul
 脚本仅在 macOS 创建独立临时目录，退出时有界重试清理；其他系统使用 Playwright 默认隔离 profile。须先有匹配当前提交的生产构建。启动探针不是业务验收，资源门禁拒绝时不得勾选 Firefox 业务通过。
 
 真实 QA 验收须在独立且已确认邮件的测试账号中运行。现有 `scripts/verify-live.mjs --live` 需要本机安全环境配置 TODO_QA_EMAIL / TODO_QA_PASSWORD；真实写入另需用户明确授权、`--write` 与 TODO_QA_ALLOW_WRITE=YES，非空工作区拒绝修改。脚本覆盖两个隔离认证会话、实时事件、CAS 冲突与空工作区恢复，不替代两台实体设备及完整备份恢复。不要将凭据写入仓库、聊天或日志。原生安装、升级、实体休眠/触控、正式签名仍需授权与对应隔离设备。未推送提交不能通过远端同 SHA CI；先确认候选代码与门禁，再由用户另行授权推送和正式流程。
+
+## V1.2.0-alpha.2 认证候选（未发布）
+
+版本 1.2.0-alpha.2，Android versionCode 102002。仅保留 GitHub、Google、已有邮箱登录。生产公开预检使用 `node scripts/verify-live.mjs --oauth`，核对双 Provider、官方授权地址和回调，不跟随登录、创建账号或写入任务；不能替代真实 OAuth 会话。用户已确认邮箱验证完成；生产聚合只显示一个已确认邮箱身份，尚无 GitHub/Google 身份记录。注册 Hook 仍须真实双 OAuth 验收后启用；不关闭全局 signup。正式签名、真机、同签名覆盖升级和数据保护门禁不变，不推送、不发布。

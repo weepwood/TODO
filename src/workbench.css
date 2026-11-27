@@ -141,3 +141,5 @@
 .advanced-search-result small{flex-shrink:0;color:var(--muted);font-size:11px}
 .advanced-search-pages{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px}
 @media(max-width:520px){.advanced-search-result.secondary{align-items:flex-start;flex-direction:column;gap:3px}.advanced-search-result span{max-width:100%}}
+
+.social-auth{display:grid;gap:6px;margin-top:12px}.social-auth .button-grid button{display:flex;align-items:center;justify-content:center;gap:6px}.social-auth p{margin:0}
