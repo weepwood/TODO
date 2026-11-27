@@ -48,7 +48,7 @@ jobs:
           run-id: 45938395961
           name: signed-windows
           path: ${{ runner.temp }}/todo-original-alpha.2
-      - name: Real Windows NSIS overlay and native SQLite verification
+      - name: Real Windows NSIS overlay and native CLI/SQLite verification
         env:
           TODO_VERIFY_PUBLIC_KEY: ${{ vars.TODO_UPDATER_PUBLIC_KEY }}
         run: node scripts/verify-signed-windows-upgrade.mjs

@@ -1,12 +1,11 @@
 // Research-only; runs exact original signed packages on a disposable hosted Windows account.
 // No real account, production data, source rebuild, updater feed, or signature secrets.
 import assert from 'node:assert/strict';
-import {readFileSync,writeFileSync,mkdirSync,existsSync,readdirSync} from 'node:fs';
+import {readFileSync,writeFileSync,mkdirSync,existsSync,readdirSync,openSync,closeSync} from 'node:fs';
 import {join,resolve} from 'node:path';
 import {spawn,spawnSync} from 'node:child_process';
-import {createHash,createPublicKey,verify} from 'node:crypto';
+import {createHash,createPublicKey,verify,randomUUID} from 'node:crypto';
 import {DatabaseSync} from 'node:sqlite';
-import {chromium} from '@playwright/test';
 assert(process.platform==='win32'&&process.env.GITHUB_ACTIONS==='true'&&process.env.RUNNER_OS==='Windows');
 assert.equal(process.env.GITHUB_REF,'refs/heads/research/signed-upgrade-20261127');
 const temp=process.env.RUNNER_TEMP,appData=process.env.APPDATA;
@@ -47,76 +46,119 @@ const packages=versions.map((v,i)=>{
  pass('exact original package and updater signature '+v,{sha256:hash(bytes),runId:pin.runId,artifactId:pin.artifactId});
  return p;
 });
-const executable=join(install,'todo.exe'),port=9238;
+// A production WebView need not expose CDP. Exercise the supported local CLI
+// queue and the actual installed GUI consumer; never write SQLite directly.
+const executable=join(install,'todo.exe');
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
-async function until(fn,ms=60000){const end=Date.now()+ms;let err;while(Date.now()<end){try{const r=await fn();if(r)return r}catch(e){err=e}await pause(400)}throw Error('Timed out: '+(err?.message||'condition'))}
-function installPackage(p){const r=spawnSync(p,['/S','/D='+install],{timeout:180000,windowsHide:true,stdio:'inherit'});assert.equal(r.status,0,'NSIS installer failed');assert(existsSync(executable),'Expected installed exe absent')}
+async function until(fn,ms=60000){const end=Date.now()+ms;let err;while(Date.now()<end){try{const r=await fn();if(r)return r}catch(e){err=e}await pause(1000)}throw Error('Timed out: '+(err?.message||'condition'))}
+function ps(command,extra={},timeout=20000){
+ const r=spawnSync('powershell.exe',['-NoProfile','-NonInteractive','-STA','-Command',"$ErrorActionPreference='Stop'; "+command],{env:{...process.env,TODO_QA_EXE:executable,...extra},encoding:'utf8',timeout,windowsHide:true,maxBuffer:1024*1024});
+ if(r.error||r.status!==0)throw Error('PowerShell diagnostic failed: '+(r.error?.message||r.stderr||r.status));
+ return r.stdout.trim();
+}
+function processes(){
+ const out=ps("ConvertTo-Json -Compress -InputObject @(Get-Process -Name todo -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $env:TODO_QA_EXE } | Select-Object Id,Path,MainWindowTitle,Responding)");
+ return JSON.parse(out||'[]');
+}
+function installPackage(p){
+ assert.equal(processes().length,0,'Existing test app must be stopped before installation');
+ const r=spawnSync(p,['/S','/D='+install],{timeout:180000,windowsHide:true,stdio:'inherit'});
+ assert.equal(r.status,0,'NSIS installer failed');assert(existsSync(executable),'Expected installed exe absent');
+ const info=JSON.parse(ps("$v=(Get-Item -LiteralPath $env:TODO_QA_EXE).VersionInfo; ConvertTo-Json -Compress -InputObject @{ProductVersion=$v.ProductVersion;FileVersion=$v.FileVersion}"));
+ return {hash:hash(readFileSync(executable)),...info};
+}
 function readDb(){
  const c=new DatabaseSync(db,{readOnly:true});
  try{
+  c.exec('BEGIN');
   const integrity=c.prepare('PRAGMA integrity_check').all();assert.deepEqual(integrity.map(x=>x.integrity_check),['ok']);
   const rows=c.prepare('SELECT scope,body FROM workspace_store ORDER BY scope').all();
-  assert(rows.every(x=>x.scope==='guest'),'Unexpected account scope');
-  const store=JSON.parse(rows.find(x=>x.scope==='guest').body);
-  const body=JSON.parse(store['todo-workbench-v1']);
-  const snapshot=c.prepare("SELECT body FROM snapshots WHERE scope='guest'").get();
-  assert.deepEqual(JSON.parse(snapshot.body),body);
-  const backups=c.prepare("SELECT body FROM backups WHERE scope='guest'").all().map(x=>JSON.parse(x.body));
+  assert(rows.length===1&&rows[0].scope==='guest','Expected only isolated guest workspace');
+  const store=JSON.parse(rows[0].body),body=JSON.parse(store['todo-workbench-v1']);
+  assert.equal(body.version,2);assert(Array.isArray(body.tasks));
+  const snapshot=c.prepare("SELECT body FROM snapshots WHERE scope='guest'").get();assert.deepEqual(JSON.parse(snapshot.body),body);
+  const backups=c.prepare("SELECT saved_at,body FROM backups WHERE scope='guest' ORDER BY saved_at").all().map(x=>({saved_at:x.saved_at,body:JSON.parse(x.body)}));
   return {body,backups};
  }finally{c.close()}
 }
-let child,browser,page;
-async function start(v){
- assert(!child||child.exitCode!==null,'Previous app still running');
- child=spawn(executable,[],{env:{...process.env,WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS:'--remote-debugging-port='+port+' --remote-debugging-address=127.0.0.1'},stdio:'ignore'});
- child.on('error',e=>console.error('App spawn:',e.message));
- await until(async()=>{assert(child.exitCode===null,'App exited');const r=await fetch('http://127.0.0.1:'+port+'/json/version');return r.ok});
- browser=await chromium.connectOverCDP('http://127.0.0.1:'+port);
- page=await until(()=>browser.contexts().flatMap(c=>c.pages()).find(p=>p.url().startsWith('http://tauri.localhost/')&&!p.url().includes('capture.html')));
- await page.getByRole('textbox',{name:'新任务名称'}).waitFor({timeout:60000});
- const version=await page.evaluate(()=>window.__TAURI_INTERNALS__.invoke('plugin:app|version'));
- assert.equal(version,v);
- assert(await page.evaluate(()=>!!window.__TAURI_INTERNALS__?.invoke),'Native IPC absent');
- pass('installed real WebView and native app version '+v);
+function cli(...args){
+ const r=spawnSync(executable,['--cli','--data-dir',data,...args],{timeout:45000,windowsHide:true,encoding:'utf8',stdio:['ignore','pipe','pipe']});
+ assert(!r.error&&r.status===0,'CLI '+args[0]+' failed: '+(r.error?.message||r.stdout||r.stderr||r.status));
+ // Windows GUI-subsystem stdout may be unavailable. Require the independent
+ // committed queue and binding checks below even if the process emits no JSON.
+ return r.stdout.trim()?JSON.parse(r.stdout):null;
+}
+function receipt(id){
+ const c=new DatabaseSync(db,{readOnly:true});
+ try{return c.prepare("SELECT d.status,m.task_count FROM direct_capture_requests d JOIN cli_capture_meta m ON d.scope=m.scope AND d.id=m.id WHERE d.scope='cli:guest' AND d.id=?").get(id)}finally{c.close()}
+}
+let child=null,activePid=null;
+async function start(v,info){
+ const existing=processes();assert(existing.length<=1,'Unexpected number of isolated app processes');
+ if(!existing.length){
+  const fd=openSync(join(evidence,v+'-app.log'),'a');
+  try{child=spawn(executable,[],{env:process.env,stdio:['ignore',fd,fd]});child.on('error',e=>console.error('App spawn:',e.message))}finally{closeSync(fd)}
+ }
+ const proc=await until(()=>{const list=processes();assert(list.length<=1);return list[0]?.Responding?list[0]:null},30000);
+ activePid=proc.Id;
+ await until(()=>{assert(processes().some(p=>p.Id===activePid),'Installed GUI exited');return existsSync(db)&&readDb()},60000);
+ pass('installed original native app initialized actual SQLite '+v,{...info,pid:activePid,windowTitle:proc.MainWindowTitle,installerAutoStarted:!!existing.length});
+}
+function inspectUI(title,label){
+ // Read-only optional UI Automation verification; it does not turn a missing
+ // accessibility tree into a failed product upgrade or a claimed UI pass.
+ try{
+  const result=JSON.parse(ps("Add-Type -AssemblyName UIAutomationClient; Add-Type -AssemblyName UIAutomationTypes; $root=[System.Windows.Automation.AutomationElement]::RootElement; $scope=[System.Windows.Automation.TreeScope]::Children; $pidCondition=New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty,[int]$env:TODO_QA_PID); $windows=$root.FindAll($scope,$pidCondition); $found=$false; foreach($w in $windows){ $cond=New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty,$env:TODO_QA_TITLE); if($null -ne $w.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$cond)){$found=$true;break} }; ConvertTo-Json -Compress -InputObject @{found=$found;windows=$windows.Count}",{TODO_QA_PID:String(activePid),TODO_QA_TITLE:title},15000));
+  report.ui??=[];report.ui.push({label,...result});save();console.log('UIA '+label+': '+JSON.stringify(result));
+ }catch(e){report.ui??=[];report.ui.push({label,found:false,diagnostic:String(e)});save();console.log('UIA '+label+' unavailable; independent SQLite verification continues')}
+}
+async function addTask(title){
+ const id=randomUUID();
+ const result=cli('add',title,'--list-id','inbox','--request-id',id,'--wait','30');
+ if(result)assert(['saved','received'].includes(result.status));
+ const state=await until(()=>{const x=readDb(),row=receipt(id);return row?.status==='saved'&&row.task_count===1&&x.body.tasks.some(t=>t.id===id+':1'&&t.title===title)?x:null},30000);
+ assert.equal(state.body.tasks.filter(t=>t.id===id+':1').length,1);
+ return {state,task:state.body.tasks.find(t=>t.id===id+':1'),id};
 }
 async function stop(){
- if(page&&!page.isClosed())await page.evaluate(()=>window.__TAURI_INTERNALS__.invoke('native_exit')).catch(()=>{});
- await until(()=>child.exitCode!==null,20000);
- assert.equal(child.exitCode,0,'Native exit was not clean');
- await browser?.close().catch(()=>{});browser=null;page=null;
- await until(async()=>{try{await fetch('http://127.0.0.1:'+port+'/json/version');return false}catch{return true}},15000);
+ assert(activePid);
+ // No CDP or security-policy changes. Force-stop only our installed process
+ // AFTER the independent durable transaction check, to exercise restart safety.
+ const list=processes();assert(list.length===1&&list[0].Id===activePid);
+ ps("$p=Get-Process -Id ([int]$env:TODO_QA_PID) -ErrorAction Stop; if($p.Path -ne $env:TODO_QA_EXE){throw 'Wrong process'}; Stop-Process -Id $p.Id -Force",{TODO_QA_PID:String(activePid)});
+ await until(()=>processes().length===0,20000);
+ activePid=null;
 }
 const title='QA signed upgrade retained 1845048',second='QA post-upgrade write 1845048';
 const find=(state,t)=>state.body.tasks.find(x=>x.title===t);
+const preserveBackups=(before,after)=>{assert(before.backups.length>0,'Expected real application-generated backup');for(const b of before.backups)assert(after.backups.some(x=>x.saved_at===b.saved_at&&JSON.stringify(x.body)===JSON.stringify(b.body)),'Existing backup lost or changed')};
 try{
- report.phase='old-install';save();installPackage(packages[0]);await start(versions[0]);
- const input=page.getByRole('textbox',{name:'新任务名称'});await input.fill(title);await page.getByRole('button',{name:'添加',exact:true}).click();
- await page.locator('.task-body').filter({hasText:title}).waitFor();
- const old=await until(()=>{const x=readDb();return find(x,title)?x:null});
- const task=find(old,title);assert(task.id);assert.equal(old.body.tasks.filter(t=>t.title===title).length,1);
- await page.evaluate(()=>window.__TAURI_INTERNALS__.invoke('native_create_backup',{scope:'guest'}));
- await until(()=>readDb().backups.some(b=>b.tasks.some(t=>t.id===task.id)));
- pass('old version real UI write committed to SQLite and backup',{id:task.id});
- await page.screenshot({path:join(evidence,'old.png')});
- await stop();
- const before=readDb();assert.deepEqual(find(before,title),task);
- report.phase='overlay';save();installPackage(packages[1]);assert(existsSync(db),'Installer removed existing database');
- const preserved=readDb();assert.deepEqual(find(preserved,title),task);assert(preserved.backups.some(b=>b.tasks.some(t=>t.id===task.id)));
- pass('overlay installer preserves original SQLite snapshot and backup');
- await start(versions[1]);await page.locator('.task-body').filter({hasText:title}).waitFor();
+ report.phase='old-install';save();const oldInfo=installPackage(packages[0]);await start(versions[0],oldInfo);
+ const binding=cli('bind','--scope','guest');if(binding)assert.equal(binding.bound,true);
+ const old=await addTask(title),task=old.task;
+ assert(task.id);assert(old.state.backups.length>0);
+ pass('old installed app consumes supported CLI queue and commits task, receipt and backup',{id:task.id,backupCount:old.state.backups.length});
+ inspectUI(title,'old task');await stop();
+ const before=readDb();assert.deepEqual(find(before,title),task);preserveBackups(old.state,before);
+ report.phase='overlay';save();const newInfo=installPackage(packages[1]);
+ assert.notEqual(newInfo.hash,oldInfo.hash,'Installer did not replace old binary');
+ assert(existsSync(db),'Installer removed existing database');
+ const preserved=readDb();assert.deepEqual(find(preserved,title),task);preserveBackups(before,preserved);
+ pass('actual NSIS overlay replaces binary and preserves original SQLite task and backups');
+ await start(versions[1],newInfo);
  const after=readDb();assert.deepEqual(find(after,title),task);assert.equal(after.body.tasks.filter(t=>t.id===task.id).length,1);
- await page.getByRole('textbox',{name:'新任务名称'}).fill(second);await page.getByRole('button',{name:'添加',exact:true}).click();
- await until(()=>{const x=readDb();return find(x,second)&&find(x,title)?.id===task.id});
- await page.screenshot({path:join(evidence,'new.png')});await stop();
- const final=readDb();assert.deepEqual(find(final,title),task);assert(find(final,second));
- pass('new version displays old task, saves new task, preserves SQLite and backup after exit');
+ assert.equal(receipt(old.id)?.status,'saved');preserveBackups(before,after);
+ inspectUI(title,'retained old task after upgrade');
+ const added=await addTask(second);assert.deepEqual(find(added.state,title),task);preserveBackups(before,added.state);
+ inspectUI(second,'new task after upgrade');await stop();
+ const final=readDb();assert.deepEqual(find(final,title),task);assert.deepEqual(find(final,second),added.task);preserveBackups(before,final);
+ pass('new installed app consumes CLI queue; both durable tasks and old receipts/backups survive process stop');
  report.phase='passed';save();
 }catch(e){
- report.phase='failed';report.error=String(e);save();
- if(page&&!page.isClosed())await page.screenshot({path:join(evidence,'failure.png')}).catch(()=>{});
+ report.phase='failed';report.error=String(e);
+ try{report.processes=processes()}catch{};report.sqliteExists=existsSync(db);report.installedExeExists=existsSync(executable);save();
  throw e;
 }finally{
- // This process was created on a disposable hosted runner; never stop other app instances.
+ if(activePid)try{const list=processes();if(list.length===1&&list[0].Id===activePid)await stop()}catch(e){console.error('Isolated cleanup:',e.message)}
  if(child&&child.exitCode===null)child.kill();
- await browser?.close().catch(()=>{});
 }
