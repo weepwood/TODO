@@ -1,5 +1,5 @@
 // OAuth redirects are handled by the existing Supabase auth client, not a separate account system.
-export const SOCIAL_PROVIDERS=['github','google'];
+export const SOCIAL_PROVIDERS=['github','google','azure'];
 export function webAuthRedirect(location,native=false){
  if(native||!location||!['http:','https:'].includes(location.protocol))return null;
  const url=new URL(location.href);
@@ -17,7 +17,7 @@ export async function readSocialProviders({url,key,fetcher=fetch,signal}){
 }
 export async function socialAuthorize({auth,provider,redirectTo,cloudUrl}){
  if(!SOCIAL_PROVIDERS.includes(provider)||!redirectTo)throw Error('当前环境不支持第三方登录。');
- const {data,error}=await auth.signInWithOAuth({provider,options:{redirectTo,skipBrowserRedirect:true}});
+ const {data,error}=await auth.signInWithOAuth({provider,options:{redirectTo,skipBrowserRedirect:true,...(provider==='azure'?{scopes:'email'}:{})}});
  if(error)throw error;
  const url=new URL(data?.url||'');
  const expected=new URL('auth/v1/authorize',cloudUrl.replace(/\/+$/,'')+'/');
