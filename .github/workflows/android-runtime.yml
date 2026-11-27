@@ -1,61 +1,47 @@
-name: Android 模拟器原生运行验收
+name: Android 正式签名包隔离升级验收（研究分支）
 on:
   workflow_dispatch:
 permissions:
   contents: read
-concurrency:
-  group: android-runtime-main
-  cancel-in-progress: true
+  actions: read
 jobs:
-  emulator:
+  signed-android-upgrade:
+    if: github.ref == 'refs/heads/research/signed-upgrade-20261127'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    env:
-      CI: 'true'
-      VITE_SUPABASE_URL: https://example.invalid
-      VITE_SUPABASE_PUBLISHABLE_KEY: qa-isolated-placeholder
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
-      - uses: actions/setup-java@v4
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
         with:
-          distribution: temurin
-          java-version: '17'
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-linux-android
-      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
-        with:
-          packages: platform-tools
+          packages: platform-tools build-tools;36.0.0
           log-accepted-android-sdk-licenses: false
-      - name: Android SDK and NDK
-        run: |
-          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358"
-          echo "NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
-          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
-      - run: npm ci
-      - name: Build isolated x86_64 APK
-        run: |
-          npm run android:init -- --ci --skip-targets-install --config '{"identifier":"com.weepwood.todo.qa.runtime","productName":"TODO Runtime QA"}'
-          npm run tauri -- android build --ci --debug --apk --target x86_64 --config '{"identifier":"com.weepwood.todo.qa.runtime","productName":"TODO Runtime QA"}'
-          mkdir -p android-runtime
-          test "$(find src-tauri/gen/android/app/build/outputs/apk -type f -name '*.apk' | wc -l)" -eq 1
-          cp "$(find src-tauri/gen/android/app/build/outputs/apk -type f -name '*.apk' -print -quit)" android-runtime/qa.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify android-runtime/qa.apk
-          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging android-runtime/qa.apk > android-runtime/APK_INFO.txt
-          grep -F "package: name='com.weepwood.todo.qa.runtime'" android-runtime/APK_INFO.txt
-          unzip -l android-runtime/qa.apk | grep 'lib/x86_64/libapp_lib.so'
-          printf '%s\n' "$GITHUB_SHA" > android-runtime/BUILD_COMMIT.txt
-      - name: Enable KVM
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 45867313963
+          name: signed-android
+          path: ${{ runner.temp }}/todo-android-alpha.1
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 45938395961
+          name: signed-android
+          path: ${{ runner.temp }}/todo-android-alpha.2
+      - name: Verify original Android signed artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TODO_VERIFY_ANDROID_PIN: ${{ vars.TODO_ANDROID_CERT_SHA256 }}
+        run: node scripts/verify-signed-upgrade-assets.mjs android
+      - name: Enable KVM on disposable hosted runner
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Native WebView and device storage
-        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+      - name: Actual signed APK upgrade conditional on ABI support
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
         with:
           api-level: 35
           target: google_apis
@@ -63,13 +49,11 @@ jobs:
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
-          script: adb shell am force-stop com.google.android.apps.nexuslauncher && node scripts/android-runtime-smoke.mjs
+          script: python3 scripts/verify-signed-android-upgrade.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: TODO-Android-runtime-evidence
-          path: |
-            android-runtime/*.png
-            android-runtime/*.txt
-            android-runtime/*.json
+          name: signed-android-upgrade-evidence
+          path: android-upgrade-evidence/
+          retention-days: 7
           if-no-files-found: warn
