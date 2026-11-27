@@ -25,3 +25,12 @@
 - Email Provider 继续启用，Confirm email 保持开启；全局 Allow new users to sign up 保持开启。UI 已移除 signUp 调用和注册入口。
 - 服务端仅允许 github/google/azure 创建账号：supabase/rollout/oauth-only-signup.sql 为待部署 SQL（非迁移）。在独立环境以 Auth Admin 执行函数，拒绝其他/缺失 provider；只信任服务端 app_metadata，不信任用户 metadata。SECURITY INVOKER、私有 schema、仅 supabase_auth_admin EXECUTE。先确认生产现有 Hook 不冲突及真实三方 OAuth 成功，再启用 Before User Created Hook 指向该函数；必须实际验证直接 /signup 被拒绝、已有邮箱密码登录及三个 OAuth 新用户正常。回退时停用该 Hook，不改变用户数据。当前本机缺少 Supabase CLI，未生成迁移或执行云端 SQL、未运行生产 advisors。独立 PostgreSQL SQL 10 个 provider 判定、2 个权限拒绝、1 个 invoker 校验通过；不等同 GoTrue 真实集成。
 - 291/291 单测、隔离构建通过，三种 OAuth 模拟真实 SDK 回调3/3，已有邮箱密码模拟登录1/1；无生产认证配置变更、无推送发布、未完成原生 OAuth。原有安装包仍可能提供注册按钮，只有生产 Hook 启用才会真正阻止直接注册。不得将隐藏 UI 当作服务端限制。
+
+## 2026-11-27 基础隐私与可迁移性（当前决策）
+采用 Supabase 托管安全机制：HTTPS、平台静态加密、Auth、RLS、CAS；不声称 E2EE。不新增独立认证/密钥/同步服务，不购买或部署服务器。未来确有需要才按官方 Docker 自托管指南迁移。
+- 官方参考：https://supabase.com/docs/guides/self-hosting/restore-from-platform ，https://supabase.com/docs/guides/self-hosting/auth/config ，核对日期 2026-11-27。逻辑备份需包含角色、schema、数据、auth 及相关对象；OAuth、JWT/API keys、SMTP、Edge Functions、Storage 文件、域名及平台配置另行处理。默认要求重新登录，不复制旧 JWT。
+- 当前已有三份业务迁移 SQL，客户端使用 VITE_SUPABASE_URL 与 VITE_SUPABASE_PUBLISHABLE_KEY。原生 src-tauri/tauri.conf.json 的 connect-src 还需同步替换明确的 HTTPS/WSS 主机白名单并重新签名构建；不要放宽为通配。旧应用仍连接旧地址，必须先停写/冻结旧端并保留本地未同步数据，不能双主写入。Web 部署和新原生版本验收后才切换；出现分叉停止写入，按导出/恢复明确处理，不自动覆盖。
+- 隔离恢复流程：先新建 Docker QA（未来实际迁移时），按官方流程导出 roles/schema/data 并恢复；校验 UUID、认证身份、任务版本/数量和摘要、RLS、RPC、Realtime 发布列、Hook 及独立 A/B 同步。另核查 Edge Functions 版本、实际部署状态及服务端凭据；不把源码存在认作正式启用。备份含敏感数据，使用加密离线存储，不提交 Git；自托管需自行做好 TLS、磁盘保护、最小权限、防火墙、更新、备份和恢复。
+- 本批实际运行：现有三份迁移及待部署 Hook，在独立临时 PostgreSQL 集群、仅 Unix socket、合成 auth.users 与 auth.uid fixture。真实 pg_dump/pg_restore（同集群两个数据库，角色预置），源与恢复各17项 RLS、CAS、差量、发布列、Hook 检查通过；账号及工作空间合成行精确一致。未验证真实 GoTrue/Realtime 服务、不同集群角色迁移、真实 OAuth、真实生产备份、真实服务器迁移。证据 /Volumes/data/AI-Development/artifacts/TODO/supabase-portability-1575ab4/{verify.py,verify.log,verify-final.log}。
+- 真实缺陷：旧 CHECK 遇到缺失 version/tasks 时可返回 NULL，允许本账号写入无效对象（非跨账号越权）。待部署修复 supabase/rollout/workspace-required-shape.sql 使用 IS TRUE；旧数据异常时事务回滚、不得重写。隔离验收：七种非法插入、一种非法更新拒绝、正常插入成功、原 revision 保留；含旧坏行时修复失败且原数据不变；修复后17项权限及同步 SQL 检查再次通过。生产应用前需只读统计异常行、备份、确认锁影响，通过正式 reviewed migration 处理；当前无 Supabase CLI/Docker，未生成迁移或运行云端 advisors，未执行任何生产 SQL。
+- 用户批准保持简单；暂不进一步新增通用迁移自动化或加密协议。下一步仅真实 OAuth/原生回调及实际安全验收，服务端凭据由用户在控制台输入。当前不推送、不发布、不切换数据库。
