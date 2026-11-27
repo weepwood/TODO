@@ -1,7 +1,7 @@
 // Research-only; runs exact original signed packages on a disposable hosted Windows account.
 // No real account, production data, source rebuild, updater feed, or signature secrets.
 import assert from 'node:assert/strict';
-import {readFileSync,writeFileSync,mkdirSync,existsSync} from 'node:fs';
+import {readFileSync,writeFileSync,mkdirSync,existsSync,readdirSync} from 'node:fs';
 import {join,resolve} from 'node:path';
 import {spawn,spawnSync} from 'node:child_process';
 import {createHash,createPublicKey,verify} from 'node:crypto';
@@ -25,19 +25,26 @@ assert.equal(raw.length,42);assert.equal(raw.subarray(0,2).toString(),'Ed');
 const key=createPublicKey({key:Buffer.concat([Buffer.from('302a300506032b6570032100','hex'),raw.subarray(10)]),format:'der',type:'spki'});
 const hash=x=>createHash('sha256').update(x).digest('hex');
 const versions=['1.2.0-alpha.1','1.2.0-alpha.2'];
+// Pins were independently derived by comparing signed-run artifacts byte-for-byte
+// to the previously validated release assets, not by trusting a new build.
+const pins=JSON.parse(readFileSync(new URL('./signed-windows-upgrade-pins.json',import.meta.url),'utf8'));
+assert.equal(pins.length,2);
 const packages=versions.map((v,i)=>{
  const dir=join(temp,'todo-original-alpha.'+(i+1)),name='TODO_'+v+'_x64-setup.exe',p=join(dir,name);
- const checks=readFileSync(join(dir,'SHA256SUMS.txt'),'utf8').trim().split(/\r?\n/).map(l=>l.match(/^([a-f0-9]{64})  ([A-Za-z0-9_.-]+)$/));
- assert(checks.every(Boolean));const map=new Map(checks.map(m=>[m[2],m[1]]));assert.equal(map.size,checks.length);
- for(const n of ['BUILD_COMMIT.txt',name,name+'.sig'])assert.equal(hash(readFileSync(join(dir,n))),map.get(n));
- assert.equal(readFileSync(join(dir,'BUILD_COMMIT.txt'),'utf8').trim(),i?report.candidate:report.old);
+ const pin=pins[i];
+ assert.equal(pin.version,v);assert.equal(pin.sha,i?report.candidate:report.old);
+ assert.deepEqual(Object.keys(pin.files).sort(),[name,name+'.sig'].sort());
+ assert.deepEqual(readdirSync(dir).sort(),[name,name+'.sig'].sort());
+ for(const [n,expected] of Object.entries(pin.files)) {
+  assert(/^[a-f0-9]{64}$/.test(expected));assert.equal(hash(readFileSync(join(dir,n))),expected,'Original signed release hash mismatch: '+n);
+ }
  const bytes=readFileSync(p),[untrusted,sig,comment,global]=lines(readFileSync(p+'.sig','utf8')),record=decode(sig);
  assert(untrusted.startsWith('untrusted comment:')&&comment.startsWith('trusted comment: '));
  assert.equal(record.length,74);assert.equal(record.subarray(0,2).toString(),'ED');assert(record.subarray(2,10).equals(raw.subarray(2,10)));
  const signature=record.subarray(10);
  assert(verify(null,createHash('blake2b512').update(bytes).digest(),key,signature));
  assert(verify(null,Buffer.concat([signature,Buffer.from(comment.slice(17))]),key,decode(global)));
- pass('exact original package and updater signature '+v,{sha256:hash(bytes)});
+ pass('exact original package and updater signature '+v,{sha256:hash(bytes),runId:pin.runId,artifactId:pin.artifactId});
  return p;
 });
 const executable=join(install,'todo.exe'),port=9238;

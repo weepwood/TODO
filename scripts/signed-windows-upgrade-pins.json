@@ -1,0 +1,22 @@
+[
+  {
+    "version": "1.2.0-alpha.1",
+    "runId": 45867313963,
+    "artifactId": 15141163654,
+    "sha": "980df78089e6b2628d4f2903373f41d35579ca4e",
+    "files": {
+      "TODO_1.2.0-alpha.1_x64-setup.exe": "5632eb7fb3b877dc6a492f1471606552df531c6807d7ac6d1e553cb9fc11bba1",
+      "TODO_1.2.0-alpha.1_x64-setup.exe.sig": "6ff63fd2e9f0d6bc9d4e6d4936a1a02ef04bad482f6dedbb832e6a0d10a51947"
+    }
+  },
+  {
+    "version": "1.2.0-alpha.2",
+    "runId": 45938395961,
+    "artifactId": 15172295708,
+    "sha": "18450487a437c37a836d0ba1a84d642c38daca93",
+    "files": {
+      "TODO_1.2.0-alpha.2_x64-setup.exe": "90700800f47425289eede2d372a246b3618ae9283db13c09bea45dc965adb154",
+      "TODO_1.2.0-alpha.2_x64-setup.exe.sig": "e8f6b59cad437845e54a073ae2fb60495bb3b4017c741e53559e1ca5021e8909"
+    }
+  }
+]

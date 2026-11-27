@@ -3,6 +3,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 jobs:
   windows-upgrade:
     if: github.ref == 'refs/heads/research/signed-upgrade-20261127'
@@ -15,18 +16,38 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - name: Download immutable original release assets
+      - name: Verify original successful signing runs and artifact identity
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
-          foreach ($suffix in @('1','2')) {
-            $dir = Join-Path $env:RUNNER_TEMP "todo-original-alpha.$suffix"
-            New-Item -ItemType Directory -Path $dir -ErrorAction Stop | Out-Null
-            gh release download "v1.2.0-alpha.$suffix" --repo weepwood/TODO --dir $dir --pattern BUILD_COMMIT.txt --pattern SHA256SUMS.txt --pattern '*_x64-setup.exe' --pattern '*_x64-setup.exe.sig'
-            if ($LASTEXITCODE -ne 0) { throw 'Original assets unavailable' }
+          $pins = Get-Content scripts/signed-windows-upgrade-pins.json -Raw | ConvertFrom-Json
+          foreach ($pin in $pins) {
+            $run = gh api "repos/weepwood/TODO/actions/runs/$($pin.runId)" | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or $run.head_sha -ne $pin.sha -or $run.status -ne 'completed' -or $run.conclusion -ne 'success' -or $run.path -ne '.github/workflows/signed-release.yml') {
+              throw 'Original signing run identity or conclusion mismatch'
+            }
+            $artifact = gh api "repos/weepwood/TODO/actions/artifacts/$($pin.artifactId)" | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or $artifact.id -ne $pin.artifactId -or $artifact.expired -or $artifact.name -ne 'signed-windows' -or $artifact.workflow_run.id -ne $pin.runId) {
+              throw 'Original signed artifact identity mismatch'
+            }
+            Write-Host "Verified original signing run $($pin.runId), artifact $($pin.artifactId)"
           }
+      - name: Download Alpha.1 original signed artifact
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 45867313963
+          name: signed-windows
+          path: ${{ runner.temp }}/todo-original-alpha.1
+      - name: Download Alpha.2 original signed artifact
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 45938395961
+          name: signed-windows
+          path: ${{ runner.temp }}/todo-original-alpha.2
       - name: Real Windows NSIS overlay and native SQLite verification
         env:
           TODO_VERIFY_PUBLIC_KEY: ${{ vars.TODO_UPDATER_PUBLIC_KEY }}
