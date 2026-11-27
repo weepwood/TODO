@@ -3,6 +3,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: todo-signed-release
   cancel-in-progress: false
@@ -14,6 +15,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Require full UI gate for exact candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/require-full-ui.mjs "$GITHUB_SHA"
       - name: Validate signing configuration
         env:
           TODO_UPDATER_PUBLIC_KEY: ${{ vars.TODO_UPDATER_PUBLIC_KEY }}

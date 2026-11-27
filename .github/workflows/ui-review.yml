@@ -1,28 +1,87 @@
 name: UI 浏览器与视觉验收
 on:
   pull_request:
-    paths:
-      - 'src/**'
-      - 'e2e/**'
-      - 'tests/**'
-      - 'package*.json'
-      - 'playwright.config.js'
-      - '.github/workflows/ui-review.yml'
   workflow_dispatch:
+    inputs:
+      shards:
+        description: '完整候选验收分片数（1 为基线，2 为实验）'
+        type: choice
+        options: ['1', '2']
+        default: '1'
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: ui-review-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+env:
+  CI: 'true'
+  TODO_BROWSER_CHANNEL: chromium
+  VITE_SUPABASE_URL: https://example.invalid
+  VITE_SUPABASE_PUBLISHABLE_KEY: qa-isolated-placeholder
+  VITE_TODO_EXTERNAL_API: '0'
 jobs:
   browser:
+    if: github.event_name == 'pull_request' || inputs.shards != '2'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      CI: 'true'
-      TODO_BROWSER_CHANNEL: chromium
-      VITE_SUPABASE_URL: https://example.invalid
-      VITE_SUPABASE_PUBLISHABLE_KEY: qa-isolated-placeholder
+    outputs:
+      mode: ${{ steps.scope.outputs.mode }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Scope and conservative fallback
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            git diff --check "$BASE" HEAD
+            node scripts/ci-scope.mjs --level integration --base "$BASE" --branch "$BRANCH" --ci-baseline --output ci-plan.json
+          else
+            node scripts/ci-scope.mjs --level release --output ci-plan.json
+          fi
+      - if: steps.scope.outputs.unit == 'true'
+        run: npm ci
+      - if: steps.scope.outputs.unit == 'true'
+        run: npm test
+      - if: steps.scope.outputs.browser == 'true'
+        run: npm run build
+      - if: steps.scope.outputs.browser == 'true'
+        run: npx playwright install --with-deps chromium
+      - if: steps.scope.outputs.browser == 'true'
+        run: node scripts/ci-run-browser.mjs ci-plan.json
+      - name: Report browser results
+        if: always() && steps.scope.outputs.browser == 'true'
+        run: node scripts/ci-metrics.mjs record ci-plan.json 1 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-review-evidence-${{ github.run_attempt }}
+          path: |
+            ci-plan.json
+            ci-list.json
+            test-results/
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.scope.outputs.browser == 'true'
+        with:
+          name: ui-metrics-${{ github.run_attempt }}-1
+          path: ci-metrics/result.json
+          if-no-files-found: error
+  build-for-shards:
+    if: github.event_name == 'workflow_dispatch' && inputs.shards == '2'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,12 +91,88 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - name: Freeze one build for both shards
+        run: |
+          git rev-parse HEAD > ci-build-commit.txt
+          tar -czf ci-build.tar.gz dist
+          sha256sum ci-build.tar.gz > ci-build.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ui-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ci-build.tar.gz
+            ci-build.sha256
+            ci-build-commit.txt
+          if-no-files-found: error
+          retention-days: 7
+  shards:
+    needs: build-for-shards
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: ui-build-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Check artifact identity
+        run: |
+          test "$(cat ci-build-commit.txt)" = "$(git rev-parse HEAD)"
+          sha256sum -c ci-build.sha256
+          tar -xzf ci-build.tar.gz
+      - run: node scripts/ci-scope.mjs --level release --output ci-plan.json
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e -- --workers=2
+      - run: node scripts/ci-run-browser.mjs ci-plan.json ${{ matrix.shard }}/2
+      - name: Report browser results
+        if: always()
+        run: node scripts/ci-metrics.mjs record ci-plan.json ${{ matrix.shard }} 2
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ui-review-evidence
-          path: test-results/
-          retention-days: 7
+          name: ui-review-shard-${{ github.run_attempt }}-${{ matrix.shard }}
+          path: |
+            ci-plan.json
+            ci-list.json
+            test-results/
+          include-hidden-files: true
           if-no-files-found: warn
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-metrics-${{ github.run_attempt }}-${{ matrix.shard }}
+          path: ci-metrics/result.json
+          if-no-files-found: error
+  full-gate:
+    name: UI full gate
+    needs: [browser, build-for-shards, shards]
+    if: always() && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require successful full execution
+        env:
+          SHARDS: ${{ inputs.shards }}
+          SINGLE: ${{ needs.browser.result }}
+          MODE: ${{ needs.browser.outputs.mode }}
+          BUILD: ${{ needs.build-for-shards.result }}
+          MATRIX: ${{ needs.shards.result }}
+        run: |
+          if [ "$SHARDS" = 2 ]; then
+            test "$BUILD" = success && test "$MATRIX" = success
+          else
+            test "$SINGLE" = success && test "$MODE" = full
+          fi
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ui-metrics-${{ github.run_attempt }}-*
+          path: ci-metrics
+      - run: node scripts/ci-metrics.mjs aggregate ci-metrics "$GITHUB_SHA" "${{ inputs.shards }}"

@@ -17,3 +17,10 @@ dist/
 
 /src-tauri/tauri.release.conf.json
 /release-assets/
+
+/ci-plan.json
+/ci-metrics/
+/ci-build.tar.gz
+/ci-build.sha256
+/ci-build-commit.txt
+/ci-list.json
