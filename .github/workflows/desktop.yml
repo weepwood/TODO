@@ -1,37 +1,40 @@
-name: 桌面安装包（手动）
+name: 隔离签名安装包升级验收（研究分支）
 on:
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  bundle:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            bundle: nsis
-          - os: macos-15
-            target: aarch64-apple-darwin
-            bundle: dmg
-    runs-on: ${{ matrix.os }}
+  windows-upgrade:
+    if: github.ref == 'refs/heads/research/signed-upgrade-20261127'
+    runs-on: windows-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
       - run: npm ci
-      - run: npm test
-      - run: npm run desktop:build -- --target ${{ matrix.target }} --bundles ${{ matrix.bundle }} --ci
+      - name: Download immutable original release assets
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($suffix in @('1','2')) {
+            $dir = Join-Path $env:RUNNER_TEMP "todo-original-alpha.$suffix"
+            New-Item -ItemType Directory -Path $dir -ErrorAction Stop | Out-Null
+            gh release download "v1.2.0-alpha.$suffix" --repo weepwood/TODO --dir $dir --pattern BUILD_COMMIT.txt --pattern SHA256SUMS.txt --pattern '*_x64-setup.exe' --pattern '*_x64-setup.exe.sig'
+            if ($LASTEXITCODE -ne 0) { throw 'Original assets unavailable' }
+          }
+      - name: Real Windows NSIS overlay and native SQLite verification
+        env:
+          TODO_VERIFY_PUBLIC_KEY: ${{ vars.TODO_UPDATER_PUBLIC_KEY }}
+        run: node scripts/verify-signed-windows-upgrade.mjs
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: TODO-${{ matrix.target }}
-          path: |
-            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.exe
-            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.dmg
-          if-no-files-found: error
+          name: signed-windows-upgrade-evidence
+          path: signed-upgrade-evidence/
+          retention-days: 7
+          if-no-files-found: warn
