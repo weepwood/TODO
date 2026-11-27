@@ -44,7 +44,7 @@ def install(i):
  apk=temp/f"todo-android-alpha.{i}"/f"TODO_1.2.0-alpha.{i}_arm64.apk"
  args=["install"]+(["-r"] if i==2 else [])+[str(apk)]
  assert "Success" in adb(*args,timeout=120)
- data=info();assert data["versionCode"]==102001+i and data["versionName"]==f"1.2.0-alpha.{i}"
+ data=info();report["installedPackage"]=data;save();assert data["versionCode"]==102000+i and data["versionName"]==f"1.2.0-alpha.{i}", data
  return data
 def launch():
  component=adb("shell","cmd","package","resolve-activity","--brief","-a","android.intent.action.MAIN","-c","android.intent.category.LAUNCHER",pkg).splitlines()[-1]
