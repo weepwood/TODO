@@ -18,7 +18,7 @@ export function createNativeOAuthAttempt({now=Date.now,ttl=NATIVE_OAUTH_TTL}={})
  let current=null;
  return {
   begin(){if(current)return null;current={deadline:now()+ttl,phase:'starting'};return current},
-  wait(attempt,flowId){if(current!==attempt||now()>=attempt.deadline||!/^[-A-Za-z0-9_]{8,64}$/.test(flowId||''))return false;attempt.flowId=flowId;attempt.phase='waiting';return true},
+  wait(attempt,flowId){if(current!==attempt||attempt.phase!=='starting'||now()>=attempt.deadline||!/^[-A-Za-z0-9_]{8,64}$/.test(flowId||''))return false;attempt.flowId=flowId;attempt.phase='waiting';return true},
   take(raw){if(!current||current.phase!=='waiting'||now()>=current.deadline)return null;
    const callback=parseNativeOAuthCallback(raw);if(!callback||(callback.flowId!==undefined&&callback.flowId!==current.flowId))return null;
    const attempt=current;attempt.phase='exchanging';return {attempt,callback}},

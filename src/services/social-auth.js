@@ -21,6 +21,10 @@ export async function socialAuthorize({auth,provider,redirectTo,cloudUrl}){
  if(error)throw error;
  const url=new URL(data?.url||'');
  const expected=new URL('auth/v1/authorize',cloudUrl.replace(/\/+$/,'')+'/');
- if(url.origin!==expected.origin||url.pathname!==expected.pathname||url.searchParams.get('provider')!==provider||url.searchParams.get('redirect_to')!==redirectTo||url.searchParams.get('code_challenge_method')?.toLowerCase()!=='s256'||!url.searchParams.get('code_challenge'))throw Error('第三方授权地址校验失败。');
+ const q=url.searchParams;
+ // Reject ambiguous parameters rather than trusting the first value; the
+ // authorization server may interpret duplicates differently.
+ const unique=['provider','redirect_to','code_challenge_method','code_challenge'].every(k=>q.getAll(k).length===1);
+ if(url.origin!==expected.origin||url.pathname!==expected.pathname||url.username||url.password||url.hash||!unique||q.get('provider')!==provider||q.get('redirect_to')!==redirectTo||q.get('code_challenge_method')?.toLowerCase()!=='s256'||!/^[-A-Za-z0-9_]{43}$/.test(q.get('code_challenge')||''))throw Error('第三方授权地址校验失败。');
  return {url:url.href,flowId:data.flowId??null};
 }

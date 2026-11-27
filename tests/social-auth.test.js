@@ -15,10 +15,10 @@ test('only actual enabled providers are available',async()=>{
 });
 test('OAuth uses PKCE and refuses mismatched server or insecure redirects',async()=>{
  for(const provider of ['github','google']){
-  const good=new URL(cloudUrl+'/auth/v1/authorize');good.search=new URLSearchParams({provider,redirect_to:site,code_challenge:'fake-test-challenge',code_challenge_method:'s256'});
+  const good=new URL(cloudUrl+'/auth/v1/authorize');good.search=new URLSearchParams({provider,redirect_to:site,code_challenge:'a'.repeat(43),code_challenge_method:'s256'});
   const auth={signInWithOAuth:async opts=>{assert.deepEqual(opts,{provider,options:{redirectTo:site,skipBrowserRedirect:true}});return {data:{url:good.href}}}};
   assert.deepEqual(await socialAuthorize({auth,provider,redirectTo:site,cloudUrl}),{url:good.href,flowId:null});
-  for(const change of [u=>u.hostname='bad.invalid',u=>u.searchParams.delete('code_challenge'),u=>u.searchParams.set('redirect_to','https://bad.invalid/'),u=>u.searchParams.set('provider','other')]){
+  for(const change of [u=>u.hostname='bad.invalid',u=>u.searchParams.delete('code_challenge'),u=>u.searchParams.set('redirect_to','https://bad.invalid/'),u=>u.searchParams.set('provider','other'),u=>u.searchParams.append('provider','other'),u=>u.searchParams.append('redirect_to','https://bad.invalid/'),u=>u.searchParams.append('code_challenge_method','plain'),u=>u.searchParams.append('code_challenge','b'.repeat(43)),u=>u.searchParams.set('code_challenge','too-short'),u=>u.username='unexpected',u=>u.password='unexpected',u=>u.hash='unexpected']){
    const bad=new URL(good);change(bad);
    await assert.rejects(socialAuthorize({auth:{signInWithOAuth:async()=>({data:{url:bad.href}})},provider,redirectTo:site,cloudUrl}),/校验失败/);
   }

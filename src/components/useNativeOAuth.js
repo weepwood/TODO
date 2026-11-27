@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {onOpenUrl} from '@tauri-apps/plugin-deep-link';
 import {openUrl} from '@tauri-apps/plugin-opener';
-import {createNativeOAuthAttempt,NATIVE_OAUTH_TTL} from '../services/native-oauth.js';
+import {createNativeOAuthAttempt} from '../services/native-oauth.js';
 // Only active in the main account panel. Cancellation never changes the
 // current account; exchange is single-flight and uses the SDK's stored verifier.
 export function useNativeOAuth({enabled,authorize,exchange,beforeAccountChange,blocked,onMessage}){
@@ -44,7 +44,7 @@ export function useNativeOAuth({enabled,authorize,exchange,beforeAccountChange,b
    const {url,flowId}=await latest.current.authorize(provider);
    if(!attempt.current.wait(a,flowId)||!mounted.current)throw Error('cancelled');
    setPhase('waiting');
-   timer.current=setTimeout(()=>{if(attempt.current.cancel(a)&&mounted.current){setPhase('idle');latest.current.onMessage('授权已超时，请重新登录。')}},NATIVE_OAUTH_TTL);
+   timer.current=setTimeout(()=>{if(attempt.current.cancel(a)&&mounted.current){setPhase('idle');latest.current.onMessage('授权已超时，请重新登录。')}},Math.max(0,a.deadline-Date.now()));
    release?.();release=null;
    await openUrl(url);
   }catch{if(attempt.current.cancel(a)&&mounted.current){clearTimer();setPhase('idle');latest.current.onMessage('无法打开系统浏览器，请重试。')}}

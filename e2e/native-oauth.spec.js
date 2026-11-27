@@ -53,7 +53,14 @@ for(const android of [false,true])test('Native '+(android?'Android':'desktop')+'
   await page.getByRole('button',{name:'取消授权'}).click();
   await page.evaluate(()=>window.__returnOAuth('com.weepwood.todo://auth/callback?code=fixture-code'));expect(calls).toBe(0);
   await btn.click();await expect.poll(()=>page.evaluate(()=>window.__opened.length)).toBe(2);
-  const u=new URL(await page.evaluate(()=>window.__opened[1]));expect(u.origin).toBe(host);expect(u.searchParams.get('provider')).toBe('github');expect(u.searchParams.get('redirect_to')).toBe('com.weepwood.todo://auth/callback');expect(u.searchParams.get('code_challenge_method')).toBe('s256');challenge=u.searchParams.get('code_challenge');
+  await page.getByRole('dialog',{name:'设置与数据管理'}).getByRole('button',{name:'关闭',exact:true}).click();
+  await expect(page.getByRole('dialog',{name:'设置与数据管理'})).toHaveCount(0);
+  await page.evaluate(()=>window.__returnOAuth('com.weepwood.todo://auth/callback?code=fixture-code'));
+  expect(calls).toBe(0);
+  if(android){await page.locator('.rail').getByRole('button',{name:'更多',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'设置',exact:true}).click()}
+  else await page.locator('.rail').getByRole('button',{name:'设置',exact:true}).click();
+  await expect(btn).toBeEnabled();await btn.click();await expect.poll(()=>page.evaluate(()=>window.__opened.length)).toBe(3);
+  const u=new URL(await page.evaluate(()=>window.__opened[2]));expect(u.origin).toBe(host);expect(u.searchParams.get('provider')).toBe('github');expect(u.searchParams.get('redirect_to')).toBe('com.weepwood.todo://auth/callback');expect(u.searchParams.get('code_challenge_method')).toBe('s256');challenge=u.searchParams.get('code_challenge');
   await page.evaluate(()=>{window.__returnOAuth('https://auth/callback?code=fixture-code');window.__returnOAuth('com.weepwood.todo://auth/callback?code=fixture-code');window.__returnOAuth('com.weepwood.todo://auth/callback?code=fixture-code')});
   await expect(page.locator('.sync-footer')).toContainText(/云端工作空间为空|已同步/,{timeout:15000});
   expect(calls).toBe(1);await expect(page.locator('.task-body').filter({hasText:'原生访客独立任务'})).toHaveCount(0);

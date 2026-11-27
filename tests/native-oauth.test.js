@@ -8,8 +8,15 @@ test('only exact native callback with unique PKCE code or generic cancellation i
 });
 test('native callback requires one active unexpired attempt; cancellation and replay are harmless',()=>{
  let t=0;const f=createNativeOAuthAttempt({now:()=>t,ttl:5}),url=NATIVE_OAUTH_REDIRECT+'?code=fixture';
- assert.equal(f.take(url),null);let a=f.begin();assert.equal(f.begin(),null);assert.equal(f.take(url),null);assert.equal(f.wait(a,"fixture-flow"),true);assert.equal(f.take('https://bad.invalid'),null);assert.equal(f.take(url+'&sb_flow_id=unrelated'),null);
+ assert.equal(f.take(url),null);let a=f.begin();assert.equal(f.begin(),null);assert.equal(f.take(url),null);assert.equal(f.wait(a,"fixture-flow"),true);assert.equal(f.wait(a,"other-flow"),false);assert.equal(f.take('https://bad.invalid'),null);assert.equal(f.take(url+'&sb_flow_id=unrelated'),null);
  assert.deepEqual(f.take(url),{attempt:a,callback:{kind:'code',code:'fixture'}});assert.equal(f.take(url),null);assert.equal(f.cancel(),false);assert.equal(f.finish(a),true);assert.equal(f.take(url),null);
  a=f.begin();assert.equal(f.wait(a,"fixture-flow"),true);assert.equal(f.cancel(a),true);assert.equal(f.take(url),null);
  a=f.begin();assert.equal(f.wait(a,"fixture-flow"),true);t=5;assert.equal(f.take(url),null);assert.equal(f.cancel(a),true);
+});
+
+test('authorization preparation counts toward the same deadline',()=>{
+ let now=0;const f=createNativeOAuthAttempt({now:()=>now,ttl:5}),a=f.begin();now=4;
+ assert(f.wait(a,'fixture-flow'));assert.equal(a.deadline-now,1);now=5;
+ assert.equal(f.take(NATIVE_OAUTH_REDIRECT+'?code=fixture'),null);assert(f.cancel(a));
+ const b=f.begin();now=10;assert.equal(f.wait(b,'fixture-flow'),false);assert(f.cancel(b));
 });

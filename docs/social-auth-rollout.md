@@ -72,3 +72,9 @@
 - 版本统一为 1.2.0-alpha.2，Android versionCode 102002；不修改已发布 Alpha.1、更新清单或正式 main。现有发布预检增加 --oauth，仅核对生产公开 settings、双官方授权入口及精确 provider callback，不跟随重定向、不创建会话、不读写任务。拒绝未启用 provider 与错误授权目标；邮箱全局 signup 开启的状态不等于 Hook 已启用或邮箱独立注册已禁用。
 - 实际运行 node scripts/release-config.mjs、node scripts/verify-live.mjs --oauth 成功；全量 JS 单测296/296，隔离 Web 构建2.44s，认证与更新 E2E 6/6（模拟服务）。日志 /Volumes/data/AI-Development/artifacts/TODO/alpha2-{unit,build,e2e}.log。实际 OAuth 登录、原生系统浏览器回调及同步恢复不在这些证据范围内。
 - 注册白名单函数继续待部署，保留真实 OAuth 新用户验收后启用的前置条件。无备份恢复验收或额外授权，不部署生产数据约束。没有修改生产配置/数据库，不推送或发布。停止功能扩张，下一阶段为真机与受审发布。
+
+## Alpha.2 累计代码审查（2026-11-27）
+- 基于 175af27，比较已发布基线 3ad8ee2 的32个变更文件，重点复核新增 OAuth、原生 ACL 与会话边界；未扩大业务范围。锁定的 Opener 实现使用 glob::Pattern，现有固定授权地址 scope 保留；不扩大 CSP/ACL。
+- 修复授权 URL 重复关键参数、异常凭据、fragment、非43字符 S256 challenge 的接受缺口；原生尝试只允许 starting→waiting 一次，计时使用内部 deadline 剩余时间而非从打开浏览器重新计时。未改变固定 redirect 或 SDK 协议。无 flow id 的实际回调仍依靠 PKCE verifier 与服务端代码绑定；已取消尝试的旧回调若到达另一次活动授权，可能导致该次授权失败并需重试，不声称可完全消除自定义 scheme 的干扰。关闭设置可取消尚未交换的授权；已经发出的交换请求不保证可撤销。
+- 定向 Node 7/7，隔离构建2.46s，Playwright 7/7（49.5s）：Web 双 OAuth 与邮箱、桌面和 Android 模拟 IPC 取消/关闭后拒绝旧回调并重新授权、SQLite 迁移/保存失败重试/恢复、模拟双设备离线合并/CAS/冲突保护。证据 alpha2-audit-{build,e2e}.log。实际历史 RC1 6b78c9b3e8190cef230dd249b9571781b7d0c57d 源码兼容脚本四项通过；非安装包覆盖升级证据。之前296项全量结果保留，本次不重复无关单测。无新增依赖。
+- 未访问正式用户工作空间，未改变生产数据库、注册 Hook、签名配置、已发布版本或更新清单。不推送、不合并、不发布；真实 OAuth 会话、系统回调、生产同步和同签名覆盖升级仍为门禁。
