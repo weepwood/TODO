@@ -20,10 +20,11 @@ struct EventData {
     app: Option<String>, status: Option<String>, url: Option<String>,
     #[serde(default)] incognito: bool,
     #[serde(default)] private: bool,
+    focused: Option<bool>,
 }
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct Span { pub start: i64, pub end: i64, pub subject: String }
-#[derive(Debug, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct Total { pub subject: String, pub ms: i64 }
 #[derive(Debug, Serialize)]
 pub struct Status { pub version: String, pub app: bool, pub afk: bool, pub browsers: usize }
@@ -31,7 +32,13 @@ pub struct Status { pub version: String, pub app: bool, pub afk: bool, pub brows
 pub struct Report {
     pub start: i64, pub end: i64, pub known_ms: i64, pub active_ms: i64,
     pub website_ms: i64, pub website_available: bool, pub apps: Vec<Total>, pub websites: Vec<Total>,
-    pub timeline: Vec<Span>, pub warnings: Vec<String>,
+    pub timeline: Vec<Span>, pub website_timeline: Vec<Span>, pub days: Vec<DaySummary>, pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct DaySummary {
+    pub start: i64, pub end: i64, pub known_ms: i64, pub active_ms: i64,
+    pub website_ms: i64, pub website_available: bool, pub apps: Vec<Total>, pub websites: Vec<Total>,
 }
 
 pub struct Provider { client: Client, base: Url }
@@ -76,11 +83,17 @@ impl Provider {
     async fn events(&self,id:&str,start:i64,end:i64)->Result<Vec<Event>,String>{
         let stamp=|ms|DateTime::<Utc>::from_timestamp_millis(ms).map(|d|d.to_rfc3339()).ok_or("日期无效".to_owned());
         let v:Vec<Event>=self.get(&["buckets",id,"events"],&[("start",stamp(start)?),("end",stamp(end)?),("limit",(LIMIT+1).to_string())]).await?;
-        if v.len()>LIMIT{return Err("单日记录超过上限，不能保证完整性".into())}
+        if v.len()>LIMIT{return Err("查询分段记录超过上限，请缩小日期范围".into())}
         Ok(v)
     }
     pub async fn report(&self,start:i64,end:i64)->Result<Report,String>{
-        if start<0||end<=start||end-start>MAX_DAY||end>Utc::now().timestamp_millis()+MAX_DAY{return Err("仅支持单个本地日期范围".into())}
+        self.period(&[start,end],true).await
+    }
+    // A request is at most seven contiguous local-day slices. The caller
+    // authorizes the full visible range and may stop between chunks.
+    pub async fn period(&self,bounds:&[i64],detail:bool)->Result<Report,String>{
+        validate_bounds(bounds,detail)?;
+        let start=bounds[0];let end=*bounds.last().unwrap();
         let (info,b)=self.sources().await?;
         let local=b.iter().filter(|(_,x)|x.hostname==info.hostname);
         let one=|kind:&str|->Result<String,String>{
@@ -104,7 +117,7 @@ impl Provider {
         for (browser,ids) in candidates {
             if ids.len()!=1 {warnings.push("存在重复浏览器数据源，已跳过避免重复计时".into());continue}
             let raw=self.events(ids[0],start,end).await?;
-            let domains=spans(raw,start,end,|d|if d.private||d.incognito{None}else{d.url.and_then(domain)})?;
+            let domains=spans(raw,start,end,|d|if d.private||d.incognito||d.focused==Some(false){None}else{d.url.and_then(domain)})?;
             web.extend(intersect(&active,&domains,|a,_|browser_app(a)==Some(browser),true));
             used.insert(browser);
         }
@@ -112,8 +125,26 @@ impl Provider {
         if known.is_empty(){warnings.push("该日期没有应用与空闲状态共同覆盖的记录".into())}
         web.sort_by_key(|s|s.start);
         let active_ms=duration(&active);let website_ms=duration(&web);
-        Ok(Report{start,end,known_ms:duration(&known),active_ms,website_ms,website_available:!used.is_empty(),apps:totals(&active),websites:totals(&web),timeline:merge(active),warnings})
+        if !used.is_empty()&&web.is_empty(){warnings.push("存在网页数据源，但所选区间没有可确认的网站活动；网站时长未知".into());}
+        let days=bounds.windows(2).map(|b|{
+            let a=clip(&active,b[0],b[1]);let w=clip(&web,b[0],b[1]);
+            DaySummary{start:b[0],end:b[1],known_ms:duration(&clip(&known,b[0],b[1])),active_ms:duration(&a),website_ms:duration(&w),website_available:!w.is_empty(),apps:totals(&a),websites:totals(&w)}
+        }).collect::<Vec<_>>();
+        if days.iter().map(|d|d.apps.len()+d.websites.len()).sum::<usize>()>20_000{return Err("分类记录过多，请缩小日期范围".into())}
+        Ok(Report{start,end,known_ms:duration(&known),active_ms,website_ms,website_available:!web.is_empty(),apps:totals(&active),websites:totals(&web),
+            timeline:if detail{merge(active)}else{vec![]},website_timeline:if detail{merge(web)}else{vec![]},days,warnings})
     }
+}
+fn validate_bounds(b:&[i64],detail:bool)->Result<(),String>{
+    if b.len()<2||b.len()>8||detail&&b.len()!=2||b[0]<0||
+       *b.last().unwrap()>Utc::now().timestamp_millis()+1000||
+       b.windows(2).any(|p|p[1]<=p[0]||p[1]-p[0]>MAX_DAY) {
+        return Err("无效或超限的日期分段".into())
+    } Ok(())
+}
+fn clip(a:&[Span],start:i64,end:i64)->Vec<Span>{
+    a.iter().filter_map(|s|{let x=s.start.max(start);let y=s.end.min(end);
+        (x<y).then(||Span{start:x,end:y,subject:s.subject.clone()})}).collect()
 }
 fn clean_app(s:String)->Option<String>{
     let s=s.trim();
@@ -262,6 +293,62 @@ mod tests {
         for s in ["http://127.0.0.1/a","file:///private/a","https://localhost/a","https://user:pw@example.org/a","https://thing.local"]{assert!(domain(s.into()).is_none());}
         assert_eq!(browser_bucket("aw-watcher-web-edge_fixture"),Some("edge"));
         assert_eq!(browser_app("Microsoft Edge"),Some("edge"));
+    }
+    #[test]fn period_cuts_midnight_and_switches_browsers_without_double_count(){
+        let mut b=buckets();
+        b["aw-watcher-web-edge_fixture"]=json!({"type":"web.tab.current","hostname":"fixture"});
+        let (p,h)=mock(vec![("info",200,info()),("buckets/",200,b),
+            ("buckets/app/events",200,json!([event(0,30,json!({"app":"Google Chrome"})),event(30,30,json!({"app":"Microsoft Edge"})),event(90,30,json!({"app":"Editor"}))])),
+            ("buckets/afk/events",200,json!([event(0,20,json!({"status":"not-afk"})),event(20,10,json!({"status":"afk"})),event(30,30,json!({"status":"not-afk"})),event(90,30,json!({"status":"not-afk"}))])),
+            ("buckets/aw-watcher-web-chrome_fixture/events",200,json!([event(0,60,json!({"url":"https://example.org/path?q=secret"}))])),
+            ("buckets/aw-watcher-web-edge_fixture/events",200,json!([event(0,40,json!({"url":"https://edge.example.org"})),event(40,10,json!({"url":"https://hidden.example.org","focused":false})),event(50,10,json!({"url":"https://edge.example.org"}))]))
+        ]);
+        let r=runtime().block_on(p.period(&[0,35_000,60_000,90_000,120_000],false)).unwrap();
+        assert_eq!((r.known_ms,r.active_ms,r.website_ms),(90_000,80_000,40_000));
+        assert_eq!(r.days.iter().map(|d|(d.known_ms,d.active_ms,d.website_ms)).collect::<Vec<_>>(),
+            vec![(35_000,25_000,25_000),(25_000,25_000,15_000),(0,0,0),(30_000,30_000,0)]);
+        assert!(!r.days[2].website_available&&!r.days[3].website_available);
+        assert!(r.timeline.is_empty()&&r.website_timeline.is_empty());
+        assert!(!serde_json::to_string(&r).unwrap().contains("secret"));
+        assert_eq!(h.join().unwrap().len(),6);
+    }
+    #[test]fn bounds_fail_before_network(){
+        for b in [vec![],vec![0],vec![0,0],vec![-1,1],vec![0,MAX_DAY+1],(0..9).collect(),vec![0,i64::MAX]]{
+            assert!(validate_bounds(&b,false).is_err());
+        }
+        assert!(validate_bounds(&[0,1,2],true).is_err());
+        assert!(validate_bounds(&[0,23*3600000,48*3600000],false).is_ok());
+    }
+    #[test]fn offline_and_malformed_response_fail_closed(){
+        let listener=TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr=listener.local_addr().unwrap();drop(listener);
+        let p=Provider::at(&format!("http://{addr}/api/0/")).unwrap();
+        assert!(runtime().block_on(p.status()).is_err());
+        let(p,h)=mock(vec![("info",200,json!({"version":"v0.14.3"}))]);
+        assert!(runtime().block_on(p.status()).is_err());h.join().unwrap();
+    }
+    #[test]fn truncated_period_rejects(){
+        let e=event(0,1,json!({"app":"Editor"}));
+        let (p,h)=mock(vec![("info",200,info()),("buckets/",200,buckets()),("buckets/app/events",200,json!(vec![e;LIMIT+1]))]);
+        assert!(runtime().block_on(p.period(&[0,60_000,120_000],false)).unwrap_err().contains("上限"));
+        assert_eq!(h.join().unwrap().len(),3);
+    }
+    #[test]fn synthetic_seven_day_query_benchmark(){
+        // Local randomized port; 14,000 events per stream, 2,000 per day.
+        let day=86400i64;let mut app=Vec::new();let mut afk=Vec::new();
+        for d in 0..7{for i in 0..2000{
+            let t=d*day+i*10;
+            app.push(event(t,10,json!({"app":if i%2==0{"Editor"}else{"Terminal"}})));
+            afk.push(event(t,10,json!({"status":if i%5==0{"afk"}else{"not-afk"}})));
+        }}
+        let (p,h)=mock(vec![("info",200,info()),("buckets/",200,json!({"app":{"type":"currentwindow","hostname":"fixture"},"afk":{"type":"afkstatus","hostname":"fixture"}})),
+            ("buckets/app/events",200,json!(app)),("buckets/afk/events",200,json!(afk))]);
+        let bounds=(0..=7).map(|d|d*day*1000).collect::<Vec<_>>();
+        let now=std::time::Instant::now();let r=runtime().block_on(p.period(&bounds,false)).unwrap();let elapsed=now.elapsed();
+        assert_eq!(r.known_ms,140_000_000);assert_eq!(r.active_ms,112_000_000);
+        assert_eq!(r.days.len(),7);assert!(r.days.iter().all(|d|d.active_ms==16_000_000));assert!(r.timeline.is_empty());
+        println!("seven_day_fixture_events=28000 elapsed_ms={} response_bytes={}",elapsed.as_millis(),serde_json::to_vec(&r).unwrap().len());
+        h.join().unwrap();
     }
     #[test]fn no_web_is_unknown_not_total(){
         let(p,h)=mock(vec![("info",200,info()),("buckets/",200,json!({"app":{"type":"currentwindow","hostname":"fixture"},"afk":{"type":"afkstatus","hostname":"fixture"}})),

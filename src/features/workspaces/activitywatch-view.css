@@ -30,3 +30,19 @@
 .aw-view .aw-metrics small{color:var(--muted)}
 .aw-view .aw-metrics strong{font-size:clamp(1rem,2vw,1.5rem);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 @media(max-width:600px){.aw-view .aw-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2)}}
+
+.aw-view .aw-actions select{min-width:100px;max-width:min(280px,100%);height:var(--control-height,36px);border:1px solid var(--line);border-radius:var(--radius-control);background:var(--bg);color:var(--text);padding:0 8px}
+.aw-view .aw-actions label{min-width:0;max-width:100%}
+.aw-view .aw-rank-button{display:grid;gap:2px;min-width:0;text-align:left;border:1px solid transparent;padding:6px;border-radius:var(--radius-control);background:transparent;color:var(--text);font:inherit}
+.aw-view .aw-rank-button:hover{background:var(--hover)}
+.aw-view .aw-rank-button[aria-pressed=true]{border-color:var(--accent);background:var(--active)}
+.aw-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-inline-end:6px;vertical-align:1px;flex:none}
+.aw-trend{display:grid;grid-template-columns:repeat(var(--aw-columns),minmax(28px,1fr));gap:5px;overflow-x:auto;padding:4px 3px 8px;min-width:0}
+.aw-trend-column{display:grid;grid-template-rows:112px auto;gap:5px;min-width:0;text-align:center}
+.aw-view .aw-trend-bar{position:relative;min-width:0;width:100%;height:112px;border:0;border-radius:4px;background:var(--bg);display:flex;align-items:flex-end;padding:0;overflow:hidden}
+.aw-view .aw-trend-bar:disabled{opacity:1;cursor:default}
+.aw-trend-bar>span{display:block;min-width:100%;border-radius:3px 3px 0 0}
+.aw-trend-bar[data-available=false]>span{border:1px dashed var(--line);background:transparent}
+.aw-trend-column small{font-size:10px;color:var(--muted);white-space:nowrap}
+.aw-trend-bar:focus-visible,.aw-rank-button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+@media(max-width:600px){.aw-trend{grid-template-columns:repeat(var(--aw-columns),minmax(30px,1fr))}.aw-view .aw-actions select{max-width:180px}}

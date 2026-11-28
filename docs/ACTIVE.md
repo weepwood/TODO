@@ -9,7 +9,9 @@
 - [x] 只读单主机 provider、桌面 IPC、主动授权、异常反馈；日期裁剪、应用及网站交集、覆盖率、域名过滤。
 - [x] 活动分析工作台、任务/专注/规划只读对照、双主题和窄屏合成演示。
 - [x] 9 Rust 隔离 API 测试、311前端单测、Tauri check、Vite 构建、Chromium/WebKit 各3项真实 Web 界面测试。
-- [ ] 用户另行授权后验证真实数据源、实际原生 IPC 运行、隐私设置、版本/多浏览器兼容与真实统计口径。暂不进行安装包或发布验收。
+- [x] 实际 ActivityWatch v0.14.3 元数据通过独立脚本及项目 Rust Provider 复核；当前主机应用/AFK各1、网站源0，非当前主机桶1；未读历史。
+- [x] 自然日/周/月/年趋势、日期导航、软件/网站筛选与彩色时间线；分段只读、取消及上限，合成压力与可靠性验收。详见 [周期统计报告](activity-tracking/activitywatch-periods.md)。
+- [ ] 用户明确授权日期和数据范围后验证真实事件、实际原生 IPC 运行、锁屏休眠、隐私设置、网站源/多浏览器兼容与真实查询性能。暂不进行安装包或发布验收。
 - [轻量集成报告](activity-tracking/activitywatch-integration.md)；[R1–R3](activity-tracking/r1-r3.md) 与 [原生生命周期原型](activity-tracking/native-lifecycle-r4.md) 保留为冻结研究。正式发布工作区不动。
 
 ## 当前独立本地设计专项：Design Vocabulary

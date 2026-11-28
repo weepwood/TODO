@@ -13,7 +13,7 @@
 
 ## 当前 ActivityWatch 专项边界
 
-- feat/activity-tracking 基于 ccd8c20 转向轻量集成，详见 docs/activity-tracking/activitywatch-integration.md 与 ACTIVE。自主 activity-core 原型及原证据冻结；只读 provider 仅桌面主窗口、用户主动检测及按日期授权，默认不连接、不持久化、不接云。隔离模拟验收，不得访问真实 ActivityWatch 历史或修改其配置；原生真实运行须另行授权。中文本地提交，不推送、合并或发布。
+- feat/activity-tracking 基于 ccd8c20 转向轻量集成，详见 docs/activity-tracking/activitywatch-integration.md 与 ACTIVE。自主 activity-core 原型及原证据冻结；只读 provider 仅桌面主窗口、用户主动检测及按日期授权，默认不连接、不持久化、不接云。隔离模拟验收；允许本轮元数据检测，不得未经明确日期和范围授权访问真实 ActivityWatch 历史或修改配置。周期统计最多七日分段、取消停止后续请求、无持久化；详见 docs/activity-tracking/activitywatch-periods.md。真实系统事件及桌面 IPC 仍待验收。中文本地提交，不推送、合并或发布。
 
 ## 本地操作与验收
 - 当前 CI 效率专项使用 feat/ci-efficiency 独立工作树（基于 PR #39 的 694117d）；登录候选 feat/social-auth-web 保持原样，产品已发布基线见 origin/main。保持正式 main、AI 候选、研究分支及未提交内容；保留 4197 正常预览和 4318 独立 QA，不停止其他任务或覆盖共享构建目录。
