@@ -2,6 +2,15 @@
 
 产品基线 3d47350；正式 main 3ad8ee2（v1.2.0-alpha.1 已公开发行，Pages 已部署），AI 候选 47babb9，增量研究 648dd1a（R6 未提交，保持原样）。本清单替代历史路线的执行优先级，不替代原始证据。
 
+## 新独立研发专项：Activity Tracking
+
+- [x] 独立 feat/activity-tracking，基于 Alpha.3 候选 deb2f28，保留发布工作区；不混入 PR #40。
+- [x] R1 固定上游 watcher/UsageOS、核对许可证与实际代码/架构，macOS 有界布尔探针。
+- [x] R2/R3 独立 Rust 状态机及 SQLite 原型，12 项测试、90 日合成对照通过。
+- [ ] 实际原生采集适配、权限/启停、锁屏休眠及崩溃验证、质量与覆盖率持久化；不默认开启。
+- [ ] R4 浏览器扩展及安全 Native Messaging；R5–R8 后续按实际证据实施。
+- 详见 [R1–R3 研究与实验](activity-tracking/r1-r3.md)。原有产品与存储门禁保持不变。
+
 ## 当前独立本地设计专项：Design Vocabulary
 
 - [x] 基于 49aa088 的 feat/design-vocabulary-polish 隔离工作树，前两批工作台、共享弹簧指示器、双主题及触控精修。
