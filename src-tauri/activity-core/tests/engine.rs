@@ -60,7 +60,8 @@ fn adjacent_only_merges_and_browser_is_subset() {
 struct Fixture(PathBuf);
 impl Fixture {
  fn new()->Self{
-  let p=std::env::temp_dir().join(format!("todo-activity-test-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+  static SEQ:std::sync::atomic::AtomicU64=std::sync::atomic::AtomicU64::new(0);
+  let p=std::env::temp_dir().join(format!("todo-activity-test-{}-{}-{}",std::process::id(),SEQ.fetch_add(1,std::sync::atomic::Ordering::Relaxed),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
   std::fs::create_dir(&p).unwrap();Self(p)
  }
  fn path(&self)->PathBuf { self.0.join("activity.sqlite") }

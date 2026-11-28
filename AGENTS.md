@@ -116,3 +116,6 @@
 
 ### Activity Tracking 独立研究
 - feat/activity-tracking 基于 deb2f28，设计发布工作区保持不动。R1–R3 原型见 docs/activity-tracking/r1-r3.md。仅独立 crate 和合成数据；无 Tauri 命令、常驻采集、正式账号数据、额外权限或同步。12 Rust 测试通过，macOS 布尔诊断通过，90 日合成有效时间独立对照一致。真实采集、权限与来源质量仍待验证；不把原型称作发布功能。Rustfmt 未安装，不修改全局工具链。
+
+### Activity Tracking 原生生命周期研究
+- 基于 cea3cca 的独立研发，见 docs/activity-tracking/native-lifecycle-r4.md；原生有界排除采集、Schema v2、生命周期、Native Messaging/FIFO 原型。20/20 Rust测试及实机隔离子进程通过；实际应用切换、锁屏、休眠、扩展注册、功耗及正式采集未验收，禁止默认启用。未改正式数据、全局权限或发布工作区。

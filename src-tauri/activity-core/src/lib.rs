@@ -1,6 +1,8 @@
 //! Experimental local-only activity engine. No OS collector or Tauri command
 //! is registered by this crate; consumers must explicitly opt in.
 pub mod store;
+pub mod collector;
+pub mod messaging;
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -63,6 +65,7 @@ pub enum Outcome {
     Rejected,
 }
 
+#[derive(Clone)]
 pub struct Engine {
     max_gap_ms: u64,
     clock_tolerance_ms: u64,

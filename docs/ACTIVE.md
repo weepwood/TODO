@@ -7,8 +7,11 @@
 - [x] 独立 feat/activity-tracking，基于 Alpha.3 候选 deb2f28，保留发布工作区；不混入 PR #40。
 - [x] R1 固定上游 watcher/UsageOS、核对许可证与实际代码/架构，macOS 有界布尔探针。
 - [x] R2/R3 独立 Rust 状态机及 SQLite 原型，12 项测试、90 日合成对照通过。
-- [ ] 实际原生采集适配、权限/启停、锁屏休眠及崩溃验证、质量与覆盖率持久化；不默认开启。
-- [ ] R4 浏览器扩展及安全 Native Messaging；R5–R8 后续按实际证据实施。
+- [x] 独立 macOS 有界采集适配与 Swift→Rust→SQLite 实机排除路径；生命周期、质量、覆盖率、迁移、保留及故障恢复原型。20 Rust 测试与隔离子进程实验通过。
+- [ ] 真实锁屏、应用切换、休眠、会话事件及长时资源验收；产品显式权限/启停、进程监管与安全存储。
+- [x] Native Messaging 独立帧协议、来源白名单、持久有界 FIFO、幂等重放及强杀实验；未注册宿主。
+- [ ] R4 真实扩展、宿主注册与身份配置、ACK关联与断线调度；R5–R8 后续按实际证据实施。
+- 本批详细证据与限制见 [原生生命周期与消息协议](activity-tracking/native-lifecycle-r4.md)。
 - 详见 [R1–R3 研究与实验](activity-tracking/r1-r3.md)。原有产品与存储门禁保持不变。
 
 ## 当前独立本地设计专项：Design Vocabulary
