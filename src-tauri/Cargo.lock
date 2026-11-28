@@ -4653,10 +4653,11 @@ checksum = "fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee"
 
 [[package]]
 name = "todo"
-version = "1.2.0-alpha.2"
+version = "1.2.0-alpha.3"
 dependencies = [
  "chrono",
  "rusqlite",
+ "rustls",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -4670,7 +4671,18 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tauri-plugin-todo-mobile",
  "tauri-plugin-updater",
+ "todo-activitywatch",
  "uuid",
+]
+
+[[package]]
+name = "todo-activitywatch"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "reqwest",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

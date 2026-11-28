@@ -8,7 +8,7 @@ import {SmartSelect,SelectOption} from '../components/SmartSelect.jsx';
 import {ActionButton,Field,NumberField,Menu,Empty,Modal} from '../ui.jsx';
 import {FieldMessage,numberError} from './FieldFeedback.jsx';
 import {Plus,RefreshCw,LoaderCircle,Check,Search,Inbox} from 'lucide-react';
-function GallerySection({title,caption,children}){return <section><header><h3>{title}</h3><p className="muted small">{caption}</p></header>{children}</section>}
+function GallerySection({title,caption,children}){return <section className="module-card"><header><h3>{title}</h3><p className="muted small">{caption}</p></header>{children}</section>}
 function Sample({name,children}){return <div className="gallery-sample"><span className="gallery-caption">{name}</span>{children}</div>}
 function GalleryContent(){
  const [value,setValue]=useState(''),[segment,setSegment]=useState('a'),[number,setNumber]=useState(30),[draft,setDraft]=useState(''),[check,setCheck]=useState(false),[enabled,setEnabled]=useState(false),[radio,setRadio]=useState('a'),[date,setDate]=useState(''),[time,setTime]=useState('09:00'),[reminder,setReminder]=useState(''),[color,setColor]=useState('#5276d6'),[dialog,setDialog]=useState(false),[notice,setNotice]=useState(''),[multi,setMulti]=useState(['a']),[name,setName]=useState(''),[touched,setTouched]=useState(false);

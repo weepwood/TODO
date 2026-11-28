@@ -1,7 +1,7 @@
 /* Seven quiet inspector surfaces, with a single shared layout. */
-.v2 .detail-content{--detail-card-bg:var(--surface-subtle);--detail-input-bg:var(--bg);padding:16px clamp(12px,1.5vw,22px) 24px}
+.v2 .detail-content{--detail-card-bg:var(--module-card-bg);--detail-input-bg:var(--bg);padding:16px clamp(12px,1.5vw,22px) 24px}
 .v2 .detail-content .detail-mode-bar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 0 12px;color:var(--muted);font-size:12px}
-.v2 .detail-content .detail-section-stack{display:grid;gap:10px;min-width:0;padding:0;border:0;margin:0 0 10px}
+.v2 .detail-content .detail-section-stack{display:grid;gap:var(--space-3);min-width:0;padding:0;border:0;margin:0 0 10px}
 .v2 .detail-content .detail-section-card,.v2 .detail-content .detail-section-card+.detail-section-card{background:var(--detail-card-bg);border:var(--surface-border);border-radius:var(--surface-radius);padding:var(--space-3);margin:0;min-width:0;overflow-wrap:anywhere}
 .v2 .detail-content>.detail-section-card{margin-bottom:10px}
 .detail-section-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
@@ -60,9 +60,9 @@
 }
 
 /* Property inspector: permanent geometry and quiet native controls. */
-.property-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;min-width:0}
+.property-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2) var(--space-3);min-width:0}
 .editable-property{display:grid;gap:2px;min-width:0}
-.property-label{font-size:var(--font-caption);color:var(--muted)}
+.property-label{font-size:var(--control-font);color:var(--muted);padding-inline:4px;line-height:1.45}
 .property-value{min-width:0;display:flex;align-items:center;min-height:var(--control-height);font-size:var(--font-body);font-weight:500;font-variant-numeric:tabular-nums}
 .property-readonly{padding:4px 5px;overflow-wrap:anywhere;min-width:0}
 .property-trigger,.property-list-value{display:flex;align-items:center;gap:5px;min-width:0}
@@ -112,8 +112,9 @@
 .v2 .detail-content[data-inspector=true] .property-text-input:focus{border-color:var(--accent);background:var(--bg)}
 
 /* Compact detail content: common subheads, action rails and low-emphasis rows. */
-.v2 .detail-content[data-inspector=true] .detail-section-heading{margin-bottom:8px}
-.v2 .detail-content[data-inspector=true] .detail-section-card{padding:12px}
+.v2 .detail-content[data-inspector=true] .detail-section-heading{margin-bottom:0;padding-bottom:0;border-bottom:0}
+.v2 .detail-content[data-inspector=true] .detail-section-inner{border-top:var(--surface-border);margin-top:var(--space-2);padding-top:var(--space-3);display:flow-root}
+.v2 .detail-content[data-inspector=true] .detail-section-card{padding:var(--space-3)}
 .v2 .detail-content[data-inspector=true] .detail-section-body{min-width:0}
 .inspector-subhead{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:30px;margin:0 0 4px}
 .v2 .detail-content .detail-section-card .inspector-subhead h3{display:flex;align-items:center;gap:5px;margin:0;font-size:12px;font-weight:500;color:var(--muted)}
@@ -292,8 +293,6 @@
 .v2 .detail-content .detail-section-drag{position:absolute;inset-inline-end:100%;inset-block: auto;align-self:center;cursor:grab;touch-action:none}
 .v2 .detail-content .detail-section-drag:active{cursor:grabbing}
 .v2 .detail-content .detail-section-toggle:is(:hover,:focus-visible),.v2 .detail-content .detail-section-drag:is(:hover,:focus-visible){background:var(--hover);color:var(--accent-text)}
-.v2 .detail-content .detail-section-card[data-density=title] .detail-section-heading{margin-bottom:0}
-.v2 .detail-content .detail-section-card[data-density=title]{padding-block:7px}
 .v2 .detail-content .detail-section-card[data-dragging=true]{position:relative;z-index:5;box-shadow:var(--shadow);background:var(--bg)}
 @media(min-width:861px) and (hover:hover) and (pointer:fine){
  .v2 .detail-content[data-inspector=true]{padding-inline-start:max(22px,clamp(12px,1.5vw,22px))}
@@ -303,7 +302,6 @@
 @media(max-width:860px),(pointer:coarse){
  .v2 .detail-content[data-inspector=true] .detail-section-stack{padding-inline-start:34px}
  .v2 .detail-content .detail-section-toggle,.v2 .detail-content .detail-section-drag{width:44px;height:44px;min-width:44px}
- .v2 .detail-content .detail-section-card[data-density=title]{padding-block:4px}
 }
 @media(prefers-reduced-motion:reduce){.v2 .detail-content .detail-section-card{transition:none!important}}
 
@@ -325,3 +323,16 @@
 .v2 .checklist-sort-row>.check-item{flex:1;min-width:0}
 .v2 .checklist-drag{flex:none;touch-action:none;cursor:grab}
 @media(max-width:860px),(pointer:coarse){.v2 .checklist-drag{min-width:44px;min-height:44px}}
+
+/* Inline editing: distinguish the active property from passive values without
+   adding permanently visible borders to each control. */
+.editable-property:focus-within .property-label{color:var(--accent-text)}
+.v2 .detail-content .detail-section-meta{font-variant-numeric:tabular-nums}
+.v2 .detail-content .detail-section-heading h3{min-width:0;overflow-wrap:anywhere}
+.v2 .detail-content .detail-section-card[data-density=title] .detail-section-toggle{background:var(--surface-subtle)}
+.v2 .detail-content .detail-section-card[data-density=title] .detail-section-toggle:is(:hover,:focus-visible){background:var(--hover)}
+@media(max-width:860px),(pointer:coarse){.v2 .detail-content .detail-section-toggle{border-radius:var(--radius-control)}}
+
+/* Stable header geometry and scrollbar reservation during disclosure. */
+.v2 .detail-content{scrollbar-gutter:stable}
+.v2 .detail-content .detail-section-body{display:flow-root}

@@ -13,6 +13,13 @@ for(const width of [1440,390,320])test('设置独立滚动、统一控件及主�
   await nav.getByRole('button',{name,exact:true}).click();
   await expect(nav.getByRole('button',{name,exact:true})).toHaveAttribute('aria-current','location');
   const section=dialog.locator('#settings-'+id),p=await pane.boundingBox(),r=await section.boundingBox();
+  await expect(pane.locator('.settings-section:visible')).toHaveCount(1);
+  await expect(nav.getByRole('button',{name,exact:true})).toHaveAttribute('aria-controls','settings-'+id);
+  expect(await pane.evaluate(el=>el.scrollTop)).toBe(0);
+  await pane.evaluate(el=>el.scrollTop=el.scrollHeight);
+  await expect(nav.getByRole('button',{name,exact:true})).toHaveAttribute('aria-current','location');
+  await expect(pane.locator('.settings-section:visible')).toHaveCount(1);
+  await pane.evaluate(el=>el.scrollTop=0);
   expect(r.y).toBeGreaterThanOrEqual(p.y-1);expect(r.y).toBeLessThan(p.y+24);
   expect(Math.abs((await header.boundingBox()).y-initialHeader.y)).toBeLessThan(1);
   expect(Math.abs((await nav.boundingBox()).y-initialNav.y)).toBeLessThan(1);
@@ -41,4 +48,19 @@ test('规划与日历工具栏公共控件对齐',async({page})=>{
   expect(await bar.evaluate(e=>e.scrollWidth<=e.clientWidth+1)).toBe(true);
   await page.screenshot({path:dir+'/'+name+'-toolbar.png',animations:'disabled'});
  }
+});
+
+test('设置分类隔离且切换保留未提交表单草稿',async({page})=>{
+ await page.setViewportSize({width:1440,height:900});await page.goto('/');
+ await page.locator('.rail').getByRole('button',{name:'设置',exact:true}).click();
+ const dialog=page.getByRole('dialog',{name:'设置与数据管理'}),nav=dialog.getByRole('navigation',{name:'设置分类'});
+ const email=dialog.locator('#settings-account input[type=email]');
+ await email.fill('draft@example.invalid');
+ await nav.getByRole('button',{name:'专注',exact:true}).click();
+ await expect(email).toBeHidden();
+ await expect(dialog.getByRole('textbox',{name:'邮箱'})).toHaveCount(0);
+ await expect(dialog.locator('#settings-focus')).toBeVisible();
+ await nav.getByRole('button',{name:'账号与同步',exact:true}).click();
+ await expect(email).toHaveValue('draft@example.invalid');
+ await expect(dialog.locator('#settings-focus')).toBeHidden();
 });

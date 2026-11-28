@@ -28,14 +28,14 @@ test('数据导入、自动备份及异常数据保护',async({page})=>{
  const payload=await page.evaluate(()=>JSON.parse(localStorage.getItem('todo-workbench-v1')));
  await page.getByRole('textbox',{name:'新任务名称'}).fill('导入前任务');
  await page.getByRole('button',{name:'添加',exact:true}).click();
- await page.getByRole('button',{name:'设置',exact:true}).click();
+ await page.getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'本地数据',exact:true}).click();
  await page.locator('input[type=file][accept=".json,application/json"]').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from('{"version":99}')});
  await expect(page.locator('.toast')).toContainText('导入失败');
  await page.locator('input[type=file][accept=".json,application/json"]').setInputFiles({name:'valid.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(payload))});
  await expect(page.getByRole('dialog',{name:'确认恢复工作空间'})).toBeVisible();
  await page.getByRole('button',{name:'确认恢复'}).click();
  await expect(page.locator('.task-body').filter({hasText:'导入前任务'})).toHaveCount(0);
- await page.getByRole('button',{name:'设置',exact:true}).click();
+ await page.getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'本地数据',exact:true}).click();
  await page.getByRole('button',{name:'恢复自动备份'}).click();
  await page.getByRole('button',{name:'确认恢复'}).click();
  await expect(page.locator('.task-body').filter({hasText:'导入前任务'})).toBeVisible();

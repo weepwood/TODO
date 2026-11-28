@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "TODO",
-  "version": "1.2.0-alpha.2",
+  "version": "1.2.0-alpha.3",
   "identifier": "com.weepwood.todo",
   "build": {
     "frontendDist": "../dist",

@@ -2,7 +2,35 @@
 
 产品基线 3d47350；正式 main 3ad8ee2（v1.2.0-alpha.1 已公开发行，Pages 已部署），AI 候选 47babb9，增量研究 648dd1a（R6 未提交，保持原样）。本清单替代历史路线的执行优先级，不替代原始证据。
 
-## 当前唯一主动专项：E2E 与 CI 效率治理
+## 当前独立研发专项：ActivityWatch 轻量集成
+
+- [x] 自主 Activity Tracking 冻结于 ccd8c20，保留原 crate、历史研究和20项原有测试；不接入产品、不再开发采集/宿主/队列/数据库。
+- [x] 固定 ActivityWatch 上游代码、许可证、官方 REST 和标准查询，核对本机安装/监听状态，未请求实际服务。
+- [x] 只读单主机 provider、桌面 IPC、主动授权、异常反馈；日期裁剪、应用及网站交集、覆盖率、域名过滤。
+- [x] 活动分析工作台、任务/专注/规划只读对照、双主题和窄屏合成演示。
+- [x] 9 Rust 隔离 API 测试、311前端单测、Tauri check、Vite 构建、Chromium/WebKit 各3项真实 Web 界面测试。
+- [x] 实际 ActivityWatch v0.14.3 元数据通过独立脚本及项目 Rust Provider 复核；当前主机应用/AFK各1、网站源0，非当前主机桶1；未读历史。
+- [x] 自然日/周/月/年趋势、日期导航、软件/网站筛选与彩色时间线；分段只读、取消及上限，合成压力与可靠性验收。详见 [周期统计报告](activity-tracking/activitywatch-periods.md)。
+- [x] 用户授权 2026-11-29 本机应用/AFK 短窗口真实只读验收，独立复算一致、子区间裁剪一致；修复网站独立授权默认关闭。Rust15、前端316、双引擎各5、Tauri check与Web构建通过。详见 [真实数据验收](activity-tracking/activitywatch-real-audit.md)。
+- [x] 独立 Tauri/WKWebView 实际运行，修复 reqwest/Rustls 特性合并 panic；真实元数据与合成报告13项运行检查，桌面依赖图回归1项，前端316与双引擎各5通过。精修图标、排行、日期、时间线；本机无网页桶且常见扩展目录未发现官方扩展。详见 [桌面验收](activity-tracking/activitywatch-desktop-qa.md)。
+- [x] 活动分类与本机任务映射、分类堆叠与日/小时热力图、星期均值、独立授权周期对照、单日任务偏差及当日回顾入口；322前端单测、双引擎各7及隔离配置/授权各8项检查通过。详见 [产品深化](activity-tracking/activitywatch-product.md)。
+- [x] 产品质量收口：批量主体检索和映射、分类/热力图布局、时间预算、回顾返回日期及暂停清理；前端324、双引擎各9、完整隔离原生候选两轮27项，年度合成50轮通过。详见 [候选冻结](activity-tracking/activitywatch-freeze.md)。
+- [x] 本地功能候选冻结，停止新增功能；仅修复真实发布阻塞。
+- [x] 累计发布前审查：远端main直系祖先；324前端/14原生/15 Provider，macOS ARM64 ad-hoc制品、Firefox/WebKit核心冒烟、隔离旧新Web及原生SQLite升级通过；11个历史测试修正。详见 [发布审查](activity-tracking/activitywatch-release-audit.md)。
+- [x] 391项完整本地清单已执行：363通过、5失败、23原有条件跳过；4文件修正后5/5定向、21/21受影响文件完整复验，累计368通过+23跳过，PWA实际旧新工作线程升级通过。详见 [最终门禁](activity-tracking/activitywatch-final-gates.md)。
+- [ ] 正式发布仍阻塞：最终SHA同次无失败远程全量UI、Windows/Android正式构建/运行、正式签名/公证/安装升级与真实认证待验收；真实锁屏休眠、跨日完整性、网页源及真实长周期性能仍须另行授权。
+- [轻量集成报告](activity-tracking/activitywatch-integration.md)；[R1–R3](activity-tracking/r1-r3.md) 与 [原生生命周期原型](activity-tracking/native-lifecycle-r4.md) 保留为冻结研究。正式发布工作区不动。
+
+## 当前独立本地设计专项：Design Vocabulary
+
+- [x] 基于 49aa088 的 feat/design-vocabulary-polish 隔离工作树，前两批工作台、共享弹簧指示器、双主题及触控精修。
+- [x] 第三批：FullCalendar 公开事件内容、统计图表共同基线、详情可中断披露；306 单测、23 定向 E2E、构建、12张实际截图通过。
+- [x] 第四批：周/日历重叠布局、外部来源、移动导航弹簧、标题节奏及定向CSS治理。306单测、构建、18项定向E2E经复验、16张真实截图。
+- [x] 第五批及最终收口：窄周历固定刻度、短事件、并发入口、导航资源释放和CSS审查；306单测、Chromium13/13、WebKit18/18、构建通过。
+- [x] 用户授权结束设计开发；累计双主题、Module Card、设置独立分类、连续开合、清单淡色分组与侧栏长按排序收口。版本提升为 v1.2.0-alpha.3（Android 102003）。
+- [ ] Alpha.3 发布：等待固定候选的完整 UI、Android 运行、三平台签名及人工覆盖升级/SQLite 保留验收；Firefox 本地启动阻塞保留。未满足门禁不得标记已发布。
+
+## 已完成的本地专项：E2E 与 CI 效率治理
 - [x] 固定 PR #39 基线 694117d，第二轮 UI CI 45930359318 为 305 通过/23 跳过/1 失败（旧 v051 面板宽度亚像素时序），原认证候选与正式 main 不动。
 - [x] 独立 feat/ci-efficiency 工作树；分级验收、保守差异选择、可信完整基线、原生失败定向复验及完整发布门禁。
 - [x] 329 项原始用例/107 个文件全部保留；历史相似断言分类、视觉/压力独立诊断；v051 修复后 3/3。
@@ -61,3 +89,5 @@
 
 ## 验收口径
 UI 顺序/菜单变更：隔离浏览器真实录入、执行卡片、菜单及必要回归。领域与存储不修改，但保留代表性领域/同步/恢复测试作为安全检查。不把本批当作正式 RC 或跨平台验收。历史失败保留。
+
+- Module Card：全站共享模块底纹及设置独立分类收口；累计设计分支经本地定向验收后允许推送，等待审查，未合并、未发布。既有Firefox/原生等验收边界不变。

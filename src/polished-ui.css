@@ -21,7 +21,6 @@
  .v2.compact-mobile .task-more{touch-action:manipulation}
  .v2.compact-mobile .bulk-bar{min-height:40px;margin-bottom:4px}
  .v2.compact-mobile .quick-add{margin-bottom:2px}
- .v2.compact-mobile .task-group{margin-top:3px}
  .v2.compact-mobile .task-content>.empty{min-height:180px}
  .date-control>input{width:120px;font-size:15px}
  .date-control>.date-trigger{width:44px;min-width:44px;padding:0}
@@ -49,6 +48,4 @@
  .note-editor-dialog .w-md-editor-text-input,.note-editor-dialog .w-md-editor-text-pre{font-size:16px!important;line-height:1.6!important}
  .note-editor-dialog .dialog-actions{bottom:-14px;padding-bottom:max(14px,env(safe-area-inset-bottom,0px))}
  .calendar-agenda .segmented button,.calendar-agenda .agenda-title,.calendar-agenda .agenda-task>.text-link{min-height:44px}
- .calendar-main .fc .fc-toolbar{gap:8px}
- .calendar-main .fc .fc-toolbar-title{font-size:16px}
 }

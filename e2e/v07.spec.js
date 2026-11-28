@@ -8,7 +8,7 @@ test('富文本可视化编辑保留 Markdown，复杂源文拒绝转换',async(
  await dialog.getByRole('button',{name:'可视化编辑',exact:true}).click();
  const editor=dialog.getByRole('textbox',{name:'可视化备注编辑器'});await expect(editor).toBeVisible();
  await editor.click();await page.keyboard.press('End');await page.keyboard.press('Enter');await page.keyboard.type('New paragraph');
- await page.keyboard.press('Home');await page.keyboard.press('Shift+End');await dialog.getByRole('button',{name:'粗体',exact:true}).click();await expect(editor.locator('strong')).toHaveText('New paragraph');
+ for(let i=0;i<'New paragraph'.length;i++)await page.keyboard.press('Shift+ArrowLeft');await expect.poll(()=>page.evaluate(()=>window.getSelection()?.toString())).toBe('New paragraph');await dialog.getByRole('button',{name:'粗体',exact:true}).click();await expect(editor.locator('strong')).toHaveText('New paragraph');
  await dialog.getByRole('button',{name:'返回源码'}).click();await expect(dialog.getByRole('textbox',{name:'工作台备注源码'})).toHaveValue(/\*\*New paragraph\*\*/);
  await dialog.getByRole('button',{name:'应用备注'}).click();await expect(page.getByRole('textbox',{name:'任务备注'})).toHaveValue(/\*\*New paragraph\*\*/);
  await page.getByRole('textbox',{name:'任务备注'}).fill('![image](https://example.invalid/img.png)');

@@ -12,10 +12,10 @@ import {dayKey,shiftDay} from "../../core/domain.js";
 import {Menu,ContextMenu,InlineTitle} from "../../ui.jsx";
 import {ListIdentity} from '../../components/ListIcon.jsx';
 import {TaskScheduleDialog} from './TaskScheduleDialog.jsx';
-export function TaskRow({task,lists,tags,selected,checked,toggle,select,finish,remove,restore,permanent,reopen,saveTemplate,manual,today,blockedTask,conflict,pinned,togglePin,schedule,navigate,inlineEdit,beginInline,endInline,saveInline,duplicate,move,compactLayout,shortcuts,chooseRow,onHold,updateFields,toggleTag,openFocus,seriesLocked,fields=DEFAULT_VIEW_FIELDS}){
+export function TaskRow({task,lists,tags,selected,checked,toggle,select,finish,remove,restore,permanent,reopen,saveTemplate,manual,groupOpen=true,today,blockedTask,conflict,pinned,togglePin,schedule,navigate,inlineEdit,beginInline,endInline,saveInline,duplicate,move,compactLayout,shortcuts,chooseRow,onHold,updateFields,toggleTag,openFocus,seriesLocked,fields=DEFAULT_VIEW_FIELDS}){
  const [menuOpen,setMenuOpen]=useState(false),[dateOpen,setDateOpen]=useState(false);const gesture=useTouchGesture({enabled:compactLayout&&!inlineEdit&&!menuOpen,kind:"row",onAction:()=>setMenuOpen(true),onHold,onTap:chooseRow});const swipeOffset=gesture.offset;
  const editCaret=useRef(null);
- const t=task,{attributes,listeners,setNodeRef,setActivatorNodeRef,transform,transition,isDragging}=useSortable({id:t.id,disabled:!manual||t.status!=='pending'||!!t.deletedAt});
+ const t=task,{attributes,listeners,setNodeRef,setActivatorNodeRef,transform,transition,isDragging}=useSortable({id:t.id,disabled:groupOpen?(!manual||t.status!=='pending'||!!t.deletedAt):{draggable:true,droppable:true}});
  const tomorrow=shiftDay(today,1),week=shiftDay(today,7);
  const action=(label,icon,run,extra={})=>({label,icon,run,...extra});
  const items=t.deletedAt?[action('恢复任务',Undo2,restore),action('永久删除',Trash2,permanent,{danger:true})]:t.status==='pending'?[

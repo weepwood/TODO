@@ -1,29 +1,30 @@
 /* Settings owns shell geometry and form composition; public controls own their internals. */
-.settings-dialog.dialog{display:flex;flex-direction:column;width:min(960px,calc(100vw - 48px));height:min(760px,calc(100dvh - 48px));max-width:none;max-height:none;padding:0;overflow:hidden}
-.settings-dialog>.dialog-head{flex:none;min-height:60px;margin:0;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--bg)}
+.settings-dialog.dialog{display:flex;flex-direction:column;width:min(1000px,calc(100vw - 48px));height:min(760px,calc(100dvh - 48px));max-width:none;max-height:none;padding:0;overflow:hidden}
+.settings-dialog>.dialog-head{flex:none;min-height:44px;margin:0;padding:8px 18px;border-bottom:1px solid var(--line);background:var(--bg)}
 .settings-dialog>.dialog-head h2{font-size:var(--font-page-title);font-weight:650}
-.settings-layout{display:grid;grid-template-columns:192px minmax(0,1fr);flex:1;min-height:0;min-width:0;overflow:hidden}
+.settings-layout{display:grid;grid-template-columns:176px minmax(0,1fr);flex:1;min-height:0;min-width:0;overflow:hidden}
 .settings-navigation{display:flex;flex-direction:column;gap:var(--space-1);min-height:0;overflow-y:auto;padding:var(--space-3);background:var(--panel);border-right:1px solid var(--line);overscroll-behavior:contain}
-.settings-navigation button{display:flex;align-items:center;gap:var(--space-2);flex:none;text-align:left;min-height:var(--control-height);padding:8px 12px 8px 16px;border-radius:var(--radius-control);font-size:var(--font-body);color:var(--muted);white-space:nowrap}
+.settings-navigation button{display:flex;align-items:center;gap:var(--space-2);flex:none;text-align:left;min-height:var(--control-height);padding:6px 10px 6px 14px;border-radius:var(--radius-control);font-size:var(--font-body);color:var(--muted);white-space:nowrap}
 .settings-navigation button svg{flex:none}
 .settings-navigation button.active{background:var(--active);color:var(--accent-text);font-weight:600}
-.settings-sections{min-height:0;min-width:0;height:100%;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:16px 24px 24px;outline-offset:-2px}
-.settings-section{min-width:0;margin:0 0 var(--space-6);padding:0 0 var(--space-6);border-bottom:1px solid var(--line)}
-.settings-section:last-child{min-height:100%;margin:0;padding-bottom:0;border-bottom:0}
-.settings-section-heading{margin-bottom:var(--space-4)}
-.settings-section-heading h2{font-size:var(--font-page-title);line-height:1.35;font-weight:650;margin:0 0 5px;letter-spacing:-.015em}
+.settings-sections{min-height:0;min-width:0;height:100%;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:16px 20px 20px;outline-offset:-2px}
+/* A category is a page, not an anchor in a continuous document. */
+.settings-section{min-width:0;margin:0;padding:0}
+.settings-section[hidden]{display:none!important}
+.settings-section-heading{margin-bottom:var(--space-3)}
+.settings-section-heading h2{font-size:var(--font-page-title);line-height:1.35;font-weight:650;margin:0 0 2px;letter-spacing:-.015em}
 .settings-section-heading p{font-size:var(--font-body);color:var(--muted);line-height:1.5;margin:0}
-.settings-section-body{display:grid;gap:var(--space-3);min-width:0;align-content:start}
-.settings-section-body>:is(.settings-group,.account-panel,.settings-preference-sync,.appearance-settings,.list-defaults,.pomodoro-preferences,.shortcut-settings,.update-panel){display:grid;gap:var(--space-3);min-width:0;margin:0;padding:var(--surface-padding);border:var(--surface-border);background:var(--surface-subtle);border-radius:var(--surface-radius);align-content:start}
+.settings-section-body{display:grid;gap:var(--space-2);min-width:0;align-content:start}
+.settings-section-body>:is(.settings-group,.account-panel,.settings-preference-sync,.appearance-settings,.list-defaults,.pomodoro-preferences,.shortcut-settings,.update-panel){display:grid;gap:var(--space-2);min-width:0;margin:0;padding:var(--module-card-padding);border:var(--module-card-border);background:var(--module-card-bg);border-radius:var(--module-card-radius);align-content:start}
 .settings-section-body>:is(.settings-group,.account-panel,.settings-preference-sync,.appearance-settings,.list-defaults,.pomodoro-preferences,.shortcut-settings,.update-panel)>:is(h3,h4,p){margin:0}
 .settings-section-body h3{font-size:var(--font-heading);font-weight:650;line-height:1.4}
 .settings-section-body h4{font-size:var(--font-body);font-weight:600;line-height:1.4}
 .settings-section-body :is(p,.muted){line-height:1.55;overflow-wrap:anywhere}
-.settings-section-body :is(.appearance-settings,.list-defaults) .field{display:grid;grid-template-columns:minmax(110px,1fr) minmax(0,1.35fr);align-items:center;gap:var(--space-3);margin:0;min-width:0}
+.settings-section-body :is(.appearance-settings,.list-defaults) .field{display:grid;grid-template-columns:minmax(100px,1fr) minmax(0,1.5fr);align-items:center;gap:var(--space-3);margin:0;min-width:0}
 .settings-section-body :is(.appearance-settings,.list-defaults) .field>span{font-size:var(--font-body);min-width:0;white-space:normal}
 .settings-section-body :is(.appearance-settings,.list-defaults) .field>:last-child{width:100%;min-width:0}
 .settings-section-body :is(.appearance-settings,.list-defaults) :is(.number-control,.time-control,.smart-select-trigger){background:var(--bg);border-color:var(--line)}
-.settings-section-body :is(.appearance-focus-setting,.task-preference-row){background:var(--bg);border:var(--surface-border);border-radius:var(--radius-control);padding:var(--space-3);gap:var(--space-3)}
+.settings-section-body :is(.appearance-focus-setting,.task-preference-row){background:transparent;border:0;border-radius:0;padding:var(--space-2) 0;gap:var(--space-2)}
 .settings-section-body :is(.appearance-focus-setting,.task-preference-row) strong{font-size:var(--font-body);font-weight:600}
 .settings-section-body .task-preference-row .smart-select-trigger{max-width:100%;background:var(--bg)}
 .settings-section-body :is(.settings-group,.list-defaults,.appearance-settings,.shortcut-settings,.update-panel)>.secondary{justify-self:start;max-width:100%}
@@ -31,10 +32,10 @@
 .settings-section-body :is(.button-grid,.settings-action-grid){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2)}
 .settings-section-body :is(.button-grid,.settings-action-grid)>button{display:flex;justify-content:center;align-items:center;gap:var(--space-2);white-space:normal;min-width:0}
 .settings-section-body .theme-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2);margin:0}
-.settings-section-body .theme-options button{min-width:0;min-height:48px;background:var(--bg);border:var(--control-border);border-radius:var(--radius-control);font-size:var(--font-body)}
+.settings-section-body .theme-options button{min-width:0;min-height:var(--control-height);background:var(--surface-subtle);border:1px solid transparent;border-radius:var(--radius-control);font-size:var(--font-body)}
 .settings-section-body .theme-options button.chosen{background:var(--active);border-color:var(--accent);color:var(--accent-text)}
-.settings-section-body .accent-options{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--space-2)}
-.settings-section-body .accent-options button{background:var(--bg);min-width:0;border-radius:var(--radius-control)}
+.settings-section-body .accent-options{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--space-1)}
+.settings-section-body .accent-options button{background:transparent;min-width:0;border:1px solid transparent;border-radius:var(--radius-control);padding:4px;gap:3px}
 .settings-section-body .accent-options button.chosen{border-color:var(--accent);background:var(--active)}
 .settings-section-body .account-panel .auth-form{max-width:none;width:100%;display:grid;gap:var(--space-3)}
 .settings-section-body .account-panel .auth-form input{width:100%;min-height:var(--control-height);background:var(--bg);border:var(--control-border);border-radius:var(--radius-control)}
@@ -47,15 +48,15 @@
  .settings-layout{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
  .settings-navigation{flex-direction:row;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;border-right:0;border-bottom:1px solid var(--line);padding:var(--space-2);gap:var(--space-1)}
  .settings-navigation button{min-height:var(--control-touch-height);padding:8px 12px}
- .settings-sections{padding:16px;scrollbar-gutter:auto}
+ .settings-sections{padding:12px;scrollbar-gutter:auto}
  .settings-section-body :is(.secondary,.primary,.smart-select-trigger,.shortcut-record){min-height:var(--control-touch-height)}
  .settings-section-body .account-panel .auth-form input{min-height:var(--control-touch-height);font-size:16px}
 }
 @media(max-width:480px){
  .settings-section-body>:is(.settings-group,.account-panel,.settings-preference-sync,.appearance-settings,.list-defaults,.pomodoro-preferences,.shortcut-settings,.update-panel){padding:var(--space-3)}
  .settings-section-body :is(.appearance-settings,.list-defaults) .field{grid-template-columns:minmax(0,1fr);gap:var(--space-1)}
- .settings-section-body .accent-options{grid-template-columns:repeat(3,minmax(0,1fr))}
- .settings-section-body .accent-options button{min-height:52px}
+ .settings-section-body .accent-options{grid-template-columns:repeat(5,minmax(0,1fr))}
+ .settings-section-body .accent-options button{min-height:44px}
  .settings-section-body .task-preference-row{flex-wrap:wrap}
  .settings-section-body .task-preference-row>.smart-select-trigger{width:100%}
 }
@@ -82,3 +83,51 @@
 
 .external-capture-panel{display:grid;gap:var(--space-3);min-width:0;margin-top:var(--space-3)}
 .external-token{display:flex;flex-wrap:wrap;gap:8px;min-width:0}.external-token p{flex-basis:100%}.external-token input{flex:1;min-width:100px}.external-note{white-space:pre-wrap;overflow-wrap:anywhere}.external-request .record-row>span{min-width:0;overflow-wrap:anywhere}
+
+/* Compact preference composition: settings own alignment, shared controls
+   retain their intrinsic interaction and accessibility semantics. */
+.settings-section-body .settings-group-header{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.settings-group-header h3{margin:0}
+.settings-group-header small{font-size:var(--font-caption)}
+.appearance-composition{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--space-3);align-items:start}
+.appearance-fields{display:grid;gap:var(--space-1);min-width:0}
+.settings-section-body .appearance-fields>.field,.settings-section-body .list-defaults>.field{padding-block:4px;min-height:var(--control-height)}
+.settings-section-body .appearance-fields>.field+.field,.settings-section-body .list-defaults>.field+.field{border-top:1px solid color-mix(in srgb,var(--line) 65%,transparent)}
+.appearance-theme-help{margin:0 0 2px;font-size:var(--font-caption);text-align:end}
+.appearance-fixed-accent{display:flex;align-items:center;gap:6px}
+.appearance-fixed-accent i{width:14px;height:14px;border-radius:50%;background:var(--accent)}
+.settings-section-body .settings-mode-segment{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;padding:2px;background:var(--bg);border-radius:var(--radius-control)}
+.settings-section-body .settings-mode-segment>button{display:flex;align-items:center;justify-content:center;gap:4px;min-width:0;min-height:var(--control-height);padding-inline:4px;font-size:var(--control-font);white-space:nowrap}
+.settings-section-body .settings-mode-segment>button svg{flex:none}
+.settings-section-body .settings-mode-segment>button.chosen{background:var(--bg);color:var(--accent-text);box-shadow:none}
+.settings-section-body .accent-options button span{width:16px;height:16px}
+.settings-section-body .settings-subheading{margin:var(--space-2) 0 0;padding-top:var(--space-2);border-top:var(--surface-border)}
+.settings-section-body .task-preference-row+.task-preference-row{border-top:1px solid var(--line)}
+.settings-section-body .appearance-focus-setting p,.settings-section-body .task-preference-row p{margin:2px 0 0;font-size:var(--font-caption)}
+.settings-section-body :is(.task-preference-row,.appearance-focus-setting)>:last-child{flex-shrink:0}
+.settings-section-body .shortcut-group h4{margin:8px 0 4px;color:var(--muted)}
+.settings-section-body .shortcut-row{padding-block:2px}
+.settings-section-body .shortcut-record{background:var(--surface-subtle);border-color:transparent;font-variant-numeric:tabular-nums}
+.settings-section-body .preference-sync-summary{margin:0;padding:var(--space-2);background:var(--bg)}
+.settings-section-body .account-panel .auth-form{gap:var(--space-2);margin-top:var(--space-1)}
+.settings-section-body .settings-action-grid>button{justify-content:flex-start;text-align:left;background:var(--bg);border-color:var(--line)}
+.settings-section-body .settings-action-grid>button:hover{background:var(--hover)}
+.appearance-live-preview{background:var(--bg);padding:var(--space-2)}
+@media(min-width:861px){
+ .settings-sections{container-type:inline-size}
+ @container (min-width:650px){
+  .appearance-composition{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+  .settings-section-body .appearance-fields>.field{grid-template-columns:minmax(72px,.7fr) minmax(0,1.8fr);gap:8px}
+ }
+}
+@media(max-width:860px){
+ .settings-section-body .settings-mode-segment>button,.settings-section-body .theme-options button{min-height:var(--control-touch-height)}
+ .settings-section-body .settings-mode-segment>button svg{display:none}
+ .appearance-theme-help{text-align:start}
+}
+@media(max-width:480px){
+ .settings-section-body .appearance-fields>.field{grid-template-columns:minmax(72px,.65fr) minmax(0,1.35fr);gap:8px;padding-block:3px}
+ .settings-section-body .appearance-fields>:is(.appearance-mode-field,.appearance-accent-field){grid-template-columns:minmax(0,1fr);gap:4px}
+ .appearance-theme-help{text-align:end}
+ .settings-section-body .appearance-focus-setting{gap:8px}
+}

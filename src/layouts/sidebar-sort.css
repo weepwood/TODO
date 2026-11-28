@@ -1,0 +1,13 @@
+.v2 .sidebar .sidebar-sort-stack,.v2 .sidebar .sidebar-section-content{display:flex;flex-direction:column;gap:var(--nav-gap);min-width:0}
+.v2 .sidebar .sidebar-sections{gap:var(--space-2);flex-shrink:0}
+.sidebar-sort-section,.sidebar-sort-item{position:relative;min-width:0;flex-shrink:0}
+.v2 .sidebar .sidebar-section-heading{display:flex;align-items:center;gap:2px;padding:4px 4px 2px;min-height:32px}
+.sidebar-section-toggle{display:flex;align-items:center;gap:5px;flex:1;min-width:0;text-align:left;font:inherit;color:inherit;border-radius:var(--radius-control);padding:6px 3px;min-height:28px;cursor:grab}
+.sidebar-section-toggle>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sidebar-section-toggle:hover{background:var(--hover)}
+.sidebar-sort-item .nav-row,.sidebar-section-toggle{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:pan-y}
+.sidebar-sort-item[data-sidebar-dragging=true],.sidebar-sort-section[data-sidebar-dragging=true]{background:var(--module-card-bg);border-radius:var(--radius-control);box-shadow:0 2px 10px #0002;opacity:.96;cursor:grabbing;outline:1px solid var(--line)}
+.sidebar-sort-item[data-sidebar-dragging=true] .nav-row,.sidebar-sort-section[data-sidebar-dragging=true] .sidebar-section-toggle{cursor:grabbing}
+.sidebar-sort-announcement{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+@media(max-width:860px),(pointer:coarse){.sidebar-section-toggle{min-height:44px}.v2 .sidebar .sidebar-section-heading{padding-block:0}}
+@media(prefers-reduced-motion:reduce){.sidebar-sort-section,.sidebar-sort-item{transition:none!important}}

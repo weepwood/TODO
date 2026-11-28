@@ -7,14 +7,14 @@ function layoutY(node){
  for(let el=node;el;el=el.offsetParent)y+=el.offsetTop;
  return y;
 }
-export function useTaskListMotion(container,{scope,order,enabled,layoutKey}){
+export function useTaskListMotion(container,{scope,order,enabled,layoutKey,foldKey}){
  const previous=useRef(null),running=useRef(new Map());
  const stop=()=>{for(const animation of running.current.values())animation.cancel();running.current.clear()};
  const snapshot=host=>{
-  const rows=[...host.querySelectorAll('.task-row[data-row-id]')];
+  const rows=[...host.querySelectorAll('.task-row[data-row-id]')].filter(row=>!row.closest('[inert]'));
   if(rows.length>80||rows.some(row=>row.dataset.dragging==='true'||(row.style.transform&&row.style.transform!=='none')))return null;
   const origin=layoutY(host);
-  return {scope,order,width:host.clientWidth,positions:new Map(rows.map(row=>[row.dataset.rowId,{row,y:layoutY(row)-origin}]))};
+  return {scope,order,foldKey,width:host.clientWidth,positions:new Map(rows.map(row=>[row.dataset.rowId,{row,y:layoutY(row)-origin}]))};
  };
  useLayoutEffect(()=>{
   const host=container.current;
@@ -23,7 +23,7 @@ export function useTaskListMotion(container,{scope,order,enabled,layoutKey}){
   if(!host||!enabled||matchMedia('(prefers-reduced-motion: reduce)').matches){stop();previous.current=null;return}
   const old=previous.current,next=snapshot(host);
   previous.current=next;
-  if(!next||!old||old.scope!==scope||old.width!==next.width){stop();return}
+  if(!next||!old||old.scope!==scope||old.width!==next.width||old.foldKey!==foldKey||host.querySelector('.task-group-disclosure[data-motion-busy]')){stop();return}
   if(old.order===order)return;
   // An interrupted animation contributes its current visual offset, not its old start.
   const offsets=new Map();
@@ -40,7 +40,7 @@ export function useTaskListMotion(container,{scope,order,enabled,layoutKey}){
    running.current.set(id,animation);
    animation.onfinish=()=>{if(running.current.get(id)===animation)running.current.delete(id)};
   }
- },[container,scope,order,enabled,layoutKey]);
+ },[container,scope,order,enabled,layoutKey,foldKey]);
  useLayoutEffect(()=>{
   const host=container.current;
   if(!host||!enabled)return;
@@ -51,8 +51,10 @@ export function useTaskListMotion(container,{scope,order,enabled,layoutKey}){
    previous.current=matchMedia('(prefers-reduced-motion: reduce)').matches?null:snapshot(host);
   });
   observer.observe(host);
-  return()=>observer.disconnect();
- },[container,scope,order,enabled,layoutKey]);
+  const settled=e=>{if(!e.target.matches?.('.task-group-disclosure')||host.querySelector('.task-group-disclosure[data-motion-busy]'))return;stop();previous.current=matchMedia('(prefers-reduced-motion: reduce)').matches?null:snapshot(host)};
+  host.addEventListener('todo-disclosure-settled',settled);
+  return()=>{observer.disconnect();host.removeEventListener('todo-disclosure-settled',settled)};
+ },[container,scope,order,enabled,layoutKey,foldKey]);
  useLayoutEffect(()=>{
   const media=matchMedia('(prefers-reduced-motion: reduce)');
   const change=()=>{if(media.matches){stop();previous.current=null}};
