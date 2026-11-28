@@ -72,3 +72,30 @@
 :root[data-theme=dark][data-accent=rose]{--accent:#dc86aa;--accent-text:#f5b9d0;--active:#583447}
 :root[data-theme=dark][data-accent=slate]{--accent:#9bb2c6;--accent-text:#c1d2e3;--active:#344653}
 @media(prefers-color-scheme:dark){:root[data-theme=system][data-accent=teal]{--accent:#5bc4c0;--accent-text:#9cddd8;--active:#254a48}:root[data-theme=system][data-accent=violet]{--accent:#ac8fe5;--accent-text:#d2bbfb;--active:#41345c}:root[data-theme=system][data-accent=rose]{--accent:#dc86aa;--accent-text:#f5b9d0;--active:#583447}:root[data-theme=system][data-accent=slate]{--accent:#9bb2c6;--accent-text:#c1d2e3;--active:#344653}}
+
+/* Compact toolbar geometry; density still follows the root preference. */
+:root{--toolbar-control-height:var(--control-height);--toolbar-icon-size:16px;--toolbar-control-gap:6px}
+
+/* Native theme overrides only its own palette. Classic retains its original tokens. */
+:root[data-design-theme=native]{font-family:-apple-system,"SF Pro Text","PingFang SC",system-ui,sans-serif;--bg:#F6F6F4;--panel:#ECECE9;--detail:#FBFBFA;--text:#111113;--muted:#646469;--line:#DCDCD8;--hover:#E5E5E2}
+:root[data-theme=dark][data-design-theme=native]{--bg:#0B0B0D;--panel:#2A2A2E;--detail:#202024;--text:#F5F5F7;--muted:#98989F;--line:#303034;--hover:#353539}
+@media(prefers-color-scheme:dark){:root[data-theme=system][data-design-theme=native]{--bg:#0B0B0D;--panel:#2A2A2E;--detail:#202024;--text:#F5F5F7;--muted:#98989F;--line:#303034;--hover:#353539}}
+
+:root{--native-mist:#DCE5EB;--native-glow:#F2C97A;--native-glass:rgba(255,255,255,.72);--native-rim:rgba(255,255,255,.8);--native-shadow:0 10px 30px rgba(17,17,19,.07);--native-panel-radius:26px;--native-tile-radius:24px;--native-hero-radius:28px}
+:root[data-theme=dark]{--native-mist:#141A20;--native-glow:#F3CB84;--native-glass:rgba(44,44,48,.60);--native-rim:rgba(255,255,255,.18);--native-shadow:none}
+@media(prefers-color-scheme:dark){:root[data-theme=system]{--native-mist:#141A20;--native-glow:#F3CB84;--native-glass:rgba(44,44,48,.60);--native-rim:rgba(255,255,255,.18);--native-shadow:none}}
+:root[data-design-theme=native][data-accent=amber]{--accent:#B4791F;--accent-text:#8B5814;--accent-contrast:#111113;--active:#F3E5CA;--native-primary:#F2C97A}
+:root[data-theme=dark][data-design-theme=native][data-accent=amber]{--accent:#E9B45C;--accent-text:#E9B45C;--accent-contrast:#111113;--active:#3D3222;--native-primary:#F3CB84}
+@media(prefers-color-scheme:dark){:root[data-theme=system][data-design-theme=native][data-accent=amber]{--accent:#E9B45C;--accent-text:#E9B45C;--accent-contrast:#111113;--active:#3D3222;--native-primary:#F3CB84}}
+
+/* Module surface is distinct from the canvas in either luminance mode.
+   Inner controls can use --bg; state colors remain semantic. */
+:root{
+ --module-card-bg:color-mix(in srgb,var(--bg) 96%,var(--text));
+ --module-card-border:var(--surface-border);
+ --module-card-radius:var(--radius-surface);
+ --module-card-padding:var(--space-3);
+ --module-card-shadow:none;
+}
+:root[data-theme=dark]{--module-card-bg:color-mix(in srgb,var(--bg) 94%,var(--text))}
+@media(prefers-color-scheme:dark){:root[data-theme=system]{--module-card-bg:color-mix(in srgb,var(--bg) 94%,var(--text))}}

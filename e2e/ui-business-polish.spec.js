@@ -17,10 +17,10 @@ test('业务工作台实际宽度、统计顺序与专注双列',async({page})=>
 });
 test('明暗强调色与辅助文字实际计算对比度',async({page})=>{
  await seed(page);const ratios=await page.evaluate(()=>{
- const root=document.documentElement,oldTheme=root.dataset.theme,oldAccent=root.dataset.accent,rows=[];
+ const root=document.documentElement,oldTheme=root.dataset.theme,oldAccent=root.dataset.accent,oldDesign=root.dataset.designTheme,rows=[];
  const lum=hex=>{let c=hex.trim().replace('#','');if(c.length===3)c=[...c].map(v=>v+v).join('');const n=[0,2,4].map(i=>parseInt(c.slice(i,i+2),16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);return n[0]*.2126+n[1]*.7152+n[2]*.0722};
  const ratio=(a,b)=>{const x=lum(a),y=lum(b);return(Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
- for(const theme of ['light','dark'])for(const accent of ['blue','teal','violet','rose','slate']){root.dataset.theme=theme;root.dataset.accent=accent;const style=getComputedStyle(root),v=k=>style.getPropertyValue(k);rows.push({theme,accent,primary:ratio(v('--accent'),v('--accent-contrast')),muted:ratio(v('--muted'),v('--panel'))})}root.dataset.theme=oldTheme;root.dataset.accent=oldAccent;return rows;
+ for(const theme of ['light','dark'])for(const accent of ['amber','blue','teal','violet','rose','slate']){root.dataset.theme=theme;root.dataset.designTheme=accent==='amber'?'native':'classic';root.dataset.accent=accent;const style=getComputedStyle(root),v=k=>style.getPropertyValue(k);rows.push({theme,accent,primary:ratio(v('--accent'),v('--accent-contrast')),muted:ratio(v('--muted'),v('--panel'))})}root.dataset.theme=oldTheme;root.dataset.accent=oldAccent;root.dataset.designTheme=oldDesign;return rows;
  });for(const row of ratios){expect(row.primary,JSON.stringify(row)).toBeGreaterThanOrEqual(4.5);expect(row.muted,JSON.stringify(row)).toBeGreaterThanOrEqual(4.5)}
 });
 for(const [width,height] of [[1440,900],[390,640]])test('复杂工作周弹窗固定标题与底部操作 '+width,async({page})=>{

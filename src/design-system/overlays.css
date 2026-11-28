@@ -13,9 +13,8 @@
 .dropdown-item{font-size:var(--font-body);padding:7px 10px;outline:none;cursor:default;display:block}
 .dropdown-item[data-disabled]{opacity:.45}
 .dropdown-separator{height:1px;background:var(--line);margin:var(--space-1) 0}
-.smart-select-content,.dropdown,.date-popover,.time-picker-popover,.datetime-popover,.color-picker-popover{border-radius:var(--popup-radius)}
 .smart-select-content .smart-select-viewport,.dropdown{padding:var(--space-1)}
-.smart-select-option,.dropdown-item{min-height:var(--control-height);border-radius:var(--radius-control);margin:0 0 2px}
+.smart-select-option,.dropdown-item{min-height:var(--control-height);border-radius:max(2px,calc(var(--popup-radius) - var(--space-1)));margin:0 0 2px}
 .smart-select-option:last-child,.dropdown-item:last-child{margin-bottom:0}
 .smart-select-option[data-state=checked]{background:var(--active)}
 .smart-select-option[data-state=checked][data-highlighted]{background:var(--active);outline:1px solid var(--accent);outline-offset:-1px}
@@ -36,3 +35,7 @@
 
 /* Exiting portals must not capture a new pointer during dialog handoff. */
 .overlay[data-state=closed],.dialog[data-state=closed]{pointer-events:none}
+
+
+/* Radix computes this after collision handling. Inline pickers are unaffected. */
+:is(.date-popover,.datetime-popover,.time-picker-popover,.color-picker-popover)[data-state]{transform-origin:var(--radix-popover-content-transform-origin,center)}

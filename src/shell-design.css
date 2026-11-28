@@ -44,7 +44,7 @@
  .v2.compact-mobile .breadcrumb{display:none}
  .v2.compact-mobile .task-content>.heading h1{font-size:24px}
  .v2.compact-mobile .mobile-nav{--nav-inline:8px;--nav-gap:3px;--nav-height:54px;position:relative;background:var(--bg);isolation:isolate;padding:5px var(--nav-inline) max(5px,env(safe-area-inset-bottom,0px));gap:var(--nav-gap)}
- .v2.compact-mobile .mobile-nav-indicator{display:block;position:absolute;pointer-events:none;left:var(--nav-inline);width:calc((100% - 2 * var(--nav-inline) - 4 * var(--nav-gap))/5);transform:translateX(calc(var(--nav-index)*(100% + var(--nav-gap))));top:5px;height:var(--nav-height);z-index:0;background:var(--active);border-radius:9px}
+ .v2.compact-mobile .mobile-nav-indicator{display:block;position:absolute;pointer-events:none;left:var(--nav-inline);width:calc((100% - 2 * var(--nav-inline) - 4 * var(--nav-gap))/5);transform:translateX(calc(var(--nav-position,var(--nav-index))*(100% + var(--nav-gap))));top:5px;height:var(--nav-height);z-index:0;background:var(--active);border-radius:9px}
  .v2.compact-mobile .mobile-nav>button{position:relative;z-index:1;background:transparent;height:var(--nav-height);font-size:11px}
  .v2.compact-mobile .mobile-nav>button.active{background:transparent;color:var(--accent-text)}
  .mobile-more-grid button[aria-pressed=true]{background:var(--active);color:var(--accent-text);border-color:var(--accent)}
@@ -52,9 +52,7 @@
  .note-editor-dialog .note-immersive-toggle{display:none}
 }
 @media(forced-colors:active){.v2.compact-mobile .mobile-nav-indicator{outline:2px solid Highlight;outline-offset:-2px}}
-@media(prefers-reduced-motion:no-preference){
- .v2.compact-mobile .mobile-nav-indicator{transition:transform var(--motion-selection) var(--motion-ease)}
-}
+/* Mobile navigation indicator motion is owned by MobileNav; no second CSS transition. */
 
 /* Stable four-track shell on resizable desktop widths. Grid interpolates from
    its current value on rapid toggles. Dragging a handle stays synchronous. */
@@ -95,3 +93,19 @@
 .shard-pilot-gate p{max-width:none}
 .shard-pilot-gate section label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);min-width:0}
 .shard-pilot-gate input[type=number]{width:7rem;min-height:var(--control-height);border:var(--surface-border);border-radius:var(--radius-control);background:var(--bg);color:var(--text);padding-inline:var(--space-2)}
+
+/* Desktop shared spatial transition: keep the inspector mounted while its
+   grid track closes; retargeting the existing CSS transition preserves position. */
+@media(min-width:861px) and (prefers-reduced-motion:no-preference){
+ .app.v2:not(.compact-mobile)>.details.detail-enter,.app.v2:not(.compact-mobile)>.details.detail-exit{animation:none;transform:none;transition:opacity var(--motion-layout) var(--motion-ease)}
+ .app.v2:not(.compact-mobile)>.details.detail-enter{opacity:1}
+ .app.v2:not(.compact-mobile)>.details.detail-exit{opacity:0;pointer-events:none}
+ .resizing-panels .app.v2:not(.compact-mobile)>.details{transition:none}
+}
+
+
+/* Page rhythm: align actual module headings without changing task density. */
+.v2 .module-content>.heading{margin-block:0 var(--space-4);align-items:flex-start}
+.v2 .module-content>.heading .workspace-title h1{margin:0 0 var(--space-1);letter-spacing:-.025em}
+.v2 .module-content>.heading .workspace-title>p{margin-block:0;font-variant-numeric:tabular-nums}
+@media(max-width:860px){.v2.compact-mobile .module-content>.heading{margin-bottom:var(--space-3)}}

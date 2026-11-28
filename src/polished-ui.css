@@ -49,6 +49,4 @@
  .note-editor-dialog .w-md-editor-text-input,.note-editor-dialog .w-md-editor-text-pre{font-size:16px!important;line-height:1.6!important}
  .note-editor-dialog .dialog-actions{bottom:-14px;padding-bottom:max(14px,env(safe-area-inset-bottom,0px))}
  .calendar-agenda .segmented button,.calendar-agenda .agenda-title,.calendar-agenda .agenda-task>.text-link{min-height:44px}
- .calendar-main .fc .fc-toolbar{gap:8px}
- .calendar-main .fc .fc-toolbar-title{font-size:16px}
 }

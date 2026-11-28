@@ -45,3 +45,14 @@
 .planner .time-block small{font-variant-numeric:tabular-nums}
 .planner .time-block.conflict:not(:focus-visible),.planner .time-block[data-preview-conflict=true]:not(:focus-visible){outline:1px dashed var(--warning);outline-offset:-2px}
 .planner .planner-gesture-capacity{font-size:var(--font-caption);font-variant-numeric:tabular-nums;max-width:calc(100% - 12px)}
+
+/* Temporal hierarchy: regular hours remain primary; event duration stays
+   readable without changing block geometry or drop calculations. */
+.planner .time-labels{font-variant-numeric:tabular-nums;line-height:1.35;color:var(--muted)}
+.planner .time-block strong{letter-spacing:0;overflow-wrap:anywhere}
+.planner .time-block small{line-height:1.35}
+.planner .unscheduled>h3{align-items:baseline;gap:var(--space-2)}
+.planner .unscheduled>h3>span{font-variant-numeric:tabular-nums}
+.planner .unscheduled .view-task{border-color:var(--line);border-style:solid;border-width:1px;border-radius:var(--radius-control)}
+.planner .unscheduled .view-task:is(:hover,:focus-visible){border-color:var(--accent)}
+@media(max-width:860px){.planner .planner-pane-nav{border-radius:var(--radius-surface);padding:var(--space-1)}.planner .planner-pane-nav button{border-radius:var(--radius-control)}}

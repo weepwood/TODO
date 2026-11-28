@@ -1,0 +1,56 @@
+/* Native reference adapted to a dense desktop task manager. Only major
+   surfaces use glass; controls and virtualized task geometry stay compact. */
+:root[data-design-theme=native] .v2 .workspace{
+ background:radial-gradient(ellipse 320px 220px at 94% 40px,color-mix(in srgb,var(--native-glow) 19%,transparent),transparent 100%),
+ linear-gradient(180deg,color-mix(in srgb,var(--native-mist) 65%,var(--bg)),var(--bg) 330px);
+}
+:root[data-design-theme=native] .v2 .task-content{background:transparent}
+:root[data-design-theme=native] .v2 .toolbar{background:transparent;box-shadow:none;border-bottom-color:transparent}
+:root[data-design-theme=native] .v2 .toolbar .primary,:root[data-design-theme=native] .v2 .toolbar-add{box-shadow:none}
+:root[data-design-theme=native] .v2 .rail,:root[data-design-theme=native] .v2 .sidebar{background:color-mix(in srgb,var(--bg) 78%,var(--panel))}
+:root[data-design-theme=native] .v2 .heading h1,:root[data-design-theme=native] .v2 .module-content>.heading .workspace-title h1{letter-spacing:0;font-weight:650}
+:root[data-design-theme=native] .v2 .module-content .workspace-actions:not(.calendar-info):not(.stats-toolbar){background:transparent;border:0;box-shadow:none;padding-inline:0}
+:root[data-design-theme=native][data-accent=amber] .v2 .toolbar-add,:root[data-design-theme=native][data-accent=amber] .v2 .toolbar .primary{background:var(--native-primary);color:#111113;border-color:transparent}
+:root[data-design-theme=native][data-accent=amber] .v2 .rail .brand-icon{color:#111113;box-shadow:none}
+:root[data-design-theme=native] .v2 .module-content :is(.stats .stat-card,.focus-card,.calendar-agenda,.board-column,.work-budget,.planner .unscheduled,.habit-row){
+ background:var(--module-card-bg);border:var(--module-card-border);box-shadow:var(--module-card-shadow);
+ border-radius:var(--native-panel-radius)
+}
+:root[data-design-theme=native] .v2 [data-workspace-module=calendar] .calendar-agenda{background:var(--module-card-bg);border:var(--module-card-border);box-shadow:var(--module-card-shadow);border-radius:var(--native-panel-radius)}
+:root[data-design-theme=native] .v2 .module-content :is(.stats .stat-card,.focus-card){border-radius:var(--native-hero-radius)}
+:root[data-design-theme=native] .v2 .module-content :is(.board-task-card,.focus-history-day){background:var(--detail);box-shadow:none;border-radius:var(--radius-control)}
+:root[data-design-theme=native] .v2 .module-content .metric-cards>div{background:var(--module-card-bg);border:var(--module-card-border);border-radius:var(--native-tile-radius);box-shadow:none}
+:root[data-design-theme=native] .v2 .module-content .metric-cards>div>strong{font-size:clamp(24px,3vw,36px);font-weight:500;letter-spacing:-.025em}
+:root[data-design-theme=native] .v2 .module-content .stats .stat-card h3{font-weight:600}
+:root[data-design-theme=native] .v2 .module-content .calendar-main{--fc-classic-background:var(--bg)}
+:root[data-design-theme=native] .v2 .task-content .quick-add{box-shadow:none}
+:root[data-design-theme=native] .v2 .module-content .workspace-actions .secondary{box-shadow:none}
+@media(max-width:860px){
+ :root[data-design-theme=native] .v2.compact-mobile .mobile-nav{
+  margin:0 12px max(8px,env(safe-area-inset-bottom,0px));padding:5px var(--nav-inline);
+  border:1px solid var(--native-rim);border-radius:999px;background:var(--native-glass);
+  box-shadow:var(--native-shadow);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)
+ }
+ :root[data-design-theme=native] .v2.compact-mobile .mobile-nav-indicator{border-radius:999px;background:var(--panel)}
+ :root[data-design-theme=native] .v2.compact-mobile .mobile-nav>button{border-radius:999px}
+ :root[data-design-theme=native] .v2.compact-mobile .toolbar .icon-button{border-radius:50%}
+ :root[data-design-theme=native] .v2.compact-mobile .module-content .metric-cards>div>strong{font-size:28px}
+ :root[data-design-theme=native] .v2.compact-mobile .module-content :is(.calendar-agenda,.habit-row,.board-column){border-radius:var(--native-tile-radius)}
+}
+@supports not ((backdrop-filter:blur(24px)) or (-webkit-backdrop-filter:blur(24px))){
+ :root[data-design-theme=native] .v2.compact-mobile .mobile-nav{background:var(--detail)}
+}
+@media(forced-colors:active){
+ :root[data-design-theme=native] .v2 .workspace{background:Canvas}
+ :root[data-design-theme=native] .v2.compact-mobile .mobile-nav{background:Canvas;border:1px solid CanvasText;box-shadow:none;backdrop-filter:none}
+}
+
+/* Today's data, not the final visible index, is the single highlighted bar. */
+:root[data-design-theme=native][data-accent=amber] .task-completion-chart .completion-plot>i{background:#B4B4B9}
+:root[data-theme=dark][data-design-theme=native][data-accent=amber] .task-completion-chart .completion-plot>i{background:#67676E}
+@media(prefers-color-scheme:dark){:root[data-theme=system][data-design-theme=native][data-accent=amber] .task-completion-chart .completion-plot>i{background:#67676E}}
+:root[data-design-theme=native][data-accent=amber] .task-completion-chart .bars>[data-current=true] .completion-plot>i{background:var(--accent)}
+:root[data-design-theme=native] .v2 .today-execution{border-radius:var(--native-panel-radius)}
+:root[data-design-theme=native] .v2 .today-execution-next{background:var(--bg);border-color:transparent}
+:root[data-design-theme=native] .v2 .today-execution-head>button{color:var(--text)}
+/* Module cards are opaque tinted surfaces; glass remains on floating navigation. */
