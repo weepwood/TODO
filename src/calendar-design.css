@@ -1,0 +1,71 @@
+/* Calendar visual language. Library geometry and drag/drop stay in FullCalendar.
+   Surface 12px, control 8px, event 6px; structural grid lines remain square. */
+.v2 .calendar-wrap .calendar-info{
+ background:transparent;border:0;border-bottom:var(--surface-border);border-radius:0;
+ padding:0 0 var(--space-2);margin-bottom:var(--space-3);gap:var(--space-2)
+}
+.v2 .calendar-info .workspace-action-group{gap:var(--space-1)}
+.v2 .calendar-info button.secondary{padding-inline:10px;font-weight:400;box-shadow:none}
+.v2 .calendar-info .date-control{background:var(--surface-subtle);border:1px solid transparent;border-radius:var(--radius-control)}
+.v2 .calendar-info .date-control:focus-within{border-color:var(--accent)}
+.v2 .calendar-info .date-control>.date-trigger{border-inline-start:0;color:var(--muted)}
+.v2 .calendar-info .date-control>.date-trigger:hover{background:var(--hover)}
+.v2 .calendar-info .task-warning{margin-inline-start:auto;font-size:var(--font-caption)}
+/* Public FullCalendar hook classes beat the classic theme's joined buttons. */
+.calendar-main .todo-calendar-toolbar{gap:var(--space-2);margin-bottom:var(--space-3);align-items:center}
+.calendar-main .todo-calendar-toolbar-title{font-size:var(--font-section);font-weight:600;line-height:1.4;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.calendar-main .todo-calendar-button-group{display:inline-flex;align-items:center;gap:var(--space-1)}
+.calendar-main .todo-calendar-button-group>.todo-calendar-button{
+ box-sizing:border-box;border:1px solid transparent;border-radius:var(--radius-control);
+ margin:0;min-height:var(--control-height);min-width:var(--control-height);
+ padding:0 10px;font-size:var(--control-font);font-weight:400;line-height:1;
+ color:var(--text);background:transparent;box-shadow:none
+}
+.calendar-main .todo-calendar-button-group>.todo-calendar-button-icon{width:var(--control-height);padding:0;color:var(--muted)}
+.calendar-main .todo-calendar-button-group>.todo-calendar-button:hover:not(:disabled):not(.todo-calendar-button-selected){background:var(--hover)}
+.calendar-main .todo-calendar-button-group>.todo-calendar-button-selected{background:var(--active);color:var(--accent-text);font-weight:550}
+.calendar-main .todo-calendar-button:focus-visible,.todo-calendar-popover-close:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.calendar-main .todo-calendar-day-header{font-size:var(--control-font);font-weight:500;color:var(--muted)}
+.calendar-main .todo-calendar-cell.todo-selected-day{background:color-mix(in srgb,var(--active) 48%,var(--bg));box-shadow:none}
+.calendar-main .todo-calendar-day-header.todo-selected-day{background:var(--active);color:var(--accent-text);box-shadow:none}
+.calendar-main .todo-calendar-date-number{font-size:var(--font-body);font-variant-numeric:tabular-nums;font-weight:400}
+.calendar-main .todo-selected-day .todo-calendar-date-number{font-weight:600;color:var(--accent-text)}
+/* A single semantic leading edge instead of several competing outlines. */
+.calendar-main .workspace-event,.todo-calendar-popover .workspace-event{
+ border:1px solid transparent;border-inline-start:2px solid var(--block-color,var(--fc-event-color,var(--accent)));
+ border-radius:var(--radius-small);box-shadow:none;--block-color:var(--fc-event-color,var(--accent));
+ background:color-mix(in srgb,var(--block-color) 12%,var(--bg));color:var(--text)
+}
+.calendar-main .workspace-event-external,.todo-calendar-popover .workspace-event-external{border-inline-start-style:dashed}
+.calendar-main .workspace-event-conflict,.todo-calendar-popover .workspace-event-conflict{border-inline-start-color:var(--warning)}
+.calendar-main .workspace-event-deadline,.todo-calendar-popover .workspace-event-deadline{border-inline-start-style:dashed}
+.calendar-main .workspace-event:hover,.todo-calendar-popover .workspace-event:hover{background:color-mix(in srgb,var(--block-color) 21%,var(--bg))}
+.calendar-main .todo-calendar-event-name{font-weight:500}
+.calendar-main .todo-calendar-event-content[data-conflict=true] .todo-calendar-event-name{font-weight:550}
+.todo-calendar-popover{background:var(--bg);color:var(--text);border:var(--control-border);border-radius:var(--popup-radius);box-shadow:var(--shadow)}
+.todo-calendar-popover-close{border-radius:var(--radius-control);color:var(--muted)}
+/* Right-hand list uses the same quiet surfaces as the task workspace. */
+.v2 [data-workspace-module=calendar] .calendar-agenda{
+ background:var(--module-card-bg);border:var(--module-card-border);border-radius:var(--module-card-radius);
+ box-shadow:none;padding:var(--space-3);gap:var(--space-2)
+}
+.calendar-agenda-head h3{font-size:var(--font-heading);font-weight:600}
+.calendar-agenda-head small{font-variant-numeric:tabular-nums}
+.calendar-agenda .workspace-segment{padding:var(--space-1);border-radius:var(--radius-control);background:var(--bg)}
+.calendar-agenda .workspace-segment>button{flex:1;border-radius:var(--radius-small);font-size:var(--control-font);font-weight:400;padding:0 6px;box-shadow:none}
+.calendar-agenda .workspace-segment>button::after{display:none}
+.calendar-agenda .workspace-segment>button[aria-pressed=true]{background:var(--active);color:var(--accent-text);font-weight:550}
+.calendar-agenda .shared-search{background:var(--bg);border-radius:var(--radius-control)}
+.calendar-agenda .agenda-task{margin:0;padding:var(--space-1) var(--space-2);border-radius:var(--radius-control)}
+.calendar-agenda .agenda-title{font-size:var(--font-body);line-height:1.4}
+.calendar-agenda .agenda-title small{font-size:var(--font-caption);color:var(--muted)}
+@media(max-width:860px),(pointer:coarse){
+ .calendar-main .todo-calendar-button-group>.todo-calendar-button{min-height:var(--control-touch-height);min-width:var(--control-touch-height)}
+ .calendar-main .todo-calendar-button-group>.todo-calendar-button-icon{width:var(--control-touch-height)}
+ .v2 .calendar-info .date-control{height:var(--control-touch-height);min-height:var(--control-touch-height)}
+ .v2 .calendar-info .date-control>.date-trigger{min-width:var(--control-touch-height)}
+ .v2 .calendar-info .task-warning{margin-inline-start:0}
+ .v2 .calendar-info .calendar-action-group{justify-content:flex-start}
+ .v2 .calendar-info .calendar-action-group>button{flex:0 1 auto}
+ .calendar-agenda .workspace-segment>button{min-height:var(--control-touch-height)}
+}

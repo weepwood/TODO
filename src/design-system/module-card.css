@@ -1,0 +1,32 @@
+/* Shared module surface. Existing semantic containers are adapters for the
+   legacy views; not a blanket card selector. Geometry stays with each view. */
+@media screen{
+ :root .module-card,
+ :root .settings-section-body>:is(.settings-group,.account-panel,.settings-preference-sync,.appearance-settings,.list-defaults,.pomodoro-preferences,.shortcut-settings,.update-panel),
+ :root .component-gallery>section,
+ :root .v2 .module-content :is(.stat-card,.stat-grid>div,.metric-cards>div,.calendar-agenda,.focus-card,.board-column,.habit-row,.work-budget,.planner-hours,.unscheduled),
+ :root .v2 .today-execution,
+ :root .review-section,
+ :root .goal-panel-standalone,
+ :root .workflow-overview>div,
+ :root .goal-card,
+ :root .v2 .detail-content .detail-section-card{
+  background:var(--module-card-bg);
+  border:var(--module-card-border);
+  box-shadow:var(--module-card-shadow);
+ }
+ /* Default radius, without flattening Native's existing hero/tile hierarchy. */
+ :root .module-card,:root .review-section,:root .goal-panel-standalone{border-radius:var(--module-card-radius)}
+ :root .v2 .module-content .board-column[data-drag-over=true]{background:var(--active)}
+ :root .v2 .detail-content .detail-section-card[data-dragging=true]{background:var(--bg);box-shadow:var(--shadow)}
+ /* Inner surfaces remain visually subordinate to the module. */
+ :root .module-card .gallery-sample,
+ :root .goal-panel-standalone .insight-goals>div,
+ :root .v2 .today-execution-next{background:var(--bg)}
+ :root .settings-section-body .external-request{padding:var(--module-card-padding);border-radius:var(--module-card-radius)}
+}
+@media(forced-colors:active){
+ :root .module-card,:root .settings-section-body>:is(.settings-group,.account-panel,.settings-preference-sync,.appearance-settings,.list-defaults,.pomodoro-preferences,.shortcut-settings,.update-panel),
+ :root .v2 .module-content :is(.stat-card,.stat-grid>div,.metric-cards>div,.calendar-agenda,.focus-card,.board-column,.habit-row,.work-budget,.planner-hours,.unscheduled),
+ :root .review-section,:root .goal-panel-standalone,:root .workflow-overview>div{background:Canvas;border:1px solid CanvasText}
+}

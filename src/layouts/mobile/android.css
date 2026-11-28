@@ -8,7 +8,6 @@
  .compact-mobile .sidebar{left:env(safe-area-inset-left,0px);bottom:calc(55px + env(safe-area-inset-bottom,0px))}
  .compact-mobile .details{top:env(safe-area-inset-top,0px);right:env(safe-area-inset-right,0px);bottom:calc(55px + env(safe-area-inset-bottom,0px));width:calc(100% - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px));max-width:none}
  .compact-mobile .task-content{padding:16px 12px}
- .compact-mobile .toolbar .icon-button{min-width:36px;min-height:36px}
 }
 
 /* Primary destinations stay visible; secondary modules live in a bottom sheet. */
@@ -80,4 +79,12 @@
 }
 @media(prefers-reduced-motion:reduce){
  .compact-mobile .details,.dialog[data-sheet=true],.compact-mobile .task-body,.compact-mobile .mobile-detail-actions>button{animation:none!important;transition:none!important}
+}
+
+/* Thumb-reachable controls; keep the existing safe-area and gesture ownership. */
+@media(max-width:860px){
+ .mobile-detail-actions>button{min-height:52px}
+ .compact-mobile .detail-header>button.icon-button{min-width:44px;min-height:44px}
+ .mobile-more-grid button{border-radius:var(--radius-control);min-width:0;line-height:1.35}
+ .mobile-more-sheet.dialog{max-height:calc(100dvh - env(safe-area-inset-top,0px) - 16px);overscroll-behavior:contain}
 }

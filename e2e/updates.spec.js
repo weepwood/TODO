@@ -7,11 +7,11 @@ const feed={schema:1,channel:'preview',release:{version,tag,notes:'测试更新�
 }}};
 test('软件更新：发现新版本、开发版禁止安装、错误与空清单',async({page})=>{
  let mode='release';await page.route('https://weepwood.github.io/TODO/updates/preview.json',route=>route.fulfill({status:mode==='error'?503:200,headers:{'access-control-allow-origin':'*'},contentType:'application/json',body:JSON.stringify(mode==='empty'?{schema:1,channel:'preview',release:null}:feed)}));
- await page.goto('/');await page.locator('.rail').getByRole('button',{name:'设置',exact:true}).click();
- const panel=page.getByLabel('软件更新',{exact:true});await expect(panel).toContainText('1.2.0-alpha.2');
+ await page.goto('/');await page.locator('.rail').getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'软件更新',exact:true}).click();
+ const panel=page.getByLabel('软件更新',{exact:true});await expect(panel).toContainText('1.2.0-alpha.3');
  await panel.getByRole('button',{name:'检查更新'}).click();await expect(panel).toContainText('V1.2.0-alpha.9');await expect(panel).toContainText('测试更新日志');await expect(panel.getByRole('button',{name:'下载并验证'})).toHaveCount(0);
  mode='error';await panel.getByRole('button',{name:'检查更新'}).click();await expect(panel.getByRole('alert')).toContainText('503');
  mode='empty';await panel.getByRole('button',{name:'检查更新'}).click();await expect(panel).toContainText('尚未发布正式签名更新');await expect(panel).not.toContainText('测试更新日志');
- await panel.getByRole('checkbox',{name:/自动检查更新/}).uncheck();await page.reload();await page.locator('.rail').getByRole('button',{name:'设置',exact:true}).click();await expect(panel.getByRole('checkbox',{name:/自动检查更新/})).not.toBeChecked();
+ await panel.getByRole('checkbox',{name:/自动检查更新/}).uncheck();await page.reload();await page.locator('.rail').getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'软件更新',exact:true}).click();await expect(panel.getByRole('checkbox',{name:/自动检查更新/})).not.toBeChecked();
  await page.screenshot({path:'test-results/update-panel.png',animations:'disabled'});
 });

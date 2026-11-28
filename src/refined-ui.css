@@ -8,7 +8,7 @@
 .v2 .sidebar .nav-row{padding-inline:9px}
 .v2 .heading{align-items:end;padding-bottom:12px}
 
-.v2 .task-group{margin-bottom:22px}
+
 .v2 .task-row:not(.selected):not(.checked){border-radius:5px}
 .v2 .task-body span{font-weight:500}
 .v2 .task-more{flex:none}
@@ -36,13 +36,6 @@ input[type=checkbox]:disabled{opacity:.5;cursor:default}
 .update-panel>label input[type=checkbox]::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--bg);border:1px solid var(--line);transform:none}
 .update-panel>label input[type=checkbox]:checked{background:var(--accent);border-color:var(--accent)}
 .update-panel>label input[type=checkbox]:checked::after{transform:translateX(14px)}
-
-.calendar-main .fc{--fc-border-color:var(--line)}
-.calendar-main .fc .fc-toolbar-title{font-weight:650;letter-spacing:-.02em}
-.calendar-main .fc .fc-daygrid-day-number{padding:8px;font-variant-numeric:tabular-nums}
-.calendar-main .fc .fc-col-header-cell-cushion{padding:9px 3px}
-
-.calendar-main .fc .fc-event-mirror{opacity:.88;box-shadow:var(--shadow)}
 .calendar-agenda{position:sticky;top:0;padding:14px;gap:10px}
 .calendar-agenda-head h3{margin:0}
 .calendar-agenda-head small{font-size:11px;color:var(--muted)}
@@ -101,10 +94,6 @@ input[type=checkbox]:disabled{opacity:.5;cursor:default}
  .date-control>.date-trigger{width:44px;min-width:44px;padding:13px}
  .calendar-info .secondary,.planner-toolbar .secondary,.planner-toolbar .primary{min-height:44px}
  .calendar-info .date-control,.planner-toolbar .date-control{flex:none}
- .calendar-main .fc .fc-toolbar{flex-wrap:wrap;gap:10px}
- .calendar-main .fc .fc-toolbar-title{font-size:17px}
- .calendar-main .fc .fc-button{min-height:40px;font-size:12px}
- .calendar-main .fc .fc-daygrid-day-number{padding:5px}
  .calendar-agenda{position:static;max-height:none}
  .planner .planner-overview{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:12px}
  .planner .planner-overview>div{border:0;padding:6px}

@@ -8,5 +8,5 @@ export function ListIcon({list,size=16,neutral=false}){
 }
 export function ListIdentity({list}){
  const name=list?.name||'未归属清单';
- return <span className="task-list-identity" title={'清单：'+name} aria-label={'清单：'+name} style={{'--list-color':listColor(list)}}><ListIcon list={list} size={15}/><span className="task-list-name">{name}</span></span>
+ return <span className="task-list-identity" title={'清单：'+name} aria-label={'清单：'+name} style={{'--list-color':listColor(list)}}><ListIcon list={list} size={15} neutral/><span className="task-list-name">{name}</span></span>
 }

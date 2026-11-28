@@ -4,6 +4,8 @@ import {chooseOption} from './select-helper.js';
 
 test('手机规划日程与待安排独立分区，设置保持可编辑',async({page})=>{
  const state=initialState(),today=dayKey();
+ // The current-time lower bound must not make this UI fixture depend on the wall clock.
+ await page.clock.setFixedTime(new Date(today+'T09:00:00'));
  state.tasks=[{...newTask('待安排测试','inbox',''),duration:30}];
  await page.addInitScript(data=>{if(!localStorage.getItem('todo-workbench-v1'))localStorage.setItem('todo-workbench-v1',JSON.stringify(data))},state);
  await page.setViewportSize({width:390,height:844});await page.goto('/');

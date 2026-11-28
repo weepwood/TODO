@@ -1,0 +1,17 @@
+/* Based on UI-Vault continuous-progress-panel/MOTION.md (ceb019b).
+   Grid owns geometry; the content is never scaled. */
+.shared-disclosure{display:grid;grid-template-rows:0fr;min-width:0;transition:grid-template-rows 340ms cubic-bezier(.2,.7,.2,1)}
+.shared-disclosure[data-open=true]{grid-template-rows:1fr}
+.shared-disclosure-clip{min-height:0;min-width:0;overflow:hidden;opacity:0;visibility:hidden;transition:opacity 220ms ease,visibility 0s linear 340ms}
+.shared-disclosure[data-open=true]>.shared-disclosure-clip{opacity:1;visibility:visible;transition-delay:0s}
+.disclosure-chevron{flex:none;transition:transform 300ms cubic-bezier(.2,.7,.2,1)}
+[aria-expanded=true]>.disclosure-chevron{transform:rotate(90deg)}
+@media(prefers-reduced-motion:reduce){.shared-disclosure,.shared-disclosure-clip,.disclosure-chevron{transition:none}}
+/* Older embedded engines: don't hold closed content visible if track interpolation is unsupported. */
+@supports not (grid-template-rows:0fr){.shared-disclosure[data-open=false]{display:none}}
+
+.shared-disclosure[data-animate=false],.shared-disclosure[data-animate=false]>.shared-disclosure-clip{transition:none}
+.shared-disclosure-clip{display:flow-root}
+
+/* Stable open panels must not clip external drag handles or focus outlines. */
+.shared-disclosure[data-open=true]:not([data-motion-busy])>.shared-disclosure-clip{overflow:visible}

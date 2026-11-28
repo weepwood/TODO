@@ -20,22 +20,19 @@
 .calendar-agenda-head h3,.planner .unscheduled h3,.stats .stat-card h3{font-weight:var(--surface-heading-weight);font-size:var(--surface-heading-size)}
 .calendar-info,.planner-toolbar{gap:var(--space-2)}
 .calendar-info button,.planner-toolbar button{border-radius:var(--radius-control);min-height:var(--control-height)}
-.calendar-main .fc .fc-button{border-radius:var(--radius-control)}
-.calendar-main .fc .fc-button-group{gap:var(--space-1)}
-.calendar-main .fc .fc-button-group>.fc-button{border-radius:var(--radius-control);margin:0}
 .board-grid .board-column{border-radius:var(--radius-surface);padding:var(--space-3)}
 .board-task-card{margin-bottom:var(--space-2);padding:var(--space-2);border-radius:var(--radius-control)}
 .board-task-card .view-task{min-height:var(--control-height);padding:var(--space-1)}
 .board-task-card .smart-select-trigger{background:var(--panel);border:1px solid transparent}
 .board-task-card .smart-select-trigger[data-state=open]{border-color:var(--accent)}
-.workspace-actions.stats-toolbar{display:grid;grid-template-columns:minmax(0,1fr);align-items:center;gap:var(--space-3)}
+.workspace-actions.stats-toolbar{display:grid;grid-template-columns:minmax(0,1fr);align-items:center;gap:var(--space-3);padding:0 0 var(--space-2);background:transparent;border:0;border-bottom:var(--surface-border);border-radius:0}
 .stats-toolbar .stats-jump{display:flex;flex-wrap:wrap;gap:var(--space-2);min-width:0}
 @container work-area (min-width:1000px){.workspace-actions.stats-toolbar{grid-template-columns:minmax(0,auto) minmax(0,1fr)}.stats-toolbar .stats-jump{justify-content:flex-end}}
 .stats-filter-group{display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap;min-width:0}
 .stats-filter-group label{display:flex;align-items:center;gap:var(--space-1);min-width:0}
-.stats-filter-group label>span{font-size:var(--font-body);color:var(--muted)}
-.stats-filter-group .smart-select-trigger{background:var(--bg);border-color:var(--line)}
-.stats-filter-group .smart-select-trigger[data-state=open]{border-color:var(--accent)}
+.stats-filter-group label>span{font-size:var(--control-font);color:var(--muted);white-space:nowrap}
+.stats-toolbar .stats-filter-group .smart-select-trigger{background:var(--surface-subtle);border:1px solid transparent;border-radius:var(--radius-control);box-shadow:none;padding-inline:10px}
+.stats-toolbar .stats-filter-group .smart-select-trigger[data-state=open]{border-color:var(--accent);background:var(--active)}
 .stats .stat-grid{gap:var(--space-2)}
 .stats .stat-grid>div,.goal-card,.wallet-grid>div{border-radius:var(--radius-surface);border-color:transparent;background:var(--panel)}
 .stats .stat-grid>div small{color:var(--muted)}
@@ -135,10 +132,6 @@
 
 /* Calendar and planning share semantic task color, not calendar-specific paint. */
 .calendar-main .workspace-event{--block-color:var(--fc-event-color,var(--accent));border-radius:var(--radius-small);border-color:color-mix(in srgb,var(--block-color) 45%,transparent);background:color-mix(in srgb,var(--block-color) 18%,var(--bg));color:var(--text)}
-.calendar-main .workspace-event :is(.fc-event-title,.fc-event-time,.fc-event-main){color:var(--text)}
-.calendar-main .workspace-event-external{border-style:dashed}
-.calendar-main .workspace-event-conflict{box-shadow:inset -2px 0 var(--warning)}
-.calendar-main .workspace-event-conflict:not(:focus-visible){outline:1px dashed var(--warning);outline-offset:-2px}
 .calendar-main .workspace-event:hover{background:color-mix(in srgb,var(--block-color) 25%,var(--bg))}
 .board-card-content strong{font-weight:600}
 .board-task-card .board-card-meta{display:flex;gap:5px 10px;flex-wrap:wrap}
@@ -473,6 +466,14 @@
 .module-content .focus-card .timer-ring{max-width:100%}
 .module-content .calendar-agenda-head{flex-wrap:wrap;gap:var(--space-2)}
 .module-content .stats-jump{gap:var(--space-1)}
+/* Quiet actions are flat; selection controls retain a subtle fill. */
+.stats-toolbar .stats-jump>button.secondary{background:transparent;border:1px solid transparent;border-radius:var(--radius-control);box-shadow:none;padding-inline:9px;color:var(--text);font-size:var(--control-font);font-weight:400;white-space:nowrap}
+.stats-toolbar :is(.stats-jump>button.secondary,.stats-filter-group .smart-select-trigger):hover{background:var(--hover)}
+.stats-toolbar :is(.stats-jump>button.secondary,.stats-filter-group .smart-select-trigger):active{background:var(--active)}
+.stats-toolbar .stats-jump>.stats-section-menu{color:var(--muted)}
+.stats-toolbar .stats-jump>.stats-section-menu[data-state=open]{background:var(--active);color:var(--accent-text);border-color:transparent}
+.stats-section-menu>svg{flex:none;color:currentColor}
+@media(max-width:860px){.stats-toolbar .stats-jump>button.secondary,.stats-toolbar .stats-filter-group .smart-select-trigger{min-height:var(--control-touch-height)}}
 @container work-area (max-width:680px){
  .module-content .board-grid[data-lane=all]{grid-template-columns:repeat(2,minmax(0,1fr))}
  .module-content .stats-filter-group{width:100%}
@@ -581,18 +582,24 @@
 @media(pointer:coarse){.dialog.professional-form-dialog :is(.dialog-actions,.workspace-actions)>button{min-height:44px}}
 
 /* Today's execution: priority information before compact actions. */
-.v2 .today-execution{padding:var(--space-3);border:var(--surface-border);border-radius:var(--surface-radius);margin-bottom:var(--space-3);background:var(--surface-subtle)}
+/* Design Vocabulary: Proximity, Hierarchy, Tabular Numbers, Concentric Radius.
+   Keep the summary compact and the primary focus action distinct. */
+.v2 .today-execution{padding:var(--space-3);border:var(--surface-border);border-radius:var(--radius-large);margin-bottom:var(--space-4);background:var(--surface-subtle)}
 .v2 .today-execution-summary{display:grid;gap:var(--space-1);min-width:0;flex:1 1 180px}
-.today-execution-head strong,.today-execution[data-empty=true] strong{font-size:var(--font-heading);font-weight:var(--surface-heading-weight)}
-.today-execution-meta{display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:var(--font-caption);color:var(--muted)}
+.v2 .today-execution-head{border-bottom:0;padding:0;gap:var(--space-3)}
+.today-execution-head strong,.today-execution[data-empty=true] strong{font-size:var(--font-section);font-weight:var(--surface-heading-weight);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.today-execution-meta{display:flex;align-items:baseline;gap:var(--space-3);flex-wrap:wrap;font-size:var(--control-font);color:var(--muted);font-variant-numeric:tabular-nums}
+.today-execution-meta>span{flex:0 1 auto}
 .today-execution [data-risk=true]{color:var(--danger);font-weight:600}
-.v2 .today-execution-next{background:var(--bg);border:var(--surface-border);border-radius:var(--radius-control);padding:var(--space-2);margin-top:var(--space-1)}
-.today-execution-next>span{display:grid;gap:3px;text-align:start;justify-items:start}
+.v2 .today-execution-head>button{border-color:transparent;background:transparent;color:var(--accent-text)}
+.v2 .today-execution-head>button:is(:hover,:focus-visible){background:var(--hover)}
+.v2 .today-execution-next{background:var(--bg);border:var(--surface-border);border-radius:var(--radius-control);padding:var(--space-2);margin-top:var(--space-2);gap:var(--space-2)}
+.today-execution-next>span{display:grid;gap:var(--space-1);text-align:start;justify-items:start}
 .today-execution-next>span>small{color:var(--muted);font-size:var(--font-caption);margin:0;text-align:start}
-.today-execution-next>span>strong{font-size:var(--font-body);overflow-wrap:anywhere}
+.today-execution-next>span>strong{font-size:var(--font-heading);line-height:1.45;font-weight:600;overflow-wrap:anywhere}
 .today-execution-item>span>small{display:block;line-height:1.5}
 .today-execution-item .text-link{text-align:start;max-width:100%;white-space:normal;overflow-wrap:anywhere}
-@container work-area (max-width:460px){.v2 .today-execution-head{align-items:flex-start}.v2 .today-execution-head>button{margin-inline-start:0}.v2 .today-execution-next{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.v2 .today-execution-next>span{grid-column:1/-1}.v2 .today-execution-next>button{min-height:var(--control-height);width:100%;margin:0}}
+@container work-area (max-width:460px){.v2 .today-execution{padding:var(--space-3)}.v2 .today-execution-head{align-items:flex-start}.v2 .today-execution-head>button{margin-inline-start:0}.v2 .today-execution-next{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.v2 .today-execution-next>span{grid-column:1/-1}.v2 .today-execution-next>button{min-height:var(--control-height);width:100%;margin:0}}
 /* Keep true daily values in accessible names and tooltips; long ranges scroll
    instead of squeezing 90 labels into a few hundred pixels. */
 .task-completion-chart .completion-scroll{overflow-x:auto;scrollbar-width:thin;padding-bottom:var(--space-2)}
@@ -613,3 +620,76 @@
 .goal-progress-value strong{font-size:var(--font-metric);font-variant-numeric:tabular-nums;line-height:1.15;letter-spacing:-.02em}
 .goal-progress-value span{font-size:var(--font-body);color:var(--muted)}
 .workflow-empty .empty{min-height:120px;padding:var(--space-4);border:1px dashed var(--line);border-radius:var(--surface-radius);margin:var(--space-3) 0}
+
+/* Calendar, statistics and review: semantic time and numeric hierarchy. */
+.stats .stat-grid>div{min-width:0}
+.stats .stat-grid strong,.review-metrics strong,.insight-metrics strong{font-variant-numeric:tabular-nums;line-height:1.2;overflow-wrap:anywhere}
+.stats .stat-card h3,.review-trend>strong{line-height:1.4}
+.task-completion-chart .bars>div>span{font-weight:550}
+.trend-column small,.trend-column>span{font-variant-numeric:tabular-nums}
+.review-trend-grid .review-trend{gap:var(--space-3)}
+@media(max-width:860px){.stats .stat-grid>div{padding:var(--space-3)}.stats .stat-grid strong{font-size:clamp(18px,5vw,var(--font-metric))}}
+
+
+/* FullCalendar public content hook: own semantic classes, never generated theme classes. */
+.calendar-main .workspace-event{border-inline-start:3px solid var(--block-color);min-width:0}
+.calendar-main .todo-calendar-event-content{display:flex;flex-direction:column;gap:2px;min-width:0;width:100%;overflow:hidden;padding:2px 3px;line-height:1.3}
+.calendar-main .todo-calendar-event-content[data-compact=true]{flex-direction:row;align-items:baseline;gap:4px;padding:1px 2px}
+.todo-calendar-event-time{flex:none;font-size:var(--font-caption);font-weight:500;font-variant-numeric:tabular-nums;color:var(--muted)}
+.todo-calendar-event-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--font-body);font-weight:550;color:var(--text)}
+.todo-calendar-event-content:not([data-compact=true]) .todo-calendar-event-name{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.todo-calendar-event-kind{font-size:var(--font-caption);color:var(--muted)}
+.calendar-main .workspace-event:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.calendar-agenda .agenda-title small{font-variant-numeric:tabular-nums}
+@media(max-width:860px){.calendar-main .todo-calendar-event-content[data-compact=true]{gap:2px;padding-inline:1px}.todo-calendar-event-content[data-compact=true] .todo-calendar-event-name{font-size:10px}.todo-calendar-event-content[data-compact=true] .todo-calendar-event-time{font-size:10px}}
+/* Chart composition: plot and tick labels occupy independent rows. Zero
+   values remain zero; the baseline is a visual guide, not a data bar. */
+.stats .task-completion-chart .bars{height:auto;align-items:stretch;min-width:max(100%,calc(var(--chart-days)*30px));padding-block:var(--space-2);gap:var(--space-1)}
+.task-completion-chart .bars>div{display:grid;grid-template-rows:144px 18px;gap:5px;min-width:0;align-items:end;justify-items:center}
+.task-completion-chart .completion-plot{width:100%;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;border-bottom:1px solid var(--line);min-width:0}
+.task-completion-chart .completion-plot>span{font-size:var(--font-caption);font-weight:550;font-variant-numeric:tabular-nums;color:var(--text);max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.task-completion-chart .completion-plot>i{width:min(68%,32px);flex:none;border-radius:var(--radius-small) var(--radius-small) 0 0;background:var(--accent)}
+.task-completion-chart .bars>div>small{align-self:start;font-variant-numeric:tabular-nums}
+.stats .task-completion-chart h3{margin-bottom:var(--space-2)}
+@container work-area (min-width:900px){.module-content .stats{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr)}}
+
+
+/* Calendar view geometry belongs to FullCalendar. Its public event render
+   hooks own labels and marker semantics, not generated theme class names. */
+.calendar-main .todo-calendar-event-marker{display:none}
+.calendar-main .todo-calendar-event-content[data-view=time]:not([data-compact=true]){padding:4px 5px;gap:3px}
+.calendar-main .todo-calendar-event-content[data-view=time] .todo-calendar-event-kind{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.calendar-main .todo-calendar-event-content[data-conflict=true] .todo-calendar-event-name{font-weight:650}
+@media(max-width:860px){.calendar-main .todo-calendar-event-content[data-view=month][data-compact=true] .todo-calendar-event-time{display:none}}
+
+.calendar-main .todo-calendar-slot-label{font-variant-numeric:tabular-nums;color:var(--muted);font-size:var(--font-caption)}
+.calendar-main .todo-calendar-day-header{font-variant-numeric:tabular-nums;font-weight:550}
+
+
+/* Calendar: bounded time-grid scroll, native overflow links, width-aware event
+   content. The calendar library retains event layout and hit testing. */
+.calendar-viewport{min-width:0;width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;container-type:inline-size}
+.calendar-viewport:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.calendar-main[data-calendar-view=timeGridWeek] .calendar-viewport>div{min-width:680px}
+.calendar-main .workspace-event{container-type:inline-size}
+.calendar-main .todo-calendar-event-content[data-view=time][data-compact=true]{gap:2px;padding:1px 2px}
+.calendar-main .todo-calendar-event-content[data-view=time][data-compact=true] .todo-calendar-event-name{font-size:var(--font-caption)}
+.calendar-main .todo-calendar-event-time{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+@container (max-width:74px){.calendar-main .todo-calendar-event-content[data-view=time]{padding:1px 2px;gap:1px}.calendar-main .todo-calendar-event-content[data-view=time] .todo-calendar-event-time{display:none}.calendar-main .todo-calendar-event-content[data-view=time] .todo-calendar-event-name{font-size:var(--font-caption);white-space:nowrap;display:block}.calendar-main .todo-calendar-event-kind{display:none}}
+.calendar-main .todo-calendar-more{color:var(--accent-text);font-variant-numeric:tabular-nums;font-weight:600}
+.calendar-main .todo-calendar-more:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+.calendar-main[data-calendar-view=timeGridWeek] .todo-calendar-toolbar{position:sticky;inset-inline-start:0;width:100cqw;max-width:100%;box-sizing:border-box;flex-wrap:wrap;gap:var(--space-2)}
+
+
+/* Keep the original time labels in the native vertical scroller, shifting only
+   their visual position as the outer week viewport pans horizontally. */
+.calendar-main[data-calendar-view=timeGridWeek] .todo-calendar-slot-label{position:relative;translate:var(--calendar-axis-shift,0px) 0;z-index:5;background:var(--bg);box-shadow:1px 0 var(--line)}
+.calendar-main .todo-calendar-event-content[data-view=time][data-short=true]{flex-direction:row;align-items:center;padding:0 2px;gap:2px;line-height:1.1}
+.calendar-main .todo-calendar-event-content[data-view=time][data-short=true] .todo-calendar-event-time,.calendar-main .todo-calendar-event-content[data-view=time][data-short=true] .todo-calendar-event-kind{display:none}
+.calendar-main .todo-calendar-event-content[data-view=time][data-short=true] .todo-calendar-event-name{white-space:nowrap;display:block;font-size:var(--font-caption);line-height:1.1}
+
+/* Both labels reserve the same width; the title stays outside the clip. */
+.v2 .today-execution-head>.today-execution-toggle{display:grid;flex:0 0 auto;white-space:nowrap}
+.today-execution-toggle>span{grid-area:1/1;visibility:hidden}
+.today-execution-toggle>span[data-label-active=true]{visibility:visible}
