@@ -23,7 +23,22 @@
 .v2 .task-row::before{opacity:.16}
 .v2 .task-row:hover::before{opacity:.42}
 .v2 .task-row.selected::before{opacity:1}
-.v2 .task-group{margin-top:var(--space-4)}
+/* A whole task bucket is one Module Card, including its persistent heading.
+   Rows remain transparent; keep overflow visible for external drag handles. */
+.v2 .task-group.module-card{margin:var(--space-3) 0 0;padding:var(--space-1) var(--space-2);min-width:0;overflow:visible}
+/* Tint only genuine list buckets; ordinary sections and history stay neutral.
+   A small mix on the existing card color preserves the theme contrast. */
+.v2 .task-group.module-card[data-list-tint=true]{--module-card-bg:color-mix(in srgb,var(--module-card-neutral-bg) var(--list-group-neutral-weight),var(--group-list-color));}
+/* List identity stays readable even for white/black custom list colors. */
+.v2 .task-group[data-list-tint=true] .task-list-name,
+.v2 .task-group[data-list-tint=true] .task-list-identity .list-icon-symbol{color:color-mix(in srgb,var(--list-color) 25%,var(--text))}
+.v2 .sidebar .sidebar-lists{display:flex;flex-direction:column;gap:var(--nav-gap);min-width:0}
+@media(forced-colors:active){.v2 .task-group.module-card[data-list-tint=true]{background:Canvas}}
+.v2 .task-group.module-card.drop-active{background:var(--active)}
+.v2 .task-group.module-card>.list-caption{margin-bottom:0;padding-block:var(--space-1)}
+.v2 .task-group.module-card .group-collapse small{background:var(--bg)}
+.v2 .task-group-disclosure>.shared-disclosure-clip>.task-row:last-child::after{opacity:0}
+@media(max-width:860px){.v2.compact-mobile .task-group.module-card{margin-top:var(--space-2);padding-inline:var(--space-1)}}
 .v2 .list-caption{padding-bottom:6px;border-bottom:0;margin-bottom:4px}
 .v2 .task-content{container-type:inline-size}
 .v2 .task-content>.heading{align-items:center;gap:12px;padding-bottom:4px}

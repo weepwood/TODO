@@ -90,3 +90,26 @@
 ### 用户反馈 · Module Card 全站统一
 - 共享令牌及module-card.css；设置与组件展厅、详情、业务模块共享底纹，保留Classic/Native配色、尺寸、选中与拖拽反馈。Native玻璃留给浮动导航；业务面板采用不透明底纹。新增ui-module-card.spec.js。未改业务或存储，未增依赖。
 - 306单测、最终构建、Chromium32/32、WebKit18/18，补充业务复验各2/2；初次移动补充测试定位失败，后发现Native今日执行覆盖，均保留日志并修复。58张最终截图及独立备份在 /Volumes/data/AI-Development/artifacts/todo-module-card。按用户许可提交累计设计候选并推送独立分支，不合并、不发布。Firefox、原生、既有订阅阻塞未复验，非正式发布验收。
+
+### 用户反馈 · 连续开合动效集成
+- 基于4311306，读取UI-Vault ceb019b的原始实测文档，新增Disclosure.jsx及disclosure.css，接入今日执行、侧栏文件夹及本机归档；DetailSection复用springStep实现速度继承。无新依赖，无业务与存储变更。
+- 构建通过（原有chunk大小警告）；306单测，Chromium原回归25/25、新专项3/3，WebKit10/10。真实开合截图与逐帧记录保存在 /Volumes/data/AI-Development/artifacts/todo-continuous-disclosure。Firefox、原生平台、异步高度重定向及全站性能未专项验收；未推送、未合并、未发布。
+
+### 用户反馈 · 分组开合与标题跳动修复
+- 延续4311306上的未提交动效工作，任务分组接入Disclosure，80项以内动画、较大列表即时；隐藏行立即排除交互及拖放、退出后卸载。FLIP与折叠隔离，稳定后恢复外置手柄。详情标题固定几何，今日执行按钮固定宽度。
+- 最终构建通过，306单测；第一轮Chromium17/17、WebKit14/14；额外完整开合双引擎各1/1；桌面列表15项经复验通过；最终稳定性专项双引擎各5/5。初次拖拽失败已修复，页面入场位移测量隔离后1px阈值不变。证据在 /Volumes/data/AI-Development/artifacts/todo-disclosure-stability。未提交、推送、合并、发布。
+
+### 用户反馈 · 任务分组统一浅底纹
+- 保留4311306之后的连续开合未提交成果，SectionGroup复用module-card，统一几何并保留外置手柄/拖放反馈。新增ui-task-group-surface.spec.js，五个视口主题组合及开合/对比度检查。
+- 构建通过（既有chunk警告），Chromium24项既有回归+5项底纹专项经复验通过，WebKit10/10。空未分组为原有行为，初次测试计数修正；截图、日志、差异见 /Volumes/data/AI-Development/artifacts/todo-task-group-surface。未提交、推送、合并、发布。
+
+### 用户反馈 · 收集箱归位及清单分组淡色
+- 保留累计未提交成果，WorkspaceSidebar 将收集箱归入我的清单首位；taskBuckets 传递清单元数据，SectionGroup 通过校验颜色和共享令牌生成淡色。修正淡色组内极端颜色的名称/符号对比，未修改任务数据或设置存储。
+- 构建、306单测、Chromium24项经复验、WebKit9项及最终双引擎各4项通过；初次窄屏旧测试测到悬停背景，移开指针复验。证据在 /Volumes/data/AI-Development/artifacts/todo-list-tints。未提交、推送、合并、发布。
+
+### 用户反馈 · 侧栏连续开合与长按排序
+- 保留累计未提交设计成果，新增 SidebarSortable、sidebar-sort.css、sidebar-order.js；WorkspaceSidebar 统一栏目和同级排序，view-preferences 保存本机顺序与折叠状态。复用 dnd-kit 和 Disclosure，不改业务数据及云端偏好语义。
+- 构建、308单测、Chromium33项初始回归及最终5项专项通过，触摸模拟首次落位偏差后缩小自动滚动范围并隔离滑动惯性。WebKit结果见日志，CDP触摸仅Chromium执行。证据位于 /Volumes/data/AI-Development/artifacts/todo-sidebar-sort。未提交、推送、合并、发布。
+
+### Alpha.3 设计阶段收口
+- 用户明确授权提交、推送、合并、发布；版本统一为1.2.0-alpha.3/102003，保持签名、升级及完整UI门禁。308单测及构建通过；10项侧栏/开合验收通过，软件更新E2E因独立设置页须先进入对应栏目而修正，定向1/1通过。保留首次失败日志。正式发布需固定SHA验收，不将新活动采集研究混入此候选。

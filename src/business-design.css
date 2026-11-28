@@ -688,3 +688,8 @@
 .calendar-main .todo-calendar-event-content[data-view=time][data-short=true]{flex-direction:row;align-items:center;padding:0 2px;gap:2px;line-height:1.1}
 .calendar-main .todo-calendar-event-content[data-view=time][data-short=true] .todo-calendar-event-time,.calendar-main .todo-calendar-event-content[data-view=time][data-short=true] .todo-calendar-event-kind{display:none}
 .calendar-main .todo-calendar-event-content[data-view=time][data-short=true] .todo-calendar-event-name{white-space:nowrap;display:block;font-size:var(--font-caption);line-height:1.1}
+
+/* Both labels reserve the same width; the title stays outside the clip. */
+.v2 .today-execution-head>.today-execution-toggle{display:grid;flex:0 0 auto;white-space:nowrap}
+.today-execution-toggle>span{grid-area:1/1;visibility:hidden}
+.today-execution-toggle>span[data-label-active=true]{visibility:visible}

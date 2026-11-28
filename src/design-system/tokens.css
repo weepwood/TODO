@@ -91,11 +91,13 @@
 /* Module surface is distinct from the canvas in either luminance mode.
    Inner controls can use --bg; state colors remain semantic. */
 :root{
- --module-card-bg:color-mix(in srgb,var(--bg) 96%,var(--text));
+ --module-card-neutral-bg:color-mix(in srgb,var(--bg) 96%,var(--text));
+ --module-card-bg:var(--module-card-neutral-bg);
+ --list-group-neutral-weight:96%;
  --module-card-border:var(--surface-border);
  --module-card-radius:var(--radius-surface);
  --module-card-padding:var(--space-3);
  --module-card-shadow:none;
 }
-:root[data-theme=dark]{--module-card-bg:color-mix(in srgb,var(--bg) 94%,var(--text))}
-@media(prefers-color-scheme:dark){:root[data-theme=system]{--module-card-bg:color-mix(in srgb,var(--bg) 94%,var(--text))}}
+:root[data-theme=dark]{--module-card-neutral-bg:color-mix(in srgb,var(--bg) 94%,var(--text));--list-group-neutral-weight:94%}
+@media(prefers-color-scheme:dark){:root[data-theme=system]{--module-card-neutral-bg:color-mix(in srgb,var(--bg) 94%,var(--text));--list-group-neutral-weight:94%}}
