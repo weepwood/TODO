@@ -16,7 +16,13 @@ test('导航和任务短胶囊选中态与独立间距',async({page})=>{
  await today.click();
  await expect.poll(async()=>(await marker(today)).height).toBe(19);
  await expect.poll(async()=>(await marker(inbox)).height).toBe(5);
- const a=await inbox.boundingBox(),b=await today.boundingBox();expect(b.y-a.y-a.height).toBeGreaterThanOrEqual(3);
+ // Inbox now belongs to 我的清单, not the filters group. Check adjacent
+ // items in each actual group while retaining the original spacing threshold.
+ const upcoming=page.locator('[data-view-key=upcoming]'),work=page.locator('[data-view-key=work]');
+ for(const [first,second] of [[today,upcoming],[inbox,work]]){
+  const a=await first.boundingBox(),b=await second.boundingBox();
+  expect(b.y-a.y-a.height).toBeGreaterThanOrEqual(3);
+ }
  const rows=page.locator('.task-row');await rows.first().locator('.task-body').click();
  await expect.poll(async()=>(await marker(rows.first())).height).toBe(19);
  const r0=await rows.nth(0).boundingBox(),r1=await rows.nth(1).boundingBox();expect(r1.y-r0.y-r0.height).toBeGreaterThanOrEqual(3);

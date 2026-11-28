@@ -17,7 +17,8 @@
 - [x] 产品质量收口：批量主体检索和映射、分类/热力图布局、时间预算、回顾返回日期及暂停清理；前端324、双引擎各9、完整隔离原生候选两轮27项，年度合成50轮通过。详见 [候选冻结](activity-tracking/activitywatch-freeze.md)。
 - [x] 本地功能候选冻结，停止新增功能；仅修复真实发布阻塞。
 - [x] 累计发布前审查：远端main直系祖先；324前端/14原生/15 Provider，macOS ARM64 ad-hoc制品、Firefox/WebKit核心冒烟、隔离旧新Web及原生SQLite升级通过；11个历史测试修正。详见 [发布审查](activity-tracking/activitywatch-release-audit.md)。
-- [ ] 正式发布仍阻塞：391项完整UI门禁未完成（本轮124通过、2失败后定向6/6、1条件跳过、264未完成）；最终SHA远程全量、Windows/Android、正式签名/公证/安装升级待验收；真实锁屏休眠、跨日完整性、网页源及真实长周期性能仍须另行授权。
+- [x] 391项完整本地清单已执行：363通过、5失败、23原有条件跳过；4文件修正后5/5定向、21/21受影响文件完整复验，累计368通过+23跳过，PWA实际旧新工作线程升级通过。详见 [最终门禁](activity-tracking/activitywatch-final-gates.md)。
+- [ ] 正式发布仍阻塞：最终SHA同次无失败远程全量UI、Windows/Android正式构建/运行、正式签名/公证/安装升级与真实认证待验收；真实锁屏休眠、跨日完整性、网页源及真实长周期性能仍须另行授权。
 - [轻量集成报告](activity-tracking/activitywatch-integration.md)；[R1–R3](activity-tracking/r1-r3.md) 与 [原生生命周期原型](activity-tracking/native-lifecycle-r4.md) 保留为冻结研究。正式发布工作区不动。
 
 ## 当前独立本地设计专项：Design Vocabulary
