@@ -4657,6 +4657,7 @@ version = "1.2.0-alpha.3"
 dependencies = [
  "chrono",
  "rusqlite",
+ "rustls",
  "serde",
  "serde_json",
  "sha2 0.10.9",

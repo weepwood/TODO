@@ -12,17 +12,35 @@ use tauri_plugin_notification::NotificationExt;
 mod storage;
 pub mod cli;
 use storage::*;
+// Cargo feature unification enables reqwest's rustls-no-provider through
+// the desktop updater, even for an HTTP-only local ActivityWatch client.
+#[cfg(desktop)]
+fn activitywatch_crypto_ready()->Result<(),String>{
+ if rustls::crypto::CryptoProvider::get_default().is_none(){
+  let _=rustls::crypto::ring::default_provider().install_default();
+ }
+ rustls::crypto::CryptoProvider::get_default().map(|_|()).ok_or_else(||"无法初始化本地 HTTP 客户端".into())
+}
+#[cfg(all(test,desktop))]
+#[test]
+fn activitywatch_http_client_with_desktop_features(){
+ // No request is issued. This reproduces the updater's unified TLS features.
+ activitywatch_crypto_ready().expect("desktop crypto provider");
+ todo_activitywatch::Provider::new().expect("desktop HTTP client");
+ activitywatch_crypto_ready().expect("idempotent initialization");
+ todo_activitywatch::Provider::new().expect("second HTTP client");
+}
 // Only the desktop main window can explicitly request local activity data.
 #[tauri::command]
 async fn native_activitywatch_status(window:tauri::WebviewWindow)->Result<serde_json::Value,String>{
  if window.label()!="main"{return Err("仅主窗口可连接".into())}
- #[cfg(desktop)] {let status=todo_activitywatch::Provider::new()?.status().await?;serde_json::to_value(status).map_err(|_|"状态转换失败".into())}
+ #[cfg(desktop)] {activitywatch_crypto_ready()?;let status=todo_activitywatch::Provider::new()?.status().await?;serde_json::to_value(status).map_err(|_|"状态转换失败".into())}
  #[cfg(not(desktop))] {Err("仅桌面端支持".into())}
 }
 #[tauri::command]
 async fn native_activitywatch_report(window:tauri::WebviewWindow,start:i64,end:i64,consent:bool,bounds:Option<Vec<i64>>,detail:Option<bool>,include_web:Option<bool>)->Result<serde_json::Value,String>{
  if window.label()!="main"||!consent{return Err("请主动授权本次读取".into())}
- #[cfg(desktop)] {let provider=todo_activitywatch::Provider::new()?;
+ #[cfg(desktop)] {activitywatch_crypto_ready()?;let provider=todo_activitywatch::Provider::new()?;
  let report=if let Some(b)=bounds{if b.first()!=Some(&start)||b.last()!=Some(&end){return Err("日期授权范围不一致".into())}provider.period_scoped(&b,detail.unwrap_or(false),include_web.unwrap_or(false)).await?}else{provider.period_scoped(&[start,end],true,include_web.unwrap_or(false)).await?};serde_json::to_value(report).map_err(|_|"统计转换失败".into())}
  #[cfg(not(desktop))] {let _=(start,end,bounds,detail,include_web);Err("仅桌面端支持".into())}
 }

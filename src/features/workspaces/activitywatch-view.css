@@ -47,3 +47,44 @@
 .aw-trend-bar:focus-visible,.aw-rank-button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 @media(max-width:600px){.aw-trend{grid-template-columns:repeat(var(--aw-columns),minmax(30px,1fr))}.aw-view .aw-actions select{max-width:180px}}
 .aw-view .aw-scope{display:flex;align-items:center;gap:var(--space-2);font-size:.85rem;color:var(--text)}
+
+/* Activity workspace: compact local controls, no external icon requests. */
+.aw-view .aw-card{gap:var(--space-3)}
+.aw-source-identity{display:flex;align-items:center;gap:var(--space-2);min-width:0}
+.aw-source-identity>svg{color:var(--muted);flex:none}
+.aw-source-identity p{margin-top:3px;font-size:.8rem}
+.aw-privacy{font-size:.78rem;min-width:0}
+.aw-privacy summary{display:flex;align-items:center;gap:6px;color:var(--muted);cursor:pointer;width:fit-content;list-style:none}
+.aw-privacy summary::-webkit-details-marker{display:none}
+.aw-privacy[open] p{padding:8px 0 0;line-height:1.6}
+.aw-date-toolbar{display:flex;justify-content:space-between;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.aw-date-navigation{gap:4px}
+.aw-date-field{background:var(--bg);border:var(--surface-border);border-radius:var(--radius-control);padding:0 8px;color:var(--muted)}
+.aw-date-field input{border:0;background:transparent;color:var(--text);font:inherit;height:32px;padding:0;max-width:150px}
+.aw-read-actions{padding-top:var(--space-2);border-top:1px solid var(--line)}
+.aw-source-hint{border-left:2px solid var(--accent);padding-left:var(--space-2);font-size:.8rem}
+.aw-view .aw-ranking{gap:3px}
+.aw-view .aw-rank-button{display:grid;grid-template-columns:20px 30px minmax(0,1fr);align-items:center;gap:8px;padding:7px 5px}
+.aw-rank-index{font-variant-numeric:tabular-nums;color:var(--muted);font-size:10px}
+.aw-subject-icon{display:inline-grid;place-items:center;width:28px;height:28px;flex:none;border-radius:7px;color:var(--aw-subject);background:color-mix(in srgb,var(--aw-subject) 12%,var(--bg))}
+.aw-rank-main{min-width:0}
+.aw-rank-label{flex-wrap:nowrap;gap:8px;font-size:.82rem}
+.aw-rank-label strong{white-space:nowrap}
+.aw-rank-track{display:grid;grid-template-columns:minmax(0,1fr) 44px;align-items:center;gap:8px;margin-top:4px}
+.aw-rank-track .aw-bar{margin:0;height:4px}
+.aw-rank-track small{text-align:right;font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+.aw-timeline{height:38px;background:repeating-linear-gradient(to right,transparent 0,transparent calc(25% - 1px),var(--line) calc(25% - 1px),var(--line) 25%),var(--bg)}
+.aw-timeline span{top:5px;bottom:5px;opacity:.9}
+.aw-timeline-axis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));font-size:10px;gap:0}
+.aw-timeline-axis span{text-align:center;white-space:nowrap}
+.aw-timeline-axis span:first-child{text-align:left}
+.aw-timeline-axis span:last-child{text-align:right}
+.aw-events{max-height:280px}
+.aw-event-subject{display:flex;gap:7px;align-items:center;min-width:0}
+.aw-event-subject .aw-subject-icon{width:21px;height:21px;border-radius:5px}
+.aw-event-subject svg{width:12px;height:12px}
+.aw-events>div{align-items:center;padding:6px 0}
+.aw-trend-column{grid-template-rows:144px auto;gap:5px}
+.aw-view .aw-trend-bar{height:144px;background:repeating-linear-gradient(to top,transparent 0,transparent calc(25% - 1px),var(--line) calc(25% - 1px),var(--line) 25%),var(--bg)}
+.aw-view .aw-trend-bar[data-available=false]>span{border-color:var(--muted);opacity:.45}
+@media(max-width:600px){.aw-view .aw-rank-button{grid-template-columns:16px 26px minmax(0,1fr);gap:6px}.aw-subject-icon{width:25px;height:25px}.aw-rank-label{font-size:.78rem}.aw-date-field input{height:38px}.aw-date-navigation{gap:3px}.aw-timeline-axis{font-size:9px}}

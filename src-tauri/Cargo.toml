@@ -32,6 +32,8 @@ tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 tauri-plugin-updater = "=2.14.1"
 tauri-plugin-process = "2"
 todo-activitywatch = { path = "activitywatch-provider" }
+# Already present through the updater; explicitly choose its ring provider.
+rustls = { version = "=0.23.46", default-features = false, features = ["ring"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 tauri-plugin-todo-mobile = { path = "plugins/todo-mobile" }

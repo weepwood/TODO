@@ -19,6 +19,13 @@ for(const [width,design,theme] of [[1440,'classic','light'],[1440,'native','dark
   await view.getByRole('button',{name:'查看合成示例'}).click();
   await expect(view.getByText('合成演示 · 非真实活动')).toBeVisible();
   await expect(view.getByRole('heading',{name:'软件排行'})).toBeVisible();
+  await expect(view.locator('.aw-timeline-axis span')).toHaveCount(5);
+  await expect(view.locator('.aw-rank-button .aw-subject-icon').first()).toBeVisible();
+  await expect(view.locator('.aw-rank-track small').first()).toContainText('%');
+  await expect(view.locator('.aw-privacy')).not.toHaveAttribute('open','');
+  await view.locator('.aw-privacy summary').click();
+  await expect(view.locator('.aw-privacy')).toHaveAttribute('open','');
+  await view.locator('.aw-privacy summary').click();
   await expect(view.getByText('github.com',{exact:true})).toBeVisible();
   await expect(view.getByText('工程开发（示例）',{exact:true})).toBeVisible();
   await expect(view.getByText('5 小时 30 分钟',{exact:true})).toBeVisible();
