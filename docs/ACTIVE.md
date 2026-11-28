@@ -2,17 +2,15 @@
 
 产品基线 3d47350；正式 main 3ad8ee2（v1.2.0-alpha.1 已公开发行，Pages 已部署），AI 候选 47babb9，增量研究 648dd1a（R6 未提交，保持原样）。本清单替代历史路线的执行优先级，不替代原始证据。
 
-## 新独立研发专项：Activity Tracking
+## 当前独立研发专项：ActivityWatch 轻量集成
 
-- [x] 独立 feat/activity-tracking，基于 Alpha.3 候选 deb2f28，保留发布工作区；不混入 PR #40。
-- [x] R1 固定上游 watcher/UsageOS、核对许可证与实际代码/架构，macOS 有界布尔探针。
-- [x] R2/R3 独立 Rust 状态机及 SQLite 原型，12 项测试、90 日合成对照通过。
-- [x] 独立 macOS 有界采集适配与 Swift→Rust→SQLite 实机排除路径；生命周期、质量、覆盖率、迁移、保留及故障恢复原型。20 Rust 测试与隔离子进程实验通过。
-- [ ] 真实锁屏、应用切换、休眠、会话事件及长时资源验收；产品显式权限/启停、进程监管与安全存储。
-- [x] Native Messaging 独立帧协议、来源白名单、持久有界 FIFO、幂等重放及强杀实验；未注册宿主。
-- [ ] R4 真实扩展、宿主注册与身份配置、ACK关联与断线调度；R5–R8 后续按实际证据实施。
-- 本批详细证据与限制见 [原生生命周期与消息协议](activity-tracking/native-lifecycle-r4.md)。
-- 详见 [R1–R3 研究与实验](activity-tracking/r1-r3.md)。原有产品与存储门禁保持不变。
+- [x] 自主 Activity Tracking 冻结于 ccd8c20，保留原 crate、历史研究和20项原有测试；不接入产品、不再开发采集/宿主/队列/数据库。
+- [x] 固定 ActivityWatch 上游代码、许可证、官方 REST 和标准查询，核对本机安装/监听状态，未请求实际服务。
+- [x] 只读单主机 provider、桌面 IPC、主动授权、异常反馈；日期裁剪、应用及网站交集、覆盖率、域名过滤。
+- [x] 活动分析工作台、任务/专注/规划只读对照、双主题和窄屏合成演示。
+- [x] 9 Rust 隔离 API 测试、311前端单测、Tauri check、Vite 构建、Chromium/WebKit 各3项真实 Web 界面测试。
+- [ ] 用户另行授权后验证真实数据源、实际原生 IPC 运行、隐私设置、版本/多浏览器兼容与真实统计口径。暂不进行安装包或发布验收。
+- [轻量集成报告](activity-tracking/activitywatch-integration.md)；[R1–R3](activity-tracking/r1-r3.md) 与 [原生生命周期原型](activity-tracking/native-lifecycle-r4.md) 保留为冻结研究。正式发布工作区不动。
 
 ## 当前独立本地设计专项：Design Vocabulary
 

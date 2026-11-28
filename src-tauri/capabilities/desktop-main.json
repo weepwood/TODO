@@ -21,6 +21,8 @@
     "allow-native-direct-ack",
     "allow-native-direct-cancel-pending",
     "allow-native-cli-binding",
+    "allow-native-activitywatch-status",
+    "allow-native-activitywatch-report",
     "updater:allow-check",
     "updater:allow-download",
     "updater:allow-install",

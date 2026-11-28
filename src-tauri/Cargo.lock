@@ -4670,7 +4670,18 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tauri-plugin-todo-mobile",
  "tauri-plugin-updater",
+ "todo-activitywatch",
  "uuid",
+]
+
+[[package]]
+name = "todo-activitywatch"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "reqwest",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

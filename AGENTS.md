@@ -11,6 +11,10 @@
 - 计划日期、截止、提醒、重复实例、积分、专注、历史及锁定语义独立；编辑复用共享事务与撤销。保留作用域、旧字段、原值检查、冲突备份、明确恢复与失败不覆盖。不得以性能为由减少完整校验。
 - 不读取或修改正式个人数据，不自动登录/绑定 CLI，不使用正式凭据做试验，不将 secret/service_role、密码、令牌写入仓库，不扩大云权限或费用。
 
+## 当前 ActivityWatch 专项边界
+
+- feat/activity-tracking 基于 ccd8c20 转向轻量集成，详见 docs/activity-tracking/activitywatch-integration.md 与 ACTIVE。自主 activity-core 原型及原证据冻结；只读 provider 仅桌面主窗口、用户主动检测及按日期授权，默认不连接、不持久化、不接云。隔离模拟验收，不得访问真实 ActivityWatch 历史或修改其配置；原生真实运行须另行授权。中文本地提交，不推送、合并或发布。
+
 ## 本地操作与验收
 - 当前 CI 效率专项使用 feat/ci-efficiency 独立工作树（基于 PR #39 的 694117d）；登录候选 feat/social-auth-web 保持原样，产品已发布基线见 origin/main。保持正式 main、AI 候选、研究分支及未提交内容；保留 4197 正常预览和 4318 独立 QA，不停止其他任务或覆盖共享构建目录。
 - 使用合成数据与隔离浏览器 origin；默认 4178 空闲时定向冒烟，不读取既有用户浏览器 profile。Node 20+；按风险使用 node --test、npm run build、定向 Playwright；涉及数据、同步、权限、恢复时执行对应必要专项。完整 RC/跨平台验收仅在发布授权或实际故障需要时进行，未运行不声称通过。

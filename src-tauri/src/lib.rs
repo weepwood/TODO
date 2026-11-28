@@ -12,6 +12,19 @@ use tauri_plugin_notification::NotificationExt;
 mod storage;
 pub mod cli;
 use storage::*;
+// Only the desktop main window can explicitly request local activity data.
+#[tauri::command]
+async fn native_activitywatch_status(window:tauri::WebviewWindow)->Result<serde_json::Value,String>{
+ if window.label()!="main"{return Err("仅主窗口可连接".into())}
+ #[cfg(desktop)] {let status=todo_activitywatch::Provider::new()?.status().await?;serde_json::to_value(status).map_err(|_|"状态转换失败".into())}
+ #[cfg(not(desktop))] {Err("仅桌面端支持".into())}
+}
+#[tauri::command]
+async fn native_activitywatch_report(window:tauri::WebviewWindow,start:i64,end:i64,consent:bool)->Result<serde_json::Value,String>{
+ if window.label()!="main"||!consent{return Err("请主动授权本次读取".into())}
+ #[cfg(desktop)] {let report=todo_activitywatch::Provider::new()?.report(start,end).await?;serde_json::to_value(report).map_err(|_|"统计转换失败".into())}
+ #[cfg(not(desktop))] {let _=(start,end);Err("仅桌面端支持".into())}
+}
 struct Database(Mutex<Connection>);
 struct ActiveScope(Mutex<Option<String>>);
 // The secondary window owns no workspace. It can hand a bounded draft to the
@@ -267,7 +280,7 @@ pub fn run(){
  #[cfg(desktop)] let builder=if option_env!("TODO_SIGNED_RELEASE")==Some("1"){builder.plugin(tauri_plugin_updater::Builder::new().build()).plugin(tauri_plugin_process::init())}else{builder};
  #[cfg(target_os="android")] let builder=builder.plugin(tauri_plugin_todo_mobile::init());
  builder.plugin(tauri_plugin_deep_link::init()).plugin(tauri_plugin_opener::Builder::new().open_js_links_on_click(false).build()).plugin(tauri_plugin_notification::init())
- .invoke_handler(tauri::generate_handler![native_load,native_save,native_load_store,native_write_store,native_activate,native_search,native_list_backups,native_read_backup,native_create_backup,native_notify,native_exit,native_test_notification,native_take_quick_capture,native_shortcut_status,native_open_capture,native_capture_generation,native_capture_handoff,native_capture_cancel,native_capture_submit_direct,native_capture_direct_status,native_direct_pending,native_direct_ack,native_direct_cancel_pending,native_cli_binding])
+ .invoke_handler(tauri::generate_handler![native_load,native_save,native_load_store,native_write_store,native_activate,native_search,native_list_backups,native_read_backup,native_create_backup,native_notify,native_exit,native_test_notification,native_take_quick_capture,native_shortcut_status,native_open_capture,native_capture_generation,native_capture_handoff,native_capture_cancel,native_capture_submit_direct,native_capture_direct_status,native_direct_pending,native_direct_ack,native_direct_cancel_pending,native_cli_binding,native_activitywatch_status,native_activitywatch_report])
  .setup(|app|{
   let path=app.path().app_data_dir()?;std::fs::create_dir_all(&path)?;let c=Connection::open(path.join("todo.sqlite3"))?;c.busy_timeout(std::time::Duration::from_secs(5))?;schema(&c)?;
   app.manage(Database(Mutex::new(c)));app.manage(ActiveScope(Mutex::new(None)));app.manage(QuickCapture(Mutex::new(CaptureState::default())));app.manage(ShortcutStatus(Mutex::new("not-registered".into())));
