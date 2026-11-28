@@ -92,6 +92,10 @@ impl Provider {
     // A request is at most seven contiguous local-day slices. The caller
     // authorizes the full visible range and may stop between chunks.
     pub async fn period(&self,bounds:&[i64],detail:bool)->Result<Report,String>{
+        self.period_scoped(bounds,detail,true).await
+    }
+    // Explicit scope: application and AFK are always required, web is optional.
+    pub async fn period_scoped(&self,bounds:&[i64],detail:bool,include_web:bool)->Result<Report,String>{
         validate_bounds(bounds,detail)?;
         let start=bounds[0];let end=*bounds.last().unwrap();
         let (info,b)=self.sources().await?;
@@ -110,7 +114,7 @@ impl Provider {
         let mut web=Vec::new();
         let mut used=BTreeSet::new();
         let mut candidates:BTreeMap<&str,Vec<&String>>=BTreeMap::new();
-        for (id,_) in local.filter(|(_,x)|x.kind=="web.tab.current") {
+        for (id,_) in local.filter(|(_,x)|include_web&&x.kind=="web.tab.current") {
             if let Some(browser)=browser_bucket(id){candidates.entry(browser).or_default().push(id);}
             else {warnings.push("存在尚未支持的浏览器数据源，未计入网站统计".into());}
         }
@@ -121,7 +125,7 @@ impl Provider {
             web.extend(intersect(&active,&domains,|a,_|browser_app(a)==Some(browser),true));
             used.insert(browser);
         }
-        if used.is_empty(){warnings.push("没有可用的网站数据源；网站时长未知".into())}
+        if !include_web{warnings.push("本次未授权网站记录；网站时长未知".into())}else if used.is_empty(){warnings.push("没有可用的网站数据源；网站时长未知".into())}
         if known.is_empty(){warnings.push("该日期没有应用与空闲状态共同覆盖的记录".into())}
         web.sort_by_key(|s|s.start);
         let active_ms=duration(&active);let website_ms=duration(&web);
@@ -349,6 +353,18 @@ mod tests {
         assert_eq!(r.days.len(),7);assert!(r.days.iter().all(|d|d.active_ms==16_000_000));assert!(r.timeline.is_empty());
         println!("seven_day_fixture_events=28000 elapsed_ms={} response_bytes={}",elapsed.as_millis(),serde_json::to_vec(&r).unwrap().len());
         h.join().unwrap();
+    }
+    #[test]fn app_afk_scope_never_reads_available_web_bucket(){
+        // A known local web bucket exists, yet only these four GETs are served.
+        let(p,h)=mock(vec![("info",200,info()),("buckets/",200,buckets()),
+            ("buckets/app/events",200,json!([event(0,60,json!({"app":"Google Chrome","title":"fixture-secret"}))])),
+            ("buckets/afk/events",200,json!([event(0,60,json!({"status":"not-afk"}))]))]);
+        let r=runtime().block_on(p.period_scoped(&[0,60_000],true,false)).unwrap();
+        assert_eq!(r.active_ms,60_000);assert!(!r.website_available);
+        assert!(r.websites.is_empty()&&r.website_timeline.is_empty());
+        assert!(!serde_json::to_string(&r).unwrap().contains("fixture-secret"));
+        assert!(r.warnings.iter().any(|w|w.contains("未授权")));
+        assert_eq!(h.join().unwrap().len(),4);
     }
     #[test]fn no_web_is_unknown_not_total(){
         let(p,h)=mock(vec![("info",200,info()),("buckets/",200,json!({"app":{"type":"currentwindow","hostname":"fixture"},"afk":{"type":"afkstatus","hostname":"fixture"}})),

@@ -100,11 +100,11 @@ export function combineActivityReports(reports,period){
 }
 // One user action authorizes exactly the captured bounds. Stop before issuing
 // another request after cancellation; never publish a partial aggregate.
-export async function readActivityPeriod(period,mode,load,isCurrent=()=>true,onProgress=()=>{}){
+export async function readActivityPeriod(period,mode,load,isCurrent=()=>true,onProgress=()=>{},includeWeb=false){
  const chunks=activityChunks(period.bounds),results=[];let rows=0;
  for(const bounds of chunks){
   if(!isCurrent())return null;
-  const r=await load({start:bounds[0],end:bounds.at(-1),bounds,detail:mode==='day',consent:true});
+  const r=await load({start:bounds[0],end:bounds.at(-1),bounds,detail:mode==='day',consent:true,includeWeb});
   if(!isCurrent())return null;
   if(r.days?.length!==bounds.length-1||r.days.some((d,i)=>d.start!==bounds[i]||d.end!==bounds[i+1]))throw Error('日期分段不完整');
   rows+=r.days.reduce((n,d)=>n+d.apps.length+d.websites.length,0);

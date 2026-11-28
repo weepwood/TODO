@@ -24,6 +24,9 @@ for(const [width,design,theme] of [[1440,'classic','light'],[1440,'native','dark
   await expect(view.getByText('5 小时 30 分钟',{exact:true})).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
   mkdirSync(dir,{recursive:true});await page.screenshot({path:dir+'/'+width+'-'+design+'-'+theme+'.png',animations:'disabled'});
+  await view.getByRole('checkbox',{name:'同时授权网站使用记录'}).check();
+  await expect(view.getByRole('heading',{name:'软件排行'})).toHaveCount(0);
+  await view.getByRole('button',{name:'查看合成示例'}).click();
   await view.getByLabel('活动日期').fill('2026-11-26');await expect(view.getByRole('heading',{name:'软件排行'})).toHaveCount(0);
   expect(await page.evaluate(()=>Object.keys(localStorage).some(k=>k.includes('activitywatch')))).toBe(false);
  });

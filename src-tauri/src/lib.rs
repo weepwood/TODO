@@ -20,11 +20,11 @@ async fn native_activitywatch_status(window:tauri::WebviewWindow)->Result<serde_
  #[cfg(not(desktop))] {Err("仅桌面端支持".into())}
 }
 #[tauri::command]
-async fn native_activitywatch_report(window:tauri::WebviewWindow,start:i64,end:i64,consent:bool,bounds:Option<Vec<i64>>,detail:Option<bool>)->Result<serde_json::Value,String>{
+async fn native_activitywatch_report(window:tauri::WebviewWindow,start:i64,end:i64,consent:bool,bounds:Option<Vec<i64>>,detail:Option<bool>,include_web:Option<bool>)->Result<serde_json::Value,String>{
  if window.label()!="main"||!consent{return Err("请主动授权本次读取".into())}
  #[cfg(desktop)] {let provider=todo_activitywatch::Provider::new()?;
- let report=if let Some(b)=bounds{if b.first()!=Some(&start)||b.last()!=Some(&end){return Err("日期授权范围不一致".into())}provider.period(&b,detail.unwrap_or(false)).await?}else{provider.report(start,end).await?};serde_json::to_value(report).map_err(|_|"统计转换失败".into())}
- #[cfg(not(desktop))] {let _=(start,end,bounds,detail);Err("仅桌面端支持".into())}
+ let report=if let Some(b)=bounds{if b.first()!=Some(&start)||b.last()!=Some(&end){return Err("日期授权范围不一致".into())}provider.period_scoped(&b,detail.unwrap_or(false),include_web.unwrap_or(false)).await?}else{provider.period_scoped(&[start,end],true,include_web.unwrap_or(false)).await?};serde_json::to_value(report).map_err(|_|"统计转换失败".into())}
+ #[cfg(not(desktop))] {let _=(start,end,bounds,detail,include_web);Err("仅桌面端支持".into())}
 }
 struct Database(Mutex<Connection>);
 struct ActiveScope(Mutex<Option<String>>);

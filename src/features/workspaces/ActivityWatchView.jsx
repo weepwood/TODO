@@ -22,6 +22,7 @@ function Ranking({title,rows,total,available=true,onSelect,selected}){
 }
 export function ActivityWatchView({data,today,connect=()=>invoke('native_activitywatch_status'),load=args=>invoke('native_activitywatch_report',args),supported=desktopNative}){
  const [day,setDay]=useState(today),[source,setSource]=useState(null),[report,setReport]=useState(null),[example,setExample]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ const [includeWeb,setIncludeWeb]=useState(false);
  const [mode,setMode]=useState('day'),[kind,setKind]=useState('apps'),[subject,setSubject]=useState(''),[progress,setProgress]=useState(null);
  const period=activityPeriod(day,mode);
  const request=useRef(0),inFlight=useRef(false);const [pending,setPending]=useState(false);
@@ -34,7 +35,7 @@ export function ActivityWatchView({data,today,connect=()=>invoke('native_activit
   const chunks=activityChunks(period.bounds),id=++request.current;
   setReport(null);setExample(false);setSubject('');setBusy(true);setError('');setProgress([0,chunks.length]);
   try{
-   const result=await readActivityPeriod(period,mode,load,()=>id===request.current,(done,total)=>setProgress([done,total]));
+   const result=await readActivityPeriod(period,mode,load,()=>id===request.current,(done,total)=>setProgress([done,total]),includeWeb);
    if(result&&id===request.current)setReport(result);
   }catch(e){if(id===request.current){setError(typeof e==='string'?e:e instanceof Error?e.message:'读取失败');setReport(null);setSource(null)}}
   finally{inFlight.current=false;setPending(false);if(id===request.current){setBusy(false);setProgress(null)}}
@@ -52,9 +53,10 @@ export function ActivityWatchView({data,today,connect=()=>invoke('native_activit
    <div className="aw-source-head"><div><h2>ActivityWatch 数据来源</h2><p className="muted">{example?'合成演示 · 非真实活动':source?'已检测 · '+source.version+(source.app&&source.afk?' · 应用与空闲数据源可用':' · 缺少必要数据源'):'尚未连接'}</p></div>
     {source?<button className="secondary compact" onClick={()=>{reset();setSource(null)}}>断开并清除结果</button>:<button className="secondary compact" disabled={pending||!supported} onClick={()=>{reset();run(connect,setSource)}}>检测本地连接</button>}
    </div>
-   <p className="muted">仅桌面端通过 127.0.0.1:5600 读取。按下授权按钮会读取所示完整周期的本机应用、AFK 与可识别网页记录。不会启动采集、保存历史、修改 ActivityWatch 或上传数据。ActivityWatch 自身可能保留完整 URL 与窗口标题，请先检查其隐私配置。仅能排除明确标记的隐私浏览记录，旧记录缺少标记时无法确认。</p>
+   <p className="muted">仅桌面端通过 127.0.0.1:5600 读取。按下授权按钮会读取所示完整周期的本机应用与 AFK 记录；仅勾选后才读取网站记录。不会启动采集、保存历史、修改 ActivityWatch 或上传数据。ActivityWatch 自身可能保留完整 URL 与窗口标题，请先检查其隐私配置。仅能排除明确标记的隐私浏览记录，旧记录缺少标记时无法确认。</p>
    {!supported&&<p className="muted">此平台不访问本机服务，可查看合成示例。</p>}
    {source&&<p className="muted">本机网页数据源：{source.browsers} 个{source.browsers===0?' · 网站时长未知':''}</p>}
+   <label className="aw-scope"><input type="checkbox" checked={includeWeb} onChange={e=>{reset();setIncludeWeb(e.target.checked)}}/> 同时授权网站使用记录</label>
    <Segmented label="活动统计周期" value={mode} options={[{value:'day',label:'日'},{value:'week',label:'周'},{value:'month',label:'月'},{value:'year',label:'年'}]} onValueChange={m=>{reset();setMode(m)}}/>
    <div className="aw-actions"><button type="button" className="icon-button" aria-label="上一周期" onClick={()=>move(-1)}><ChevronLeft size={16}/></button><label>日期 <input type="date" aria-label="活动日期" value={day} max={today} onChange={e=>{reset();setDay(e.target.value)}}/></label><button type="button" className="icon-button" aria-label="下一周期" disabled={shiftActivityPeriod(day,mode,1)>today} onClick={()=>move(1)}><ChevronRight size={16}/></button>
     <button type="button" className="secondary compact" onClick={()=>{reset();setDay(today)}}>今天</button>
@@ -82,7 +84,7 @@ export function ActivityWatchView({data,today,connect=()=>invoke('native_activit
     {mode==='day'&&    <section className="module-card aw-card"><h2>任务、专注与规划对照</h2><p className="muted">只比较时间交集，不判断实际任务归属。预计时长为任务整体估计；专注起点与已记秒数用于近似区间，可能包含暂停误差。各任务交集不可直接相加。</p>
      {!compare.length?<p className="muted">该日没有可关联的任务或专注记录。</p>:<div className="aw-comparison">{compare.slice(0,100).map(t=><div key={t.id}><h3>{t.title}</h3><dl>{[['任务预计',t.estimate],['日内规划',t.plan],['日内专注',t.focus],['规划与活动重合',t.planOverlap],['专注与活动重合',t.focusOverlap]].map(([label,ms])=><div key={label}><dt>{label}</dt><dd>{duration(ms)}</dd></div>)}</dl></div>)}{compare.length>100&&<p className="muted">仅显示前 100 项。</p>}</div>}
     </section>}
-    {report.days.some(d=>!d.website_available)&&<p className="muted">所选周期中 {report.days.filter(d=>!d.website_available).length} 天没有可确认的网站记录；已识别网站时长仅为已观测部分。</p>}
+    {(example||includeWeb)&&report.days.some(d=>!d.website_available)&&<p className="muted">所选周期中 {report.days.filter(d=>!d.website_available).length} 天没有可确认的网站记录；已识别网站时长仅为已观测部分。</p>}
     {report.warnings.map((w,i)=><p className="muted" key={i}>{w}</p>)}
     <p className="muted">网站时间是有效应用时间的子集。统计仅覆盖当前设备与受支持的浏览器，缺失记录不会回填。覆盖率分母为所选周期已过去的查询区间。</p>
   </>}

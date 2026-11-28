@@ -56,7 +56,7 @@ test('分段查询仅使用授权范围，取消或失败不继续请求、不�
  const fixture=activityPeriodExample(p);
  const load=async args=>{calls.push(args);return {days:fixture.days.filter(d=>d.start>=args.start&&d.end<=args.end),warnings:[]}};
  const r=await readActivityPeriod(p,'month',load,()=>true,(...x)=>progress.push(x));
- assert.equal(calls.length,5);assert(calls.every(x=>x.consent&&x.detail===false));
+ assert.equal(calls.length,5);assert(calls.every(x=>x.consent&&x.detail===false&&x.includeWeb===false));
  assert.deepEqual(calls.flatMap((c,i)=>i?c.bounds.slice(1):c.bounds),p.bounds);
  assert.equal(r.active_ms,fixture.active_ms);assert.deepEqual(progress.at(-1),[5,5]);
  let current=true,count=0;
@@ -73,4 +73,10 @@ test('夏令时春季23小时与秋季25小时保持本地日期边界',()=>{
  const code=`import {activityPeriod} from './src/core/activitywatch-summary.js';console.log(JSON.stringify(['2024-03-10','2024-11-03'].map(d=>{const p=activityPeriod(d,'day',Date.now());return (p.end-p.start)/3600000})))`;
  const result=execFileSync(process.execPath,['--input-type=module','-e',code],{cwd:new URL('..',import.meta.url),env:{...process.env,TZ:'America/New_York'},encoding:'utf8'});
  assert.deepEqual(JSON.parse(result),[23,25]);
+});
+
+test('网站访问仅在明确选中时传递至每个授权分段',async()=>{
+ const p=activityPeriod('2024-02-29','month',Date.now()),fixture=activityPeriodExample(p),calls=[];
+ await readActivityPeriod(p,'month',async args=>{calls.push(args);return {days:fixture.days.filter(d=>d.start>=args.start&&d.end<=args.end),warnings:[]}},()=>true,()=>{},true);
+ assert.equal(calls.length,5);assert(calls.every(x=>x.includeWeb===true&&x.consent));
 });
