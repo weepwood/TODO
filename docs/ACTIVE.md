@@ -14,7 +14,9 @@
 - [x] 用户授权 2026-11-29 本机应用/AFK 短窗口真实只读验收，独立复算一致、子区间裁剪一致；修复网站独立授权默认关闭。Rust15、前端316、双引擎各5、Tauri check与Web构建通过。详见 [真实数据验收](activity-tracking/activitywatch-real-audit.md)。
 - [x] 独立 Tauri/WKWebView 实际运行，修复 reqwest/Rustls 特性合并 panic；真实元数据与合成报告13项运行检查，桌面依赖图回归1项，前端316与双引擎各5通过。精修图标、排行、日期、时间线；本机无网页桶且常见扩展目录未发现官方扩展。详见 [桌面验收](activity-tracking/activitywatch-desktop-qa.md)。
 - [x] 活动分类与本机任务映射、分类堆叠与日/小时热力图、星期均值、独立授权周期对照、单日任务偏差及当日回顾入口；322前端单测、双引擎各7及隔离配置/授权各8项检查通过。详见 [产品深化](activity-tracking/activitywatch-product.md)。
-- [ ] 完整正式客户端、真实锁屏休眠、跨日完整性、网页源/多浏览器兼容及长周期性能仍待按授权范围验收。暂不进行安装包或发布验收。
+- [x] 产品质量收口：批量主体检索和映射、分类/热力图布局、时间预算、回顾返回日期及暂停清理；前端324、双引擎各9、完整隔离原生候选两轮27项，年度合成50轮通过。详见 [候选冻结](activity-tracking/activitywatch-freeze.md)。
+- [x] 本地功能候选冻结，停止新增功能；仅修复真实发布阻塞。
+- [ ] 正式安装升级、真实锁屏休眠、跨日完整性、网页源/多浏览器兼容及真实长周期性能仍待按授权范围验收；跨平台、签名安装包及完整发布门禁未执行。
 - [轻量集成报告](activity-tracking/activitywatch-integration.md)；[R1–R3](activity-tracking/r1-r3.md) 与 [原生生命周期原型](activity-tracking/native-lifecycle-r4.md) 保留为冻结研究。正式发布工作区不动。
 
 ## 当前独立本地设计专项：Design Vocabulary

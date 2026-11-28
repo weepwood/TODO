@@ -1,3 +1,5 @@
+import {expandPlanBlocks,blockMinutes} from './plan-block.js';
+import {uniqueWallInstant} from './wall-time.js';
 // Local-only user rules. No report, raw activity, or task edits are persisted.
 import {activityColor,unionIntervals,activityTaskComparison,activityPeriod,shiftActivityPeriod} from './activitywatch-summary.js';
 export const activityRulesKey=scope=>'todo-activity-rules-v1:'+encodeURIComponent(scope||'guest');
@@ -34,6 +36,37 @@ export function setActivityMapping(r,m){
  const next={...r,mappings:r.mappings.filter(x=>x.kind!==m.kind||x.subject!==m.subject)};
  if(m.category!==null||m.taskId!==null)next.mappings.push(m);
  if(!validateActivityRules(next))throw Error('分类或映射不合法，或超出数量限制');return next;
+}
+// Apply only explicitly requested fields; all selected subjects are validated
+// before publishing the new immutable configuration.
+export function batchActivityMappings(r,kind,subjects,patch){
+ if(!['apps','websites'].includes(kind)||!Array.isArray(subjects)||!subjects.length||subjects.length>500||
+    !Object.keys(patch).length||Object.keys(patch).some(k=>!['category','taskId'].includes(k)))throw Error('无效批量映射');
+ const selected=new Set(subjects),existing=new Map(r.mappings.filter(m=>m.kind===kind).map(m=>[m.subject,m]));
+ const next={...r,mappings:r.mappings.filter(m=>m.kind!==kind||!selected.has(m.subject))};
+ for(const subject of selected){
+  if(!validText(subject,253)||/[/?#\\]/.test(subject)||kind==='websites'&&!/^[a-z0-9.-]+$/.test(subject))throw Error('无效主体');
+  const row={kind,subject,category:null,taskId:null,...existing.get(subject),...patch};
+  if(row.category!==null||row.taskId!==null)next.mappings.push(row);
+ }
+ if(!validateActivityRules(next))throw Error('批量映射无效或超过上限；未应用任何修改');
+ return next;
+}
+export function activityBudget(data,report){
+ const clip=(a,b)=>[Math.max(report.start,a),Math.min(report.end,b)];
+ const plans=[],focus=[];
+ for(const b of expandPlanBlocks(data.tasks.filter(t=>!t.deletedAt))){
+  if(!b.date||!b.time)continue;
+  const a=uniqueWallInstant(b.date,b.time),m=blockMinutes(b);
+  if(a!==null&&Number.isFinite(a)&&Number.isFinite(m)&&m>0)plans.push(clip(a,a+m*60000));
+ }
+ const tasks=new Set(data.tasks.filter(t=>!t.deletedAt).map(t=>t.id));
+ for(const s of data.sessions||[]){
+  if(s.mode!=='focus'||!tasks.has(s.taskId)||!Number.isFinite(s.seconds)||s.seconds<=0)continue;
+  const a=Date.parse(s.startedAt);if(Number.isFinite(a))focus.push(clip(a,a+s.seconds*1000));
+ }
+ const occupied=total(unionIntervals(plans)),focused=total(unionIntervals(focus)),range=report.end-report.start;
+ return {range,occupied,focused,unplanned:range-occupied,observed:report.active_ms,unknown:range-report.known_ms};
 }
 export function removeActivityCategory(r,id){
  return {...r,categories:r.categories.filter(c=>c.id!==id),mappings:r.mappings.map(m=>m.category===id?{...m,category:null}:m).filter(m=>m.category!==null||m.taskId!==null)};

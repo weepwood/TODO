@@ -30,14 +30,19 @@ function TimelineAxis({start,end}){
  const length=end-start;
  return <div className="aw-axis aw-timeline-axis">{[0,.25,.5,.75,1].map((f,i)=><span key={i}>{i===4&&new Date(start).getDate()!==new Date(end).getDate()?'次日 ':''}{time(start+length*f)}</span>)}</div>
 }
-export function ActivityWatchView({data,today,connect=()=>invoke('native_activitywatch_status'),load=args=>invoke('native_activitywatch_report',args),supported=desktopNative,scope="guest",onOpenReview}){
- const [day,setDay]=useState(today),[source,setSource]=useState(null),[report,setReport]=useState(null),[example,setExample]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
+export function ActivityWatchView({data,today,connect=()=>invoke('native_activitywatch_status'),load=args=>invoke('native_activitywatch_report',args),supported=desktopNative,scope="guest",initialDay,onOpenReview}){
+ const [day,setDay]=useState(initialDay||today),[source,setSource]=useState(null),[report,setReport]=useState(null),[example,setExample]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const [includeWeb,setIncludeWeb]=useState(false);
  const [mode,setMode]=useState('day'),[kind,setKind]=useState('apps'),[subject,setSubject]=useState(''),[progress,setProgress]=useState(null);
  const period=activityPeriod(day,mode);
  const request=useRef(0),inFlight=useRef(false);const [pending,setPending]=useState(false);
  useEffect(()=>()=>{request.current++},[]);
  const reset=()=>{request.current++;setBusy(false);setReport(null);setExample(false);setError('');setProgress(null);setSubject('')};
+ useEffect(()=>{
+  const pause=()=>{reset();setSource(null);setIncludeWeb(false)};
+  window.addEventListener('todo-native-pause',pause);
+  return()=>window.removeEventListener('todo-native-pause',pause);
+ },[]);
  const run=async(operation,apply)=>{if(inFlight.current)return;inFlight.current=true;setPending(true);const id=++request.current;setBusy(true);setError('');try{const result=await operation();if(id===request.current)apply(result)}catch(e){if(id===request.current){setError(typeof e==='string'?e:'连接或读取失败');setReport(null);setSource(null);setIncludeWeb(false)}}finally{inFlight.current=false;setPending(false);if(id===request.current)setBusy(false)}};
  const read=async()=>{
   if(!period||inFlight.current||!source?.app||!source?.afk)return;

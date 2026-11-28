@@ -67,3 +67,25 @@ test('周期对比明确覆盖及长度，只有完整等长应用区间才计�
  assert.equal(periodComparison(full,fullPrev,'websites').delta,null);
  assert.equal(periodComparison(r,{...prev,website_available:false},'websites').observedDelta,null);
 });
+
+import {batchActivityMappings,activityBudget} from '../src/core/activitywatch-analysis.js';
+test('批量仅改变选定字段、保留其他任务映射且原子拒绝非法主体',()=>{
+ const r=exampleActivityRules(),snapshot=JSON.stringify(r);
+ const n=batchActivityMappings(r,'apps',['VS Code','Microsoft Edge'],{category:'learning'});
+ assert.equal(n.mappings.find(m=>m.subject==='VS Code').taskId,'demo-1');
+ assert.equal(n.mappings.find(m=>m.subject==='Microsoft Edge').taskId,null);
+ const cleared=batchActivityMappings(n,'apps',['VS Code','Microsoft Edge'],{category:null});
+ assert(cleared.mappings.some(m=>m.subject==='VS Code'&&m.taskId==='demo-1'&&m.category===null));
+ assert(!cleared.mappings.some(m=>m.subject==='Microsoft Edge'));
+ assert.throws(()=>batchActivityMappings(r,'websites',['example.org','https://example.org/a'],{category:'learning'}));
+ assert.equal(JSON.stringify(r),snapshot);
+});
+test('查询区间预算去除跨任务规划和专注重叠，裁剪范围，排除休息',()=>{
+ const r=fixture(),data=activityExample(day).data;
+ const extra={...data,tasks:[...data.tasks,{id:'extra',title:'并行',date:day,time:'10:00',duration:120}],sessions:[...data.sessions,{taskId:'extra',mode:'focus',startedAt:new Date(r.start+10*h).toISOString(),seconds:3600}]};
+ const b=activityBudget(extra,r);
+ assert.equal(b.occupied,4.5*h);assert.equal(b.focused,3*h);
+ assert.equal(b.occupied+b.unplanned,b.range);assert.equal(b.observed+b.unknown<=b.range,true);
+ const short={...r,end:r.start+10*h,active_ms:h,known_ms:h};
+ assert.equal(activityBudget(extra,short).occupied,h);
+});

@@ -102,12 +102,12 @@ for(const width of [1440,390]){
   await expect(view.locator('.aw-category-stack span')).toHaveCount(3);
   await expect(view.getByRole('group',{name:'小时活动热力图'}).locator('>div')).toHaveCount(24);
   await expect(view.getByText('规则匹配活动',{exact:true})).toHaveCount(2);
-  await view.locator('.aw-rule-panel summary').click();
+  await view.locator('.aw-rule-panel>summary').click();
   await view.getByLabel('新分类名称').fill('研究');
   await view.getByRole('button',{name:'添加分类'}).click();
   await view.getByLabel('规则主体').selectOption('VS Code');
   await view.getByLabel('规则分类').selectOption({label:'研究'});
-  await view.getByLabel('关联任务').selectOption('demo-1');
+  await view.getByLabel('关联任务',{exact:true}).selectOption('demo-1');
   await view.getByRole('button',{name:'应用映射'}).click();
   await expect(view.locator('.aw-category-legend')).toContainText('研究');
   await view.getByRole('button',{name:'确认示例规则'}).click();
@@ -117,7 +117,7 @@ for(const width of [1440,390]){
   await expect(view.locator('.aw-rule-list')).toContainText('未分类 · 工程开发（示例）');
   mkdirSync(dir,{recursive:true});
   await view.locator('.aw-rule-panel').screenshot({path:dir+'/rules-'+width+'.png',animations:'disabled'});
-  await view.locator('.aw-rule-panel summary').click();
+  await view.locator('.aw-rule-panel>summary').click();
   await view.getByRole('button',{name:'生成上一周期示例'}).click();
   await expect(view.locator('.aw-compare-grid>div')).toHaveCount(2);
   await expect(view.locator('.aw-compare-grid')).toContainText('上一周期');
@@ -131,5 +131,53 @@ for(const width of [1440,390]){
   await view.locator('.aw-category-chart').screenshot({path:dir+'/category-month-'+width+'.png',animations:'disabled'});
   await view.getByRole('group',{name:'日期活动热力图'}).screenshot({path:dir+'/heatmap-'+width+'.png',animations:'disabled'});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+ });
+}
+
+for(const width of [1440,390]){
+ test('批量分类保留任务关联、无效草稿保护及窗口暂停清理 '+width,async({page})=>{
+  await page.setViewportSize({width,height:900});
+  await page.route('**/*',r=>new URL(r.request().url()).origin==='http://127.0.0.1:4178'?r.continue():r.abort());
+  await page.addInitScript(d=>{localStorage.setItem('todo-workbench-v1',JSON.stringify(d))},initialState());
+  await page.goto('/');
+  if(width<861){await page.getByRole('button',{name:'更多',exact:true}).click();await page.getByRole('dialog',{name:'工作空间'}).getByRole('button',{name:'活动分析',exact:true}).click();}
+  else await page.getByRole('button',{name:'打开活动分析',exact:true}).click();
+  const view=page.locator('.aw-view');
+  await view.getByLabel('活动日期').fill('2026-11-27');
+  await view.getByRole('button',{name:'查看合成示例'}).click();
+  await view.locator('.aw-rule-panel summary').first().click();
+  await view.locator('.aw-batch summary').click();
+  await view.getByLabel('检索活动主体').fill('VS Code');
+  expect((await view.getByLabel('检索活动主体').boundingBox()).width).toBeGreaterThan(150);
+  await expect(view.locator('.aw-subject-list label')).toHaveCount(1);
+  await view.getByRole('button',{name:'选中当前结果'}).click();
+  await view.getByLabel('批量分类').selectOption('learning');
+  await view.getByRole('button',{name:'应用批量映射'}).click();
+  await expect(view.locator('.aw-rule-list')).toContainText('学习 · 工程开发（示例）');
+  await view.getByLabel('检索活动主体').fill('');
+  await view.getByLabel('仅未分类').check();
+  await expect(view.locator('.aw-subject-list')).toContainText('Microsoft Edge');
+  await expect(view.locator('.aw-subject-list label')).toHaveCount(1);
+  await view.getByRole('button',{name:'选中当前结果'}).click();
+  await view.getByLabel('批量分类').selectOption('development');
+  await view.getByRole('button',{name:'应用批量映射'}).click();
+  await expect(view.locator('.aw-subject-list label')).toHaveCount(0);
+  await expect(view.getByRole('button',{name:'应用批量映射'})).toBeDisabled();
+  await view.getByLabel('分类名称 development').fill('');
+  await expect(view.getByText('分类草稿不合法，图表保留最近有效配置。')).toBeVisible();
+  await expect(view.locator('.aw-category-legend')).toContainText('开发');
+  await expect(view.getByRole('button',{name:'确认示例规则'})).toBeDisabled();
+  await view.getByLabel('分类名称 development').fill('开发');
+  await view.getByRole('button',{name:'确认示例规则'}).click();
+  await expect(view.getByRole('heading',{name:'查询区间时间预算'})).toBeVisible();
+  await view.locator('.aw-rule-panel').screenshot({path:dir+'/batch-'+width+'.png',animations:'disabled'});
+  await view.locator('.aw-budget').screenshot({path:dir+'/budget-'+width+'.png',animations:'disabled'});
+  expect(await view.locator('.aw-category-stack').first().evaluate(el=>getComputedStyle(el).flexDirection)).toBe('row');
+  await view.locator('.aw-analysis-grid').screenshot({path:dir+'/analysis-grid-'+width+'.png',animations:'disabled'});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+  await page.evaluate(()=>window.dispatchEvent(new Event('todo-native-pause')));
+  await expect(view.locator('.aw-metrics')).toHaveCount(0);
+  await expect(view.getByText('尚未连接',{exact:true})).toBeVisible();
+  expect(await page.evaluate(()=>Object.keys(localStorage).some(k=>k.startsWith('todo-activity-rules-v1:')))).toBe(false);
  });
 }
