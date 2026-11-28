@@ -13,9 +13,11 @@ test('属性直接操作、浮层不改变卡片位置及已完成只读保护',
  await page.locator('.task-body').filter({hasText:'快捷验收'}).click();
  const detail=page.locator('.detail-content'),plan=detail.locator('[data-detail-section=plan]'),org=detail.locator('[data-detail-section=organization]');
  const duration=plan.getByRole('spinbutton',{name:'预计分钟'});await duration.fill('45');await duration.press('Enter');await expect(duration).toHaveValue('45');
- const before=await org.boundingBox(),priority=org.getByRole('combobox',{name:'优先级',exact:true});
+ const priority=org.getByRole('combobox',{name:'优先级',exact:true});await priority.scrollIntoViewIfNeeded();
+ const position=()=>org.evaluate(el=>{const host=el.closest('.detail-content');return el.getBoundingClientRect().top-host.getBoundingClientRect().top+host.scrollTop});
+ const before=await position();
  await chooseOption(priority,'3');await expect(priority).toContainText('高优先级');
- expect(Math.abs((await org.boundingBox()).y-before.y)).toBeLessThan(2);
+ expect(Math.abs(await position()-before)).toBeLessThan(2);
  await page.screenshot({path:'test-results/detail-quick-edit.png',animations:'disabled'});
  await page.locator('.nav-row').filter({hasText:'已完成'}).click();await page.locator('.task-body').filter({hasText:'只读记录'}).click();
  await expect(detail.getByRole('spinbutton')).toHaveCount(0);

@@ -16,7 +16,8 @@
 - [x] 活动分类与本机任务映射、分类堆叠与日/小时热力图、星期均值、独立授权周期对照、单日任务偏差及当日回顾入口；322前端单测、双引擎各7及隔离配置/授权各8项检查通过。详见 [产品深化](activity-tracking/activitywatch-product.md)。
 - [x] 产品质量收口：批量主体检索和映射、分类/热力图布局、时间预算、回顾返回日期及暂停清理；前端324、双引擎各9、完整隔离原生候选两轮27项，年度合成50轮通过。详见 [候选冻结](activity-tracking/activitywatch-freeze.md)。
 - [x] 本地功能候选冻结，停止新增功能；仅修复真实发布阻塞。
-- [ ] 正式安装升级、真实锁屏休眠、跨日完整性、网页源/多浏览器兼容及真实长周期性能仍待按授权范围验收；跨平台、签名安装包及完整发布门禁未执行。
+- [x] 累计发布前审查：远端main直系祖先；324前端/14原生/15 Provider，macOS ARM64 ad-hoc制品、Firefox/WebKit核心冒烟、隔离旧新Web及原生SQLite升级通过；11个历史测试修正。详见 [发布审查](activity-tracking/activitywatch-release-audit.md)。
+- [ ] 正式发布仍阻塞：391项完整UI门禁未完成（本轮124通过、2失败后定向6/6、1条件跳过、264未完成）；最终SHA远程全量、Windows/Android、正式签名/公证/安装升级待验收；真实锁屏休眠、跨日完整性、网页源及真实长周期性能仍须另行授权。
 - [轻量集成报告](activity-tracking/activitywatch-integration.md)；[R1–R3](activity-tracking/r1-r3.md) 与 [原生生命周期原型](activity-tracking/native-lifecycle-r4.md) 保留为冻结研究。正式发布工作区不动。
 
 ## 当前独立本地设计专项：Design Vocabulary

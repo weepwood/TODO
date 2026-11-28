@@ -40,7 +40,7 @@ test('桌面 IPC 模拟：旧存储迁移、SQLite 优先与保存失败重试',
  await expect.poll(()=>page.evaluate(()=>window.__testSearch||0)).toBeGreaterThan(0);
  await expect(page.locator('.task-body').filter({hasText:'等待保存的任务'})).toBeVisible();
  await page.getByRole('button',{name:'清除搜索',exact:true}).click();
- await page.getByRole('button',{name:'设置',exact:true}).click();
+ await page.getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'本地数据',exact:true}).click();
  await page.getByRole('button',{name:'SQLite 备份历史',exact:true}).click();
  await expect(page.getByRole('dialog',{name:'SQLite 备份历史'})).toBeVisible();
  await page.getByRole('button',{name:'恢复',exact:true}).click();

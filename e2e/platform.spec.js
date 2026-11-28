@@ -19,7 +19,7 @@ test('模拟 Android 原生入口：SQLite 持久化、移动导航、通知授�
  await expect.poll(()=>page.evaluate(()=>window.__todoAndroidBack())).toBe(true);
  await expect(page.locator('.details')).toHaveCount(0);
  await page.reload();await expect(page.locator('.task-body').filter({hasText:'Android 积分验收'})).toBeVisible();
- await rail.getByRole('button',{name:'更多',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'设置',exact:true}).click();await expect(page.getByText('桌面快捷操作',{exact:true})).toHaveCount(0);await expect(page.getByText(/后台同步尚未实现/)).toBeVisible();
+ await rail.getByRole('button',{name:'更多',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'提醒',exact:true}).click();await expect(page.getByText('桌面快捷操作',{exact:true})).toHaveCount(0);await expect(page.getByText(/后台同步尚未实现/)).toBeVisible();
  await page.getByRole('button',{name:'发送系统测试提醒'}).click();
  await expect.poll(()=>page.evaluate(()=>window.__calls.includes('native_test_notification'))).toBe(true);
  const calls=await page.evaluate(()=>window.__calls);expect(calls).toContain('plugin:notification|request_permission');expect(calls.some(x=>/native_(take_quick_capture|shortcut_status|open_capture|direct_pending|exit)/.test(x))).toBe(false);

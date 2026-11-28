@@ -122,7 +122,8 @@ test('活动日志记录标题、属性、备注与刷新且不记录取消',asy
  await expect(timeline).toContainText('修改任务名称');await expect(timeline).toContainText('分区验收');await expect(timeline).toContainText('已改名称');
  const priority=detail.getByRole('combobox',{name:'优先级',exact:true});await priority.click();await page.getByRole('option',{name:'高优先级',exact:true}).click();
  await expect(timeline).toContainText('修改优先级');
- const duration=detail.getByRole('spinbutton',{name:'预计分钟'});await duration.fill('65');await duration.press('Escape');await expect(timeline).not.toContainText('修改预计时长');
+ await expect(priority).toBeFocused();
+ const duration=detail.getByRole('spinbutton',{name:'预计分钟'});await duration.fill('65');await expect(duration).toBeFocused();await duration.press('Escape');await expect(duration).toHaveValue('30');await expect(timeline).not.toContainText('修改预计时长');
  const notes=detail.getByRole('textbox',{name:'任务备注'});await notes.fill('第一次');await notes.fill('第二次修改');await expect(timeline.getByText('修改备注',{exact:true})).toHaveCount(1);
  await expect(timeline).not.toContainText('第二次修改');
  const filter=panel.getByRole('combobox',{name:'筛选活动记录'});await filter.click();await page.getByRole('option',{name:'属性修改',exact:true}).click();await expect(timeline).toContainText('修改任务名称');await expect(timeline).not.toContainText('修改备注');

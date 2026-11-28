@@ -2,9 +2,9 @@ import {test,expect,devices} from '@playwright/test';
 test('发布视觉基线：浅色、深色与详情布局',async({page})=>{
  await page.goto('/');
  for(const name of ['项目验收 今天 09:00 !3','整理资料 今天 11:00','阅读计划 今天 15:00']){await page.getByRole('textbox',{name:'新任务名称'}).fill(name);await page.getByRole('button',{name:'添加',exact:true}).click()}
- await page.getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('button',{name:'浅色',exact:true}).click();await page.keyboard.press('Escape');
+ await page.getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'外观与布局',exact:true}).click();await page.getByRole('button',{name:'浅色',exact:true}).click();await page.keyboard.press('Escape');
  await expect(page.locator('html')).toHaveAttribute('data-theme','light');await page.screenshot({path:'test-results/release-light.png',animations:'disabled'});
- await page.getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('button',{name:'深色',exact:true}).click();await page.keyboard.press('Escape');await expect(page.locator('html')).toHaveAttribute('data-theme','dark');await page.screenshot({path:'test-results/release-dark.png',animations:'disabled'});
+ await page.getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'外观与布局',exact:true}).click();await page.getByRole('button',{name:'深色',exact:true}).click();await page.keyboard.press('Escape');await expect(page.locator('html')).toHaveAttribute('data-theme','dark');await page.screenshot({path:'test-results/release-dark.png',animations:'disabled'});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(1440);
 });
 test('移动触摸模拟：指针拖动时间块与窄屏导航',async({browser})=>{

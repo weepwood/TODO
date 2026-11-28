@@ -12,7 +12,7 @@ test('展开备注、草稿应用、完整归档验证与恢复',async({page})=>
  await expect(page.getByRole('textbox',{name:'任务备注'})).toHaveValue(/# 标题[\s\S]*备注正文/);
  await page.locator('.detail-extra input[type=file]').setInputFiles({name:'backup.txt',mimeType:'text/plain',buffer:Buffer.from('备份测试')});
  await expect(page.getByText('backup.txt',{exact:true})).toBeVisible();
- await page.getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('button',{name:'完整工作空间备份',exact:true}).click();
+ await page.getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'本地数据',exact:true}).click();await page.getByRole('button',{name:'完整工作空间备份',exact:true}).click();
  const archive=page.getByRole('dialog',{name:'完整工作空间备份'});
  const downloaded=page.waitForEvent('download');await archive.getByRole('button',{name:'导出完整归档'}).click();const bytes=await readFile(await(await downloaded).path());const parsed=JSON.parse(bytes.toString());expect(parsed.workspace.tasks.some(t=>t.title==='归档编辑测试')).toBe(true);expect(parsed.attachments.entries.length).toBe(1);
  parsed.workspaceSha256='0'.repeat(64);
@@ -20,7 +20,7 @@ test('展开备注、草稿应用、完整归档验证与恢复',async({page})=>
  await archive.getByLabel('完整归档文件').setInputFiles({name:'valid.json',mimeType:'application/json',buffer:bytes});await expect(archive.getByText('完整性校验通过')).toBeVisible();
  await archive.getByRole('button',{name:'恢复工作空间',exact:true}).click();await page.getByRole('button',{name:'确认恢复',exact:true}).click();
  await expect(page.locator('.task-body').filter({hasText:'归档编辑测试'})).toBeVisible();
- await page.getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('button',{name:'完整工作空间备份',exact:true}).click();
+ await page.getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'本地数据',exact:true}).click();await page.getByRole('button',{name:'完整工作空间备份',exact:true}).click();
  await archive.getByLabel('完整归档文件').setInputFiles({name:'valid.json',mimeType:'application/json',buffer:bytes});await expect(archive.getByText('完整性校验通过')).toBeVisible();
  page.once('dialog',d=>d.accept());await archive.getByRole('button',{name:'追加归档附件'}).click();await expect(archive.getByRole('button',{name:'附件已追加'})).toBeDisabled();await expect(archive.getByRole('status')).toContainText('新增 0 个附件，跳过 1 个重复附件');await archive.getByText('本机备份与恢复记录',{exact:true}).click();await expect(archive.getByText('附件恢复完成',{exact:false})).toBeVisible();await expect(archive.getByText('载入工作空间',{exact:false})).toBeVisible();
  expect(errors).toEqual([]);

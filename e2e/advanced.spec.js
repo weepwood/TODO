@@ -29,7 +29,7 @@ test('日期浮层、快捷录入、依赖、撤销重做与范围选择',async(
  await page.locator('.task-body').filter({hasText:'后置工作'}).click({modifiers:['Shift']});
  await expect(page.locator('.bulk-bar')).toContainText('已选 2 项');
  await page.screenshot({path:'test-results/workbench-v04-light.png'});
- await page.getByRole('button',{name:'设置',exact:true}).click();
+ await page.getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'外观与布局',exact:true}).click();
  await page.getByRole('button',{name:'深色',exact:true}).click();
  await page.getByRole('button',{name:'关闭',exact:true}).click();
  await expect(page.locator('html')).toHaveAttribute('data-theme','dark');await page.waitForTimeout(220);await page.screenshot({path:'test-results/workbench-v04-dark.png'});

@@ -42,8 +42,9 @@ test('日历日视图待安排任务触摸拖放',async({browser})=>{
  await p.getByRole('button',{name:'日历',exact:true}).click();await p.getByLabel('联动日期').fill('2026-12-10');
  await p.locator('.calendar-main').getByText('日',{exact:true}).click();await p.getByRole('button',{name:'待安排',exact:true}).click();
  const handle=p.getByRole('button',{name:'拖入日历 日视图触摸安排'}),slot=p.locator('.calendar-main [data-time="06:00:00"]').last();
- await expect(handle).toBeVisible();const a=await handle.boundingBox(),b=await slot.boundingBox();if(!a||!b)throw Error('missing target');
+ await expect(handle).toBeVisible();await slot.scrollIntoViewIfNeeded();const a=await handle.boundingBox(),b=await slot.boundingBox();if(!a||!b)throw Error('missing target');
  const x=a.x+a.width/2,y=a.y+a.height/2,tx=b.x+b.width/2,ty=b.y+5;
+ const hit=await p.evaluate(({tx,ty})=>document.elementFromPoint(tx,ty)?.closest('.calendar-main')!==null&&!!document.elementFromPoint(tx,ty),{tx,ty});expect(hit).toBe(true);
  const cdp=await ctx.newCDPSession(p);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});await p.waitForTimeout(400);
  for(let i=1;i<=20;i++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+(tx-x)*i/20,y:y+(ty-y)*i/20}]});await p.waitForTimeout(15)}
  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
@@ -57,8 +58,9 @@ test('日历周视图待安排任务触摸拖放',async({browser})=>{
  await p.getByRole('button',{name:'日历',exact:true}).click();await p.getByLabel('联动日期').fill('2026-12-10');
  await p.locator('.calendar-main').getByText('周',{exact:true}).click();await p.getByRole('button',{name:'待安排',exact:true}).click();
  const handle=p.getByRole('button',{name:'拖入日历 周视图触摸安排'}),slot=p.locator('.calendar-main [data-time="06:00:00"]').last();
- await expect(handle).toBeVisible();const a=await handle.boundingBox(),b=await slot.boundingBox();if(!a||!b)throw Error('missing target');
+ await expect(handle).toBeVisible();await slot.scrollIntoViewIfNeeded();const a=await handle.boundingBox(),b=await slot.boundingBox();if(!a||!b)throw Error('missing target');
  const x=a.x+a.width/2,y=a.y+a.height/2,tx=await p.locator('.calendar-main [data-date="2026-12-10"]').first().evaluate(el=>{const r=el.getBoundingClientRect();return r.x+r.width/2}),ty=b.y+5;
+ const hit=await p.evaluate(({tx,ty})=>document.elementFromPoint(tx,ty)?.closest('.calendar-main')!==null&&!!document.elementFromPoint(tx,ty),{tx,ty});expect(hit).toBe(true);
  const cdp=await ctx.newCDPSession(p);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});await p.waitForTimeout(400);
  for(let i=1;i<=20;i++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+(tx-x)*i/20,y:y+(ty-y)*i/20}]});await p.waitForTimeout(15)}
  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
@@ -69,7 +71,7 @@ test('八个核心模块双主题布局及实际截图',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');
  for(const name of ['项目验收 今天 09:00 !3','整理资料 今天 11:00','阅读计划 今天 15:00']){await page.getByRole('textbox',{name:'新任务名称'}).fill(name);await page.getByRole('button',{name:'添加',exact:true}).click()}
  for(const [theme,label] of [['light','浅色'],['dark','深色']]){
-  await page.getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('button',{name:label,exact:true}).click();await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('navigation',{name:'设置分类'}).getByRole('button',{name:'外观与布局',exact:true}).click();await page.getByRole('button',{name:label,exact:true}).click();await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0);
   for(const [module,key] of [['任务','tasks'],['日历','calendar'],['看板','board'],['四象限','matrix'],['每日规划','planner'],['专注','focus'],['习惯','habits'],['统计','stats']]){
    await page.locator('.rail').getByRole('button',{name:module,exact:true}).click();
    await expect(page.locator('.rail button.active')).toHaveAttribute('aria-label',module);
