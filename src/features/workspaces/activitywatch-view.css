@@ -88,3 +88,40 @@
 .aw-view .aw-trend-bar{height:144px;background:repeating-linear-gradient(to top,transparent 0,transparent calc(25% - 1px),var(--line) calc(25% - 1px),var(--line) 25%),var(--bg)}
 .aw-view .aw-trend-bar[data-available=false]>span{border-color:var(--muted);opacity:.45}
 @media(max-width:600px){.aw-view .aw-rank-button{grid-template-columns:16px 26px minmax(0,1fr);gap:6px}.aw-subject-icon{width:25px;height:25px}.aw-rank-label{font-size:.78rem}.aw-date-field input{height:38px}.aw-date-navigation{gap:3px}.aw-timeline-axis{font-size:9px}}
+
+.aw-rule-panel>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;font-weight:600;list-style:none;flex-wrap:wrap}
+.aw-rule-panel>summary::-webkit-details-marker{display:none}
+.aw-rule-panel>summary::before{content:'›';color:var(--muted);font-size:18px}
+.aw-rule-panel[open]>summary::before{content:'⌄'}
+.aw-rule-panel>summary span{font-weight:400;font-size:.78rem;margin-left:auto}
+.aw-category-list{display:flex;gap:6px;flex-wrap:wrap}
+.aw-category-list>div{display:flex;gap:3px;align-items:center;background:var(--bg);border-radius:var(--radius-control);padding:3px}
+.aw-view .aw-category-list input{width:90px;min-width:0;font-size:.8rem;padding:5px}
+.aw-rule-editor{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;align-items:end;gap:8px}
+.aw-rule-editor label{display:grid;gap:4px;font-size:.78rem;color:var(--muted);min-width:0}
+.aw-view .aw-rule-editor select,.aw-view .aw-rule-panel input{height:34px;min-width:0;max-width:100%;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--bg);color:var(--text);padding:4px 7px}
+.aw-rule-list{max-height:260px;overflow:auto}
+.aw-rule-list>div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 30px;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--line);font-size:.8rem;overflow-wrap:anywhere}
+.aw-category-chart{display:grid;grid-template-columns:repeat(var(--aw-columns),minmax(30px,1fr));gap:5px;overflow-x:auto;padding:4px 3px 8px}
+.aw-category-column{display:grid;grid-template-rows:150px auto;gap:5px;text-align:center;min-width:0}
+.aw-category-column>small{font-size:10px;color:var(--muted)}
+.aw-category-stack{height:150px;display:flex;flex-direction:column-reverse;justify-content:flex-start;background:repeating-linear-gradient(to top,transparent 0,transparent calc(25% - 1px),var(--line) calc(25% - 1px),var(--line) 25%),var(--bg);border-radius:4px;overflow:hidden}
+.aw-category-stack[data-available=false]{border:1px dashed var(--muted);opacity:.55}
+.aw-category-stack>span{display:block;width:100%;flex:none}
+.aw-category-legend{display:flex;flex-wrap:wrap;gap:8px 16px}
+.aw-category-legend>span{display:flex;align-items:center;gap:5px;font-size:.78rem}
+.aw-category-legend i{width:9px;height:9px;border-radius:3px}
+.aw-category-legend strong{font-weight:500;font-variant-numeric:tabular-nums;color:var(--muted)}
+.aw-heatmap{display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:4px;max-height:290px;overflow:auto;padding:2px}
+.aw-heatmap>div{display:grid;gap:4px;padding:5px 6px;border:1px solid var(--line);border-radius:5px;font-size:11px;background:color-mix(in srgb,var(--accent) calc(var(--aw-intensity)*25%),var(--bg));color:var(--text);font-variant-numeric:tabular-nums}
+.aw-heatmap>div[data-observed=false]{border-style:dashed;background:transparent;color:var(--muted)}
+.aw-heatmap small{font-size:10px;color:var(--muted)}
+.aw-weekdays,.aw-compare-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.aw-compare-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.aw-weekdays>div,.aw-compare-grid>div{display:grid;gap:4px;padding:8px;background:var(--bg);border-radius:var(--radius-control);min-width:0}
+.aw-weekdays small,.aw-compare-grid small{font-size:.72rem;color:var(--muted)}
+.aw-weekdays strong,.aw-compare-grid strong{font-variant-numeric:tabular-nums;font-size:.9rem}
+@media(max-width:700px){.aw-rule-editor{grid-template-columns:repeat(2,minmax(0,1fr))}.aw-weekdays{grid-template-columns:repeat(4,minmax(0,1fr))}.aw-heatmap{grid-template-columns:repeat(auto-fill,minmax(52px,1fr))}.aw-compare-grid{grid-template-columns:1fr}}
+.aw-compare-track{height:5px;background:var(--line);border-radius:4px;overflow:hidden}
+.aw-compare-track>span{display:block;background:var(--accent);height:100%;border-radius:4px}
+.aw-compare-grid>div:nth-child(2) .aw-compare-track>span{background:var(--muted)}

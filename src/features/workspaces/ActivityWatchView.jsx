@@ -1,11 +1,12 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {invoke} from '@tauri-apps/api/core';
 import {desktopNative} from '../../platform/runtime.js';
-import {activityPeriod,shiftActivityPeriod,activityChunks,readActivityPeriod,activityTrend,activityColor,activityPeriodExample,activityExample,activityTaskComparison} from '../../core/activitywatch-summary.js';
+import {activityPeriod,shiftActivityPeriod,activityChunks,readActivityPeriod,activityTrend,activityColor,activityPeriodExample,activityExample} from '../../core/activitywatch-summary.js';
 import {Segmented} from '../../design-system/Controls.jsx';
 import {ChevronLeft,ChevronRight,Monitor,Globe,Code2,Terminal,BookOpen,Folder,CalendarDays,Info,Link2} from 'lucide-react';
 import {WorkspaceMetrics} from './WorkspaceMetrics.jsx';
 import './activitywatch-view.css';
+const ActivityWatchAnalysis=React.lazy(()=>import('./ActivityWatchAnalysis.jsx').then(m=>({default:m.ActivityWatchAnalysis})));
 
 function ActivityTrend({rows,mode,color,onDay}){
  const max=Math.max(1,...rows.map(r=>r.ms));
@@ -29,7 +30,7 @@ function TimelineAxis({start,end}){
  const length=end-start;
  return <div className="aw-axis aw-timeline-axis">{[0,.25,.5,.75,1].map((f,i)=><span key={i}>{i===4&&new Date(start).getDate()!==new Date(end).getDate()?'次日 ':''}{time(start+length*f)}</span>)}</div>
 }
-export function ActivityWatchView({data,today,connect=()=>invoke('native_activitywatch_status'),load=args=>invoke('native_activitywatch_report',args),supported=desktopNative}){
+export function ActivityWatchView({data,today,connect=()=>invoke('native_activitywatch_status'),load=args=>invoke('native_activitywatch_report',args),supported=desktopNative,scope="guest",onOpenReview}){
  const [day,setDay]=useState(today),[source,setSource]=useState(null),[report,setReport]=useState(null),[example,setExample]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const [includeWeb,setIncludeWeb]=useState(false);
  const [mode,setMode]=useState('day'),[kind,setKind]=useState('apps'),[subject,setSubject]=useState(''),[progress,setProgress]=useState(null);
@@ -50,7 +51,6 @@ export function ActivityWatchView({data,today,connect=()=>invoke('native_activit
   finally{inFlight.current=false;setPending(false);if(id===request.current){setBusy(false);setProgress(null)}}
  };
  const demo=()=>{if(!period)return;reset();setSource(null);setExample(true);setReport(activityPeriodExample(period))};
- const compare=report&&mode==='day'?activityTaskComparison(example?activityExample(day).data:data,report,day):[];
  const trend=useMemo(()=>report?activityTrend(report,mode,kind,subject):[],[report,mode,kind,subject]);
  const rows=report?.[kind]||[];
  const events=useMemo(()=>report?(kind==='apps'?report.timeline:report.website_timeline).filter(r=>!subject||r.subject===subject):[],[report,kind,subject]);
@@ -91,9 +91,7 @@ export function ActivityWatchView({data,today,connect=()=>invoke('native_activit
      </>:<ActivityTrend rows={trend} mode={mode} color={subject?activityColor(subject):'var(--accent)'} onDay={d=>{reset();setMode('day');setDay(d)}}/>}
     </section>
     <div className="aw-grid"><Ranking title="软件排行" rows={report.apps} total={report.active_ms} available={report.known_ms>0} selected={kind==='apps'?subject:''} onSelect={s=>select('apps',s)}/><Ranking kind="websites" title="网站排行" rows={report.websites} total={report.website_ms} available={report.website_available} selected={kind==='websites'?subject:''} onSelect={s=>select('websites',s)}/></div>
-    {mode==='day'&&    <section className="module-card aw-card"><h2>任务、专注与规划对照</h2><p className="muted">只比较时间交集，不判断实际任务归属。预计时长为任务整体估计；专注起点与已记秒数用于近似区间，可能包含暂停误差。各任务交集不可直接相加。</p>
-     {!compare.length?<p className="muted">该日没有可关联的任务或专注记录。</p>:<div className="aw-comparison">{compare.slice(0,100).map(t=><div key={t.id}><h3>{t.title}</h3><dl>{[['任务预计',t.estimate],['日内规划',t.plan],['日内专注',t.focus],['规划与活动重合',t.planOverlap],['专注与活动重合',t.focusOverlap]].map(([label,ms])=><div key={label}><dt>{label}</dt><dd>{duration(ms)}</dd></div>)}</dl></div>)}{compare.length>100&&<p className="muted">仅显示前 100 项。</p>}</div>}
-    </section>}
+    <React.Suspense fallback={<p className="muted">加载活动分析…</p>}><ActivityWatchAnalysis key={String(example)+':'+report.start+':'+report.end} report={report} day={day} mode={mode} kind={kind} example={example} scope={scope} data={example?activityExample(day).data:data} load={load} includeWeb={includeWeb} onOpenReview={onOpenReview}/></React.Suspense>
     {(example||includeWeb)&&report.days.some(d=>!d.website_available)&&<p className="muted">所选周期中 {report.days.filter(d=>!d.website_available).length} 天没有可确认的网站记录；已识别网站时长仅为已观测部分。</p>}
     {report.warnings.map((w,i)=><p className="muted" key={i}>{w}</p>)}
     <p className="muted">网站时间是有效应用时间的子集。统计仅覆盖当前设备与受支持的浏览器，缺失记录不会回填。覆盖率分母为所选周期已过去的查询区间。</p>
